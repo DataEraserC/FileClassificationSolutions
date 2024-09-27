@@ -22,27 +22,44 @@ Here are the specific SQL create table statements:
 
 ```sql
 CREATE TABLE files (
-    id TEXT PRIMARY KEY,  -- Using UUID as the primary key
-    type TEXT NOT NULL,   -- File type, e.g., 'sticker', 'text', 'image', etc.
-    location TEXT NOT NULL, -- File storage location
-    name TEXT NOT NULL,   -- File name
-    clickCount INTEGER DEFAULT 0, -- Number of clicks
-    shareCount INTEGER DEFAULT 0, -- Number of shares
-    createTime INTEGER NOT NULL, -- Creation time
-    modifyTime INTEGER NOT NULL  -- Modification time
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,   -- 文件类型
+    location TEXT NOT NULL, -- 文件存储位置
+    reference_count INTEGER DEFAULT 0, -- 引用计数
+    group_id INTEGER, -- 默认的文件组ID
+    FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
 CREATE TABLE tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE -- Tag name, must be unique
+    reference_count INTEGER DEFAULT 0, -- 引用计数
+    name TEXT NOT NULL UNIQUE -- 标签名称，唯一
 );
 
-CREATE TABLE file_tags (
-    file_id TEXT,
+CREATE TABLE group_tags (
+    group_id INTEGER,
     tag_id INTEGER,
-    PRIMARY KEY (file_id, tag_id),
-    FOREIGN KEY (file_id) REFERENCES files(id),
+    PRIMARY KEY (group_id, tag_id),
+    FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
+CREATE TABLE groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL, -- 文件组名
+    is_primary BOOLEAN NOT NULL DEFAULT 0, -- 是否为本命文件组，0表示否，1表示是
+    clickCount INTEGER DEFAULT 0, -- 点击次数
+    shareCount INTEGER DEFAULT 0, -- 分享次数
+    createTime INTEGER NOT NULL, -- 创建时间
+    modifyTime INTEGER NOT NULL  -- 修改时间
+);
+
+CREATE TABLE file_groups (
+    file_id INTEGER,
+    group_id INTEGER,
+    PRIMARY KEY (file_id, group_id),
+    FOREIGN KEY (file_id) REFERENCES files(id),
+    FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 ```
 
@@ -93,45 +110,3 @@ WHERE f.id = 'specified_file_id';
 6. **File Search Optimization**: In addition to tag-based search, you could implement full-text search based on file content to enhance search accuracy.
 
 ## API Design
-
-### 1. /api/v1/tags
-
-#### Description
-
-List all tags of all files
-
-#### Request Body
-
-| Name | Type   | Description |
-| ---- | ------ | ----------- |
-| id   | int    | tag_id      |
-| name | string | tag_name    |
-
-#### Response Body
-
-| Name    | Type   | Description      |
-| ------- | ------ | ---------------- |
-| tags    | array  | tags             |
-| code    | int    | response code    |
-| message | string | response message |
-
-### 2. /api/v1/files
-
-#### Description
-
-List all files
-
-#### Request Body
-
-| Name | Type   | Description |
-| ---- | ------ | ----------- |
-| id   | int    | file_id     |
-| name | string | file_name   |
-
-#### Response Body
-
-| Name    | Type   | Description      |
-| ------- | ------ | ---------------- |
-| files   | array  | files            |
-| code    | int    | response code    |
-| message | string | response message |
