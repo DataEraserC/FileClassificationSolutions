@@ -12,6 +12,7 @@ func Router() *gin.Engine {
 	{
 		v1.GET("/ping", service.Ping)
 		v1.POST("/create_file", service.CreateFileHandler)
+		// v1.POST("/upload_file", service.UploadFileHandler)
 		v1.POST("/create_tag", service.CreateTagHandler)
 		v1.POST("/create_file_tag_relation", service.CreateFileTagRelationHandler)
 		v1.POST("/find_file", service.FindFileHandler)

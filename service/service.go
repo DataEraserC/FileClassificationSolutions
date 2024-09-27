@@ -12,7 +12,7 @@ import (
 
 // CreateFileHandler 创建文件记录的 Gin handler
 func CreateFileHandler(c *gin.Context) {
-	var req typings.File
+	var req typings.CreateFileRequest
 	var file models.File
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -20,9 +20,6 @@ func CreateFileHandler(c *gin.Context) {
 	}
 	if req.Name != nil {
 		file.Name = *req.Name
-	}
-	if req.ID != nil {
-		file.ID = *req.ID
 	}
 	if req.Type != nil {
 		file.Type = *req.Type
@@ -38,7 +35,7 @@ func CreateFileHandler(c *gin.Context) {
 
 // CreateTagHandler 创建标签记录的 Gin handler
 func CreateTagHandler(c *gin.Context) {
-	var req typings.Tag
+	var req typings.CreateTagRequest
 	var tag models.Tag
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -46,9 +43,6 @@ func CreateTagHandler(c *gin.Context) {
 	}
 	if req.Name != nil {
 		tag.Name = *req.Name
-	}
-	if req.ID != nil {
-		tag.ID = *req.ID
 	}
 	id, err := logic.CreateTag(&tag)
 	if err != nil {
@@ -61,7 +55,7 @@ func CreateTagHandler(c *gin.Context) {
 
 // CreateFileTagRelationHandler 创建文件和标签关系的 Gin handler
 func CreateFileTagRelationHandler(c *gin.Context) {
-	var req typings.FileTag
+	var req typings.CreateFileTagRelationRequest
 	var fileTag models.FileTag
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

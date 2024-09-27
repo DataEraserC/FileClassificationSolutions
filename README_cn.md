@@ -63,6 +63,13 @@ VALUES ('0fa89015-73dd-4fd6-9e50-370ae0a97ea2', 'sticker', 'path/to/sticker', '�
 INSERT INTO tags (name) VALUES ('崩坏三'), ('松雀');
 ```
 
+```sql
+-- 插入文件和标签的关系
+INSERT INTO file_tags (file_id, tag_id)
+VALUES ('0fa89015-73dd-4fd6-9e50-370ae0a97ea2', (SELECT id FROM tags WHERE name = '崩坏三')),
+       ('0fa89015-73dd-4fd6-9e50-370ae0a97ea2', (SELECT id FROM tags WHERE name = '松雀'));
+```
+
 #### 查询数据
 
 ##### 根据标签查询文件

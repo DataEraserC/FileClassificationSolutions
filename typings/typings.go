@@ -1,16 +1,23 @@
 package typings
 
-type Tag struct {
-	Name *string `json:"name"`
-	ID   *int64  `json:"id"`
+type CreateTagRequest struct {
+	Name *string `json:"tag_name"`
 }
-type File struct {
-	Name *string `json:"name"`
-	ID   *int64  `json:"id"`
-	Type *string `json:"type"`
+type CreateFileRequest struct {
+	Name *string `json:"file_name"`
+	Type *string `json:"file_type"`
 }
 
-type FileTag struct {
+type CreateFileTagRelationRequest struct {
 	FileID *int64 `json:"file_id"`
 	TagID  *int64 `json:"tag_id"`
+}
+
+type FindFileRequest struct {
+	ID         *int64  `json:"file_id"`
+	Type       *string `json:"file_type"`
+	Location   *string `json:"file_location"`
+	Name       *string `json:"file_name"`
+	ClickCount *int64  `json:"file_click_count"`
+	ShareCount *int64  `json:"file_share_count"`
 }
