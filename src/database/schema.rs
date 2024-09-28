@@ -46,27 +46,5 @@ pub fn init(conn: &Connection) -> Result<()> {
         )",
         params![],
     )?;
-
-    // // Example usage
-    // let group_id = create_group(&conn, "Q版青雀", true)?;
-    // let file_id_a = upload_file(&conn, "jpg", "a.jpg")?;
-    // let file_id_b = upload_file(&conn, "mp4", "a.mp4")?;
-
-    // associate_file_with_group(&conn, file_id_a, group_id)?;
-    // associate_file_with_group(&conn, file_id_b, group_id)?;
-
-    // let tag_ids = vec![
-    //     create_tag(&conn, "#青雀")?,
-    //     create_tag(&conn, "#崩坏星穷铁道")?,
-    //     create_tag(&conn, "#Q版")?,
-    // ];
-
-    // for tag_id in tag_ids {
-    //     associate_tag_with_group(&conn, group_id, tag_id)?;
-    // }
-
-    // // Search for files by tag
-    // search_files_by_tag(&conn, "#Q版")?;
-
     Ok(())
 }
