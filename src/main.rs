@@ -20,7 +20,7 @@ fn main() -> Result<()> {
 }
 fn main_menu(conn: &Connection) {
     loop {
-        println!("\n请选择操作：");
+        println!("\n请选择操作:");
         println!("1. 上传文件");
         println!("2. 搜索文件");
         println!("3. 添加标签");
@@ -30,7 +30,7 @@ fn main_menu(conn: &Connection) {
         println!("7. test");
         println!("8. 退出");
 
-        let choice = get_user_input("请输入操作编号：");
+        let choice = get_user_input("请输入操作编号:");
 
         match choice.as_str() {
             "1" => upload_files_menu(conn),
@@ -57,10 +57,10 @@ fn test_menu(conn: &Connection) {
 }
 
 fn upload_files_menu(conn: &Connection) {
-    println!("请输入文件组名：");
+    println!("请输入文件组名:");
     let group_name = get_user_input("");
 
-    println!("请输入标签（用空格分隔）：");
+    println!("请输入标签(用空格分隔):");
     let tags_input = get_user_input("");
     let tags: Vec<&str> = tags_input.split_whitespace().collect();
 
@@ -80,10 +80,10 @@ fn upload_files_menu(conn: &Connection) {
         }
     };
 
-    println!("请输入文件类型（如 jpg, mp4）:");
+    println!("请输入文件类型(如 jpg, mp4):");
     let file_type = get_user_input("");
 
-    println!("请输入文件路径：");
+    println!("请输入文件路径:");
     let file_path = get_user_input("");
 
     let file = match database::queries::upload_file(conn, file_type.as_str(), file_path.as_str()) {
@@ -112,7 +112,7 @@ fn upload_files_menu(conn: &Connection) {
 }
 
 fn search_files_menu(conn: &Connection) {
-    println!("请输入搜索关键词：");
+    println!("请输入搜索关键词:");
     let keyword = get_user_input("");
 
     match database::queries::search_files_by_tag_name(conn, keyword.as_str()) {
@@ -129,7 +129,7 @@ fn search_files_menu(conn: &Connection) {
 }
 
 fn add_tags_menu(conn: &Connection) {
-    println!("请输入要添加的标签：");
+    println!("请输入要添加的标签:");
     let tag_name = get_user_input("");
 
     match database::queries::create_tags(conn, vec![tag_name.as_str()]) {
@@ -139,10 +139,10 @@ fn add_tags_menu(conn: &Connection) {
 }
 
 fn modify_tag_name_menu(conn: &Connection) {
-    println!("请输入要修改的标签名称：");
+    println!("请输入要修改的标签名称:");
     let old_tag_name = get_user_input("");
 
-    println!("请输入新的标签名称：");
+    println!("请输入新的标签名称:");
     let new_tag_name = get_user_input("");
 
     match database::queries::get_tag_id(conn, old_tag_name.as_str()) {
@@ -152,13 +152,13 @@ fn modify_tag_name_menu(conn: &Connection) {
                 Err(e) => eprintln!("Failed to update tag name: {}", e),
             }
         }
-        Ok(None) => {}
+        Ok(_) => {}
         Err(e) => eprintln!("Failed to get tag ID: {}", e),
     }
 }
 
 fn search_by_tag_menu(conn: &Connection) {
-    println!("请输入要搜索的标签：");
+    println!("请输入要搜索的标签:");
     let tag_name = get_user_input("");
 
     match database::queries::search_files_by_tag_name(conn, tag_name.as_str()) {
@@ -175,7 +175,7 @@ fn search_by_tag_menu(conn: &Connection) {
 }
 
 fn search_by_group_name_menu(conn: &Connection) {
-    let group_name = get_user_input("请输入要搜索的文件组名：");
+    let group_name = get_user_input("请输入要搜索的文件组名:");
 
     match database::queries::search_files_by_group_name(conn, group_name.as_str()) {
         Ok(files) => {
