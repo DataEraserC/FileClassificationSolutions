@@ -1,7 +1,7 @@
 CREATE TABLE files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,   -- 文件类型
-    location TEXT NOT NULL, -- 文件存储位置
+    path TEXT NOT NULL, -- 文件存储位置
     reference_count INTEGER DEFAULT 0, -- 引用计数
     group_id INTEGER, -- 默认的文件组ID
     FOREIGN KEY (group_id) REFERENCES groups(id)

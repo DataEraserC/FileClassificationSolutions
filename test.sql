@@ -14,13 +14,13 @@ INSERT INTO tags (name) VALUES ('青雀'), ('崩坏星穷铁道'), ('Q版');
 -- 上传文件并获取刚上传的文件ID
 SELECT 1.3;
 -- 上传第一个文件 a.jpg
-INSERT INTO files (type, location) VALUES ('jpg', 'path/to/a.jpg');
+INSERT INTO files (type, path) VALUES ('jpg', 'path/to/a.jpg');
 
 -- 获取第一个文件的ID
 SELECT last_insert_rowid() AS file_id_1 FROM files;
 
 -- 上传第二个文件 a.mp4
-INSERT INTO files (type, location) VALUES ('mp4', 'path/to/a.mp4');
+INSERT INTO files (type, path) VALUES ('mp4', 'path/to/a.mp4');
 
 -- 获取第二个文件的ID
 SELECT last_insert_rowid() AS file_id_2 FROM files;
@@ -53,7 +53,7 @@ INSERT INTO tags (name) VALUES ('符玄');
 
 -- 上传文件
 SELECT 2.4;
-INSERT INTO files (type, location) VALUES ('jpg', 'path/to/b.jpg');
+INSERT INTO files (type, path) VALUES ('jpg', 'path/to/b.jpg');
 
 -- 获取刚上传的文件ID
 SELECT 2.5;
@@ -74,7 +74,7 @@ INSERT INTO group_tags (group_id, tag_id) VALUES (2, 4);
 
 -- 3. 用户搜索文件 #符玄
 SELECT 3.1;
-SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
 FROM files f
 JOIN file_groups fg ON f.id = fg.file_id
 JOIN group_tags gt ON fg.group_id = gt.group_id
@@ -114,14 +114,14 @@ SELECT
     printf('%-7d|%-9s|%-13s|%-8d|%-14s|%-16d|%-10s|%-10s|%-8s', 
         f.id, 
         f.type, 
-        f.location, 
+        f.path, 
         g.id, 
         g.name, 
         g.is_primary, 
         g.createTime, 
         g.modifyTime, 
         t.name
-    ) AS 'file_id|file_type|file_location|group_id|group_name|is_primary_group|createTime|modifyTime|tag_name'
+    ) AS 'file_id|file_type|file_path|group_id|group_name|is_primary_group|createTime|modifyTime|tag_name'
 FROM 
     files f
 JOIN 
@@ -159,14 +159,14 @@ SELECT 11.1;
 SELECT 12.1;
 -- 获取tag ID后，执行以下查询，这里需要输入tag ID
 -- 注意：以下语句中的 [TAG_ID] 应替换为实际的标签ID
--- SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+-- SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
 -- FROM files f
 -- JOIN file_groups fg ON f.id = fg.file_id
 -- JOIN group_tags gt ON fg.group_id = gt.group_id
 -- JOIN tags t ON gt.tag_id = t.id
 -- WHERE t.id = [TAG_ID];
 
-SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
 FROM files f
 JOIN file_groups fg ON f.id = fg.file_id
 JOIN group_tags gt ON fg.group_id = gt.group_id
@@ -175,7 +175,7 @@ WHERE t.id = 5;
 
 -- 13. 用户手动按tag搜索 #青雀
 SELECT 13.1;
-SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
 FROM files f
 JOIN file_groups fg ON f.id = fg.file_id
 JOIN group_tags gt ON fg.group_id = gt.group_id

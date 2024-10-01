@@ -5,7 +5,7 @@ use rusqlite::{params, Connection, Result};
 pub struct File {
     pub id: i64,
     pub file_type: String,
-    pub location: String,
+    pub path: String,
 }
 
 #[allow(dead_code)]
@@ -42,16 +42,16 @@ pub fn get_last_insert_rowid(conn: &Connection) -> Result<i64> {
 }
 
 #[allow(dead_code)]
-pub fn upload_file(conn: &Connection, file_type: &str, location: &str) -> Result<Option<File>> {
+pub fn upload_file(conn: &Connection, file_type: &str, path: &str) -> Result<Option<File>> {
     conn.execute(
-        "INSERT INTO files (type, location) VALUES (?1, ?2)",
-        params![file_type, location],
+        "INSERT INTO files (type, path) VALUES (?1, ?2)",
+        params![file_type, path],
     )?;
     let file_id = get_last_insert_rowid(&conn)?;
     let file = File {
         id: file_id,
         file_type: file_type.to_string(),
-        location: location.to_string(),
+        path: path.to_string(),
     };
     Ok(Some(file))
 }
@@ -82,7 +82,7 @@ pub fn search_files_by_tag_name(
     tag_name: &str,
 ) -> Result<Vec<File>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+        "SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
          FROM files f
          JOIN file_groups fg ON f.id = fg.file_id
          JOIN group_tags gt ON fg.group_id = gt.group_id
@@ -93,7 +93,7 @@ pub fn search_files_by_tag_name(
         Ok(File {
             id: row.get(0)?,
             file_type: row.get(1)?,
-            location: row.get(2)?,
+            path: row.get(2)?,
         })
     })?;
 
@@ -111,7 +111,7 @@ pub fn search_files_by_tag_id(
     tag_id: i64,
 ) -> Result<Vec<File>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+        "SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
          FROM files f
          JOIN file_groups fg ON f.id = fg.file_id
          JOIN group_tags gt ON fg.group_id = gt.group_id
@@ -121,7 +121,7 @@ pub fn search_files_by_tag_id(
         Ok(File {
             id: row.get(0)?,
             file_type: row.get(1)?,
-            location: row.get(2)?,
+            path: row.get(2)?,
         })
     })?;
 
@@ -139,7 +139,7 @@ pub fn search_files_by_group_name(
     group_name: &str,
 ) -> Result<Vec<File>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT f.id AS file_id, f.type AS file_type, f.location AS file_location
+        "SELECT f.id AS file_id, f.type AS file_type, f.path AS file_path
          FROM files f
          JOIN file_groups fg ON f.id = fg.file_id
          JOIN groups g ON fg.group_id = g.id
@@ -149,7 +149,7 @@ pub fn search_files_by_group_name(
         Ok(File {
             id: row.get("file_id")?,
             file_type: row.get("file_type")?,
-            location: row.get("file_location")?,
+            path: row.get("file_path")?,
         })
     })?;
 

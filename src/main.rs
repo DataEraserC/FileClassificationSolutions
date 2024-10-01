@@ -120,7 +120,7 @@ fn search_files_menu(conn: &Connection) {
             for file in files {
                 println!(
                     "文件ID: {}, 文件类型: {}, 文件路径: {}",
-                    file.id, file.file_type, file.location
+                    file.id, file.file_type, file.path
                 );
             }
         }
@@ -166,7 +166,7 @@ fn search_by_tag_menu(conn: &Connection) {
             for file in files {
                 println!(
                     "文件ID: {}, 文件类型: {}, 文件路径: {}",
-                    file.id, file.file_type, file.location
+                    file.id, file.file_type, file.path
                 );
             }
         }
@@ -182,7 +182,7 @@ fn search_by_group_name_menu(conn: &Connection) {
             for file in files {
                 println!(
                     "文件ID: {}, 文件类型: {}, 文件路径: {}",
-                    file.id, file.file_type, file.location
+                    file.id, file.file_type, file.path
                 );
             }
         }
@@ -433,7 +433,7 @@ fn test(conn: &Connection) -> Result<()> {
             for file in files {
                 println!(
                     "File ID: {}, Name: {}, Group Name: {}",
-                    file.id, file.file_type, file.location
+                    file.id, file.file_type, file.path
                 );
             }
         }

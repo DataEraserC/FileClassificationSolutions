@@ -5,7 +5,7 @@ pub fn init(conn: &Connection) -> Result<()> {
         "CREATE TABLE IF NOT EXISTS files (
             id INTEGER PRIMARY KEY,
             type TEXT NOT NULL,
-            location TEXT NOT NULL
+            path TEXT NOT NULL
         )",
         params![],
     )?;
