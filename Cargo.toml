@@ -1,8 +1,37 @@
 [package]
-name = "rust"
+name = "file_classification"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-rusqlite = "0.24.2"
+diesel = { version = "2.2.0", features = [
+    "sqlite",
+    "chrono",
+    "returning_clauses_for_sqlite_3_35",
+] }
+dotenvy = "0.15"
 chrono = "0.4"
+
+[[bin]]
+name = "list_files"
+doc = false
+
+[[bin]]
+name = "add_files"
+doc = false
+
+[[bin]]
+name = "list_groups"
+doc = false
+
+[[bin]]
+name = "add_groups"
+doc = false
+
+[[bin]]
+name = "list_tags"
+doc = false
+
+[[bin]]
+name = "add_tags"
+doc = false

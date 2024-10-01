@@ -1,7 +1,7 @@
 -- 1. 用户上传文件 {a.jpg, a.mp4} -Q版青雀 #青雀 #崩坏星穷铁道 #Q版
 -- 创建文件组
 SELECT 1.0;
-INSERT INTO groups (name, is_primary, createTime, modifyTime) VALUES ('Q版青雀', 1, datetime('now'), datetime('now'));
+INSERT INTO groups (name, is_primary, create_time, modify_time) VALUES ('Q版青雀', 1, datetime('now'), datetime('now'));
 
 -- 获取刚创建的文件组ID
 SELECT 1.1;
@@ -41,7 +41,7 @@ INSERT INTO group_tags (group_id, tag_id) VALUES (1, 1), (1, 2), (1, 3);
 
 -- 创建文件组
 SELECT 2.1;
-INSERT INTO groups (name, createTime, modifyTime) VALUES ('符玄教训青雀', datetime('now'), datetime('now'));
+INSERT INTO groups (name, create_time, modify_time) VALUES ('符玄教训青雀', datetime('now'), datetime('now'));
 
 -- 获取刚创建的文件组ID
 SELECT 2.2;
@@ -118,10 +118,10 @@ SELECT
         g.id, 
         g.name, 
         g.is_primary, 
-        g.createTime, 
-        g.modifyTime, 
+        g.create_time, 
+        g.modify_time, 
         t.name
-    ) AS 'file_id|file_type|file_path|group_id|group_name|is_primary_group|createTime|modifyTime|tag_name'
+    ) AS 'file_id|file_type|file_path|group_id|group_name|is_primary_group|create_time|modify_time|tag_name'
 FROM 
     files f
 JOIN 
