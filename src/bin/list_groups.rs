@@ -1,7 +1,7 @@
 use diesel::prelude::*;
+use file_classification::establish_connection;
 use file_classification::models::*;
 use file_classification::schema::groups::dsl::*;
-use file_classification::establish_connection;
 
 fn main() {
     let connection = &mut establish_connection();

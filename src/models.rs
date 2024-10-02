@@ -1,4 +1,4 @@
-use crate::schema::{files, groups, tags,file_groups, group_tags};
+use crate::schema::{file_groups, files, group_tags, groups, tags};
 use diesel::prelude::*;
 
 #[derive(Queryable, Selectable)]
@@ -34,6 +34,8 @@ pub struct Group {
 #[diesel(table_name = groups)]
 pub struct NewGroup<'a> {
     pub name: &'a str,
+    pub create_time: &'a i64,
+    pub modify_time: &'a i64,
 }
 
 #[derive(Queryable, Selectable)]
@@ -49,7 +51,6 @@ pub struct Tag {
 pub struct NewTag<'a> {
     pub name: &'a str,
 }
-
 
 #[derive(Insertable)]
 #[diesel(table_name = file_groups)]

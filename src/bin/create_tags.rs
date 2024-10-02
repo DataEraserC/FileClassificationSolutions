@@ -9,16 +9,23 @@ fn main() {
 
     println!("Please input Tag Name:");
     stdin().read_line(&mut name).unwrap();
-    let name = name.trim_end(); // Remove the trailing newline
+    let name = name.trim_end();
 
     let tag = create_tag(connection, name);
-    if let Some(group_id) = tag.id {
-        println!("\nSaved tag {name} with id {}", group_id);
+    match tag {
+        Ok(tag) => {
+            println!("\nCreated tag {name} with id {}", tag.id.unwrap());
+        }
+        Err(e) => {
+            println!("\nError creating tag: {}", e);
+        }
     }
 }
 
+#[allow(dead_code)]
 #[cfg(not(windows))]
 const EOF: &str = "CTRL+D";
 
+#[allow(dead_code)]
 #[cfg(windows)]
 const EOF: &str = "CTRL+Z";

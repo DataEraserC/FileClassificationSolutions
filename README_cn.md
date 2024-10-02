@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS files (
 
 CREATE TABLE IF NOT EXISTS groups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL, -- 文件组名
+    name TEXT NOT NULL UNIQUE, -- 文件组名
     is_primary BOOLEAN NOT NULL DEFAULT 0, -- 是否为本命文件组，0表示否，1表示是
     click_count INTEGER DEFAULT 0, -- 点击次数
     share_count INTEGER DEFAULT 0, -- 分享次数
