@@ -13,18 +13,14 @@ fn main() {
 
     println!("Displaying {} groups", results.len());
     for group in results {
-        let mut output = format!("ID: {}", group.id.unwrap_or_default());
+        let mut output = format!("ID: {}", group.id);
 
         output.push_str(&format!(", Name: '{}'", group.name));
 
         output.push_str(&format!(", IsPrimary: '{}'", group.is_primary));
 
-        if let Some(group_click_count) = group.click_count {
-            output.push_str(&format!(", ClickCount: {}", group_click_count));
-        }
-        if let Some(group_share_count) = group.share_count {
-            output.push_str(&format!(", ShareCount: {}", group_share_count));
-        }
+        output.push_str(&format!(", ClickCount: {}", group.click_count));
+        output.push_str(&format!(", ShareCount: {}", group.share_count));
         output.push_str(&format!(", CreateTime: '{}'", group.create_time));
 
         output.push_str(&format!(", ModifyTime: '{}'", group.modify_time));

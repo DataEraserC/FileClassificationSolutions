@@ -24,12 +24,8 @@ fn main() {
     let result = create_file(connection, name, path, &type_);
     match result {
         Ok((file, group)) => {
-            if let Some(file_id) = file.id {
-                println!("\nSaved file {path} with id {}", file_id);
-            }
-            if let Some(group_id) = group.id {
-                println!("Saved group {type_} with id {}", group_id);
-            }
+                println!("\nSaved file {path} with id {}", file.id);
+                println!("Saved group {type_} with id {}", group.id);
         }
         Err(e) => {
             eprintln!("An error occurred: {}", e);

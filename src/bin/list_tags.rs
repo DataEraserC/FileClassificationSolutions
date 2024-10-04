@@ -13,13 +13,11 @@ fn main() {
 
     println!("Displaying {} tags", results.len());
     for tag in results {
-        let mut output = format!("ID: {}", tag.id.unwrap_or_default());
+        let mut output = format!("ID: {}", tag.id);
 
         output.push_str(&format!(", Name: '{}'", tag.name));
 
-        if let Some(tag_reference_count) = tag.reference_count {
-            output.push_str(&format!(", ReferenceCount: {}", tag_reference_count));
-        }
+        output.push_str(&format!(", ReferenceCount: {}", tag.reference_count));
 
         println!("{}", output);
     }

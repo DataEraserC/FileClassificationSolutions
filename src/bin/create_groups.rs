@@ -14,7 +14,7 @@ fn main() {
     let group = create_group(connection, name);
     match group {
         Ok(group) => {
-            println!("\nGroup {name} created successfully");
+            println!("\nGroup {} created successfully, ID: {}", group.name, group.id);
         }
         Err(e) => {
             println!("\nError creating group: {}", e);

@@ -2,36 +2,36 @@
 
 diesel::table! {
     file_groups (file_id, group_id) {
-        file_id -> Nullable<Integer>,
-        group_id -> Nullable<Integer>,
+        file_id -> Integer,
+        group_id -> Integer,
     }
 }
 
 diesel::table! {
     files (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         #[sql_name = "type"]
         type_ -> Text,
         path -> Text,
-        reference_count -> Nullable<Integer>,
-        group_id -> Nullable<Integer>,
+        reference_count -> Integer,
+        group_id -> Integer,
     }
 }
 
 diesel::table! {
     group_tags (group_id, tag_id) {
-        group_id -> Nullable<Integer>,
-        tag_id -> Nullable<Integer>,
+        group_id -> Integer,
+        tag_id -> Integer,
     }
 }
 
 diesel::table! {
     groups (id) {
-        id -> Nullable<Integer>,
+        id -> Integer,
         name -> Text,
         is_primary -> Bool,
-        click_count -> Nullable<Integer>,
-        share_count -> Nullable<Integer>,
+        click_count -> Integer,
+        share_count -> Integer,
         create_time -> BigInt,
         modify_time -> BigInt,
     }
@@ -39,8 +39,8 @@ diesel::table! {
 
 diesel::table! {
     tags (id) {
-        id -> Nullable<Integer>,
-        reference_count -> Nullable<Integer>,
+        id -> Integer,
+        reference_count -> Integer,
         name -> Text,
     }
 }

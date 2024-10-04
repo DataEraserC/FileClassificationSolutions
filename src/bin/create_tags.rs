@@ -14,7 +14,7 @@ fn main() {
     let tag = create_tag(connection, name);
     match tag {
         Ok(tag) => {
-            println!("\nCreated tag {name} with id {}", tag.id.unwrap());
+            println!("\nCreated tag {name} with id {}", tag.id);
         }
         Err(e) => {
             println!("\nError creating tag: {}", e);

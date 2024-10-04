@@ -13,19 +13,15 @@ fn main() {
 
     println!("Displaying {} files", results.len());
     for file in results {
-        let mut output = format!("ID: {}", file.id.unwrap_or_default());
+        let mut output = format!("ID: {}", file.id);
 
         output.push_str(&format!(", Type: '{}'", file.type_));
 
         output.push_str(&format!(", Path: '{}'", file.path));
 
-        if let Some(file_reference_count) = file.reference_count {
-            output.push_str(&format!(", ReferenceCount: {}", file_reference_count));
-        }
+            output.push_str(&format!(", ReferenceCount: {}", file.reference_count));
 
-        if let Some(file_group_id) = file.group_id {
-            output.push_str(&format!(", GroupID: {}", file_group_id));
-        }
+            output.push_str(&format!(", GroupID: {}", file.group_id));
 
         println!("{}", output);
     }
