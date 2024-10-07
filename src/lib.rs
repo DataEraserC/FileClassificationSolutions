@@ -365,3 +365,32 @@ pub fn select_groups(
     // 执行查询
     base_query.load(conn)
 }
+
+pub fn delete_group(
+    conn: &mut SqliteConnection,
+    group_id: i32,
+) -> Result<(), diesel::result::Error> {
+    use self::schema::groups::dsl::*;
+    match diesel::delete(groups.filter(id.eq(group_id))).execute(conn) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), diesel::result::Error> {
+    use self::schema::files::dsl::*;
+
+    match diesel::delete(files.filter(id.eq(file_id))).execute(conn) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}
+
+pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<(), diesel::result::Error> {
+    use self::schema::tags::dsl::*;
+
+    match diesel::delete(tags.filter(id.eq(tag_id))).execute(conn) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(e),
+    }
+}

@@ -17,7 +17,11 @@ name = "list_files"
 doc = false
 
 [[bin]]
-name = "create_files"
+name = "create_file"
+doc = false
+
+[[bin]]
+name = "delete_file"
 doc = false
 
 [[bin]]
@@ -25,7 +29,11 @@ name = "list_groups"
 doc = false
 
 [[bin]]
-name = "create_groups"
+name = "create_group"
+doc = false
+
+[[bin]]
+name = "delete_group"
 doc = false
 
 [[bin]]
@@ -33,11 +41,15 @@ name = "list_tags"
 doc = false
 
 [[bin]]
-name = "create_tags"
+name = "create_tag"
 doc = false
 
 [[bin]]
-name = "create_group_tags"
+name = "delete_tag"
+doc = false
+
+[[bin]]
+name = "create_group_tag"
 doc = false
 
 [[bin]]
