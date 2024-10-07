@@ -1,8 +1,10 @@
 pub mod models;
 pub mod schema;
 
-use self::models::{File, Group, NewFile, NewFileGroup, NewGroup, NewGroupTag, NewTag, Tag};
-use chrono;
+use self::models::{
+    File, Group, NewFile, NewFileGroup, NewGroup, NewGroupTag, NewTag, SearchFile, SearchGroup,
+    SearchTag, Tag,
+};
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use std::env;
@@ -115,13 +117,7 @@ pub fn create_group(
 ) -> Result<Group, diesel::result::Error> {
     use crate::schema::groups;
 
-    let current_time = chrono::Utc::now().timestamp();
-
-    let new_group = NewGroup {
-        name,
-        create_time: &current_time,
-        modify_time: &current_time,
-    };
+    let new_group = NewGroup { name };
 
     diesel::insert_into(groups::table)
         .values(&new_group)
@@ -275,4 +271,97 @@ pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<(), dies
         .execute(conn)?;
 
     Ok(())
+}
+pub fn select_tags(
+    conn: &mut SqliteConnection,
+    search_input: SearchTag,
+    limit: i64,
+) -> Result<Vec<Tag>, diesel::result::Error> {
+    use self::models::*;
+    use self::schema::tags::dsl::*;
+
+    // 使用 into_boxed() 来对查询进行类型擦除
+    let mut base_query = tags.limit(limit).select(Tag::as_select()).into_boxed();
+
+    // 如果 search_input 中有 id，则添加过滤条件
+    if let Some(tag_id) = search_input.id {
+        base_query = base_query.filter(id.eq(tag_id));
+    }
+    if let Some(tag_name) = search_input.name {
+        base_query = base_query.filter(name.eq(tag_name));
+    }
+
+    // 执行查询
+    base_query.load(conn)
+}
+pub fn select_files(
+    conn: &mut SqliteConnection,
+    search_input: SearchFile,
+    limit: i64,
+) -> Result<Vec<File>, diesel::result::Error> {
+    use self::models::*;
+    use self::schema::files::dsl::*;
+
+    // 使用 into_boxed() 来对查询进行类型擦除
+    let mut base_query = files.limit(limit).select(File::as_select()).into_boxed();
+
+    // 如果 search_input 中有各字段，则添加相应的过滤条件
+    if let Some(file_id) = search_input.id {
+        base_query = base_query.filter(id.eq(file_id));
+    }
+    if let Some(file_type) = search_input.type_ {
+        base_query = base_query.filter(type_.eq(file_type));
+    }
+    if let Some(file_path) = search_input.path {
+        base_query = base_query.filter(path.eq(file_path));
+    }
+    if let Some(ref_count) = search_input.reference_count {
+        base_query = base_query.filter(reference_count.eq(ref_count));
+    }
+    if let Some(group) = search_input.group_id {
+        base_query = base_query.filter(group_id.eq(group));
+    }
+
+    // 执行查询
+    base_query.load(conn)
+}
+pub fn select_groups(
+    conn: &mut SqliteConnection,
+    search_input: SearchGroup,
+    limit: i64,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    use self::models::*;
+    use self::schema::groups::dsl::*;
+
+    // 使用 into_boxed() 来对查询进行类型擦除
+    let mut base_query = groups.limit(limit).select(Group::as_select()).into_boxed();
+
+    // 如果 search_input 中有各字段，则添加相应的过滤条件
+    if let Some(group_id) = search_input.id {
+        base_query = base_query.filter(id.eq(group_id));
+    }
+    if let Some(group_name) = search_input.name {
+        base_query = base_query.filter(name.eq(group_name));
+    }
+    if let Some(ref_count) = search_input.reference_count {
+        base_query = base_query.filter(reference_count.eq(ref_count));
+    }
+    if let Some(is_primary_val) = search_input.is_primary {
+        base_query = base_query.filter(is_primary.eq(is_primary_val));
+    }
+    if let Some(clicks) = search_input.click_count {
+        base_query = base_query.filter(click_count.eq(clicks));
+    }
+    if let Some(shares) = search_input.share_count {
+        base_query = base_query.filter(share_count.eq(shares));
+    }
+    if let Some(created) = search_input.create_time {
+        base_query = base_query.filter(create_time.eq(created));
+    }
+    if let Some(modified) = search_input.modify_time {
+        base_query = base_query.filter(modify_time.eq(modified));
+    }
+
+    // 执行查询
+    base_query.load(conn)
 }

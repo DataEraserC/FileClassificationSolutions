@@ -29,11 +29,12 @@ diesel::table! {
     groups (id) {
         id -> Integer,
         name -> Text,
+        reference_count -> Integer,
         is_primary -> Bool,
         click_count -> Integer,
         share_count -> Integer,
-        create_time -> BigInt,
-        modify_time -> BigInt,
+        create_time -> Timestamp,
+        modify_time -> Timestamp,
     }
 }
 

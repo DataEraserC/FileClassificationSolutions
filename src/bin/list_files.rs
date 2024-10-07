@@ -1,14 +1,20 @@
-use diesel::prelude::*;
 use file_classification::establish_connection;
-use file_classification::models::*;
-use file_classification::schema::files::dsl::*;
+use file_classification::{select_files, models::SearchFile};  // 引入select_files和SearchFile
 
 fn main() {
     let connection = &mut establish_connection();
-    let results = files
-        .limit(5)
-        .select(File::as_select())
-        .load(connection)
+    
+    // 定义一个空的 SearchFile 来进行无条件查询
+    let search_input = SearchFile {
+        id: None,
+        type_: None,
+        path: None,
+        reference_count: None,
+        group_id: None,
+    };
+    
+    // 使用 select_files 函数进行查询
+    let results = select_files(connection, search_input, 5)
         .expect("Error loading files");
 
     println!("Displaying {} files", results.len());
@@ -19,9 +25,9 @@ fn main() {
 
         output.push_str(&format!(", Path: '{}'", file.path));
 
-            output.push_str(&format!(", ReferenceCount: {}", file.reference_count));
+        output.push_str(&format!(", ReferenceCount: {}", file.reference_count));
 
-            output.push_str(&format!(", GroupID: {}", file.group_id));
+        output.push_str(&format!(", GroupID: {}", file.group_id));
 
         println!("{}", output);
     }
