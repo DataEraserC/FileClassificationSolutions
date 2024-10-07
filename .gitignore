@@ -22,3 +22,11 @@ Cargo.lock
 
 *.db
 *.log
+
+# nix related
+result
+result/
+.direnv/
+.DS_Store
+.pre-commit-config.yaml
+logs/
