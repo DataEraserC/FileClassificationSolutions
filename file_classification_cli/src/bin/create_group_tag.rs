@@ -1,5 +1,5 @@
-use file_classification::create_group_tag;
-use file_classification::establish_connection;
+use file_classification_core::create_group_tag;
+use file_classification_core::establish_connection;
 use std::io::{stdin, stdout, Write};
 
 fn main() {

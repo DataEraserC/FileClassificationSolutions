@@ -1,5 +1,5 @@
-use file_classification::establish_connection;
-use file_classification::{select_groups, models::SearchGroup};  // 引入select_groups和SearchGroup
+use file_classification_core::establish_connection;
+use file_classification_core::{select_groups, models::SearchGroup};  // 引入select_groups和SearchGroup
 
 fn main() {
     let connection = &mut establish_connection();

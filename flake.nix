@@ -17,11 +17,12 @@
     forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
     pkgsFor = nixpkgs.legacyPackages;
   in {
-    packages = forAllSystems (system: {
-      default = pkgsFor.${system}.callPackage ./default.nix {};
+    packages = forAllSystems (system: rec {
+      file_classification_cli = pkgsFor.${system}.callPackage ./nix/file_classification_cli.nix {};
+      default = file_classification_cli;
     });
     devShells = forAllSystems (system: {
-      default = pkgsFor.${system}.callPackage ./shell.nix {};
+      default = pkgsFor.${system}.callPackage ./nix/shell.nix {};
     });
   };
 }

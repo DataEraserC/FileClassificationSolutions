@@ -1,5 +1,5 @@
-use file_classification::delete_file;
-use file_classification::establish_connection;
+use file_classification_core::delete_file;
+use file_classification_core::establish_connection;
 use std::io;
 fn main() {
     let connection = &mut establish_connection();

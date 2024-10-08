@@ -1,5 +1,5 @@
-use file_classification::establish_connection;
-use file_classification::{select_files, models::SearchFile};  // 引入select_files和SearchFile
+use file_classification_core::establish_connection;
+use file_classification_core::{select_files, models::SearchFile};  // 引入select_files和SearchFile
 
 fn main() {
     let connection = &mut establish_connection();

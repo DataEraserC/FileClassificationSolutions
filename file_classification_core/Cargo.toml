@@ -1,0 +1,9 @@
+[package]
+name = "file_classification_core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+diesel = { workspace = true }
+dotenvy = { workspace = true }
+chrono = { workspace = true }

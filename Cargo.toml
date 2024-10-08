@@ -1,9 +1,15 @@
-[package]
-name = "file_classification"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+resolver = "2"
+members = ["file_classification_*"]
+default-members = ["file_classification_cli"]
 
-[dependencies]
+[profile.release]
+codegen-units = 1
+lto = true
+panic = "abort"
+strip = true
+
+[workspace.dependencies]
 diesel = { version = "2.2.0", features = [
     "sqlite",
     "chrono",
@@ -11,55 +17,3 @@ diesel = { version = "2.2.0", features = [
 ] }
 dotenvy = "0.15"
 chrono = "0.4"
-
-[[bin]]
-name = "list_files"
-doc = false
-
-[[bin]]
-name = "create_file"
-doc = false
-
-[[bin]]
-name = "delete_file"
-doc = false
-
-[[bin]]
-name = "list_groups"
-doc = false
-
-[[bin]]
-name = "create_group"
-doc = false
-
-[[bin]]
-name = "delete_group"
-doc = false
-
-[[bin]]
-name = "list_tags"
-doc = false
-
-[[bin]]
-name = "create_tag"
-doc = false
-
-[[bin]]
-name = "delete_tag"
-doc = false
-
-[[bin]]
-name = "create_group_tag"
-doc = false
-
-[[bin]]
-name = "create_file_group"
-doc = false
-
-[[bin]]
-name = "webapi"
-doc = false
-
-[[bin]]
-name = "webui"
-doc = false

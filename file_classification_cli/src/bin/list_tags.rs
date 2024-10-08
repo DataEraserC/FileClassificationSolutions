@@ -1,5 +1,5 @@
-use file_classification::establish_connection;
-use file_classification::{select_tags, models::SearchTag};  // 引入select_tags和SearchTag
+use file_classification_core::establish_connection;
+use file_classification_core::{select_tags, models::SearchTag};  // 引入select_tags和SearchTag
 
 fn main() {
     let connection = &mut establish_connection();

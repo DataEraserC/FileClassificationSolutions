@@ -1,5 +1,5 @@
-use file_classification::create_group;
-use file_classification::establish_connection;
+use file_classification_core::create_tag;
+use file_classification_core::establish_connection;
 use std::io::stdin;
 
 fn main() {
@@ -7,17 +7,17 @@ fn main() {
 
     let mut name = String::new();
 
-    println!("Please input Group Name:");
+    println!("Please input Tag Name:");
     stdin().read_line(&mut name).unwrap();
     let name = name.trim_end();
 
-    let group = create_group(connection, name);
-    match group {
-        Ok(group) => {
-            println!("\nGroup {} created successfully, ID: {}", group.name, group.id);
+    let tag = create_tag(connection, name);
+    match tag {
+        Ok(tag) => {
+            println!("\nCreated tag {name} with id {}", tag.id);
         }
         Err(e) => {
-            println!("\nError creating group: {}", e);
+            println!("\nError creating tag: {}", e);
         }
     }
 }
