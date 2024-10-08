@@ -24,7 +24,7 @@ fn _create_file(
 ) -> Result<File, diesel::result::Error> {
     use crate::schema::files;
 
-    let new_file = NewFile {
+    let new_file: NewFile<'_> = NewFile {
         type_,
         path,
         group_id,

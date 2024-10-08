@@ -55,3 +55,11 @@ doc = false
 [[bin]]
 name = "create_file_group"
 doc = false
+
+[[bin]]
+name = "webapi"
+doc = false
+
+[[bin]]
+name = "webui"
+doc = false
