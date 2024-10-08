@@ -1,16 +1,25 @@
-{pkgs, ...}:
-pkgs.mkShell {
-  # Additional tooling
-  buildInputs = with pkgs; [
-    rust-analyzer # LSP Server
-    rustfmt # Formatter
-    clippy # Linter
-    sqlite
-    openssl
-    diesel-cli
-  ];
-  shellHook = ''
-    export OPENSSL_DIR="${pkgs.openssl.dev}"
-    export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
-  '';
-}
+{
+  callPackage,
+  rust-bin,
+  nodePackages,
+}: let
+  mainPkg = callPackage ./file_classification_cli.nix {};
+in
+  mainPkg.overrideAttrs (oa: {
+    nativeBuildInputs =
+      [
+        (rust-bin.stable.latest.default.override {
+          extensions = [
+            "rust-src"
+            "rustfmt"
+            "rust-analyzer"
+            "clippy"
+          ];
+        })
+
+        nodePackages.cspell
+      ]
+      ++ (oa.nativeBuildInputs or []);
+
+    env.RUST_BACKTRACE = "1";
+  })

@@ -1,11 +1,16 @@
-{rustPlatform, sqlite, lib, ...}: let
+{
+  rustPlatform,
+  sqlite,
+  lib,
+  ...
+}: let
   manifest = (lib.importTOML ../file_classification_cli/Cargo.toml).package;
   src = lib.fileset.toSource {
     root = ../.;
     fileset = lib.fileset.unions [
       ../Cargo.toml
       ../Cargo.lock
-      (lib.fileset.fromSource (lib.sources.sourceByRegex ../. [ "^file_classification_.*" ]))
+      (lib.fileset.fromSource (lib.sources.sourceByRegex ../. ["^file_classification_.*"]))
     ];
   };
 in
