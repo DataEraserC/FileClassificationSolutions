@@ -2,6 +2,7 @@
   callPackage,
   rust-bin,
   nodePackages,
+  pkgs,
 }: let
   mainPkg = callPackage ./file_classification_cli.nix {};
 in
@@ -18,6 +19,8 @@ in
         })
 
         nodePackages.cspell
+
+        pkgs.diesel-cli
       ]
       ++ (oa.nativeBuildInputs or []);
 
