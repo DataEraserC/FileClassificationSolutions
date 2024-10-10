@@ -21,6 +21,8 @@ in
         nodePackages.cspell
 
         pkgs.diesel-cli
+
+        pkgs.bashInteractive
       ]
       ++ (oa.nativeBuildInputs or []);
 
