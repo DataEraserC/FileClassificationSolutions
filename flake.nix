@@ -1,3 +1,4 @@
+# nix builder refer to https://github.com/sxyazi/yazi
 {
   description = "A File Classification Solution";
   inputs = {
