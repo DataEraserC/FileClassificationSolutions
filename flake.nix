@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay = {
-      url = "github:oxalica/rust-overlay/b7996075da11a2d441cfbf4e77c2939ce51506fd"; # FIX: pin to a specific commit until cargo-c is updated
+      url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -23,17 +23,12 @@
           inherit system;
           overlays = [
             rust-overlay.overlays.default
-            (
-              final: prev: let
-                toolchain = final.rust-bin.stable.latest.default;
-              in {
-                rustPlatform = prev.makeRustPlatform {
-                  cargo = toolchain;
-                  rustc = toolchain;
-                };
-              }
-            )
           ];
+        };
+        toolchain = pkgs.rust-bin.stable.latest.default;
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = toolchain;
+          rustc = toolchain;
         };
 
         rev = self.shortRev or self.dirtyShortRev or "dirty";
@@ -43,7 +38,14 @@
           + "pre${builtins.substring 0 8 date}_${rev}";
       in {
         packages = {
-          file_classification_cli = pkgs.callPackage ./nix/file_classification_cli.nix {};
+          file_classification_cli = pkgs.callPackage ./nix/file_classification_cli.nix {
+            inherit
+              version
+              rev
+              date
+              rustPlatform
+              ;
+          };
           default = self.packages.${system}.file_classification_cli;
         };
 

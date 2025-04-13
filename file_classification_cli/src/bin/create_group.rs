@@ -1,5 +1,5 @@
-use file_classification_core::create_group;
-use file_classification_core::establish_connection;
+use file_classification_core::groups::create_group;
+use file_classification_core::database::establish_connection;
 use std::io::stdin;
 
 fn main() {
@@ -14,7 +14,7 @@ fn main() {
 	let group = create_group(connection, name);
 	match group {
 		Ok(group) => {
-			println!("\nGroup {} created successfully, ID: {}", group.name, group.id);
+			println!("Group created successfully!(Group<{:?}>)", group);
 		}
 		Err(e) => {
 			println!("\nError creating group: {}", e);

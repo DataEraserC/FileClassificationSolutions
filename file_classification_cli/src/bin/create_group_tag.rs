@@ -1,6 +1,6 @@
-use file_classification_core::create_group_tag;
-use file_classification_core::establish_connection;
-use std::io::{stdin, stdout, Write};
+use file_classification_core::group_tag::create_group_tag;
+use file_classification_core::database::establish_connection;
+use std::io::{Write, stdin, stdout};
 
 fn main() {
 	let connection = &mut establish_connection();
@@ -19,10 +19,11 @@ fn main() {
 	let tag_id: i32 = tag_id_input.trim().parse().expect("Invalid Tag ID");
 
 	let result = create_group_tag(connection, group_id, tag_id);
-	if result.is_ok() {
-		println!("\nTag ID {} added to Group ID {}", tag_id, group_id);
-	} else {
-		println!("\nFailed to add Tag ID {} to Group ID {}", tag_id, group_id);
+	match result {
+		Ok(new_group_tag) => {
+			println!("GroupTag created successfully!NewGroupTag<{:?}>", new_group_tag)
+		}
+		Err(e) => eprintln!("Error creating GroupTag: {}", e),
 	}
 }
 

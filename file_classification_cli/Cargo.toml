@@ -1,7 +1,7 @@
 [package]
 name = "file_classification_cli"
-version = "0.1.0"
-edition = "2021"
+version = "0.2.0"
+edition = "2024"
 
 [dependencies]
 file_classification_core = { path = "../file_classification_core" }

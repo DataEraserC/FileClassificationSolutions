@@ -1,6 +1,6 @@
-use file_classification_core::create_file_group;
-use file_classification_core::establish_connection;
-use std::io::{stdin, stdout, Write};
+use file_classification_core::file_group::create_file_group;
+use file_classification_core::database::establish_connection;
+use std::io::{Write, stdin, stdout};
 
 fn main() {
 	let connection = &mut establish_connection();
@@ -19,10 +19,11 @@ fn main() {
 	let group_id: i32 = group_id_input.trim().parse().expect("Invalid Group ID");
 
 	let result = create_file_group(connection, file_id, group_id);
-	if result.is_ok() {
-		println!("\nFile ID {} added to Group ID {}", file_id, group_id);
-	} else {
-		println!("\nFailed to add File ID {} to Group ID {}", file_id, group_id);
+	match result {
+		Ok(new_file_group) => {
+			println!("FileGroup created successfully!NewFileGroup<{:?}>", new_file_group)
+		}
+		Err(e) => eprintln!("Error creating FileGroup: {}", e),
 	}
 }
 

@@ -1,4 +1,4 @@
-use crate::schema::{file_groups, files, group_tags, groups, tags};
+use super::schema::{file_groups, files, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
 
@@ -14,9 +14,9 @@ pub struct File {
 }
 #[derive(Insertable)]
 #[diesel(table_name = files)]
-pub struct NewFile<'a> {
+pub struct NewFile<'a,'b> {
 	pub type_: &'a str,
-	pub path: &'a str,
+	pub path: &'b str,
 	pub group_id: i32,
 }
 

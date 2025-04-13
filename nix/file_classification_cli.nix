@@ -1,5 +1,8 @@
 {
   rustPlatform,
+  version ? "git",
+  rev ? "unknown",
+  date ? "19700101",
   sqlite,
   lib,
   ...

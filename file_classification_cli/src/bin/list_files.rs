@@ -1,5 +1,5 @@
-use file_classification_core::establish_connection;
-use file_classification_core::{models::SearchFile, select_files}; // 引入select_files和SearchFile
+use file_classification_core::database::establish_connection;
+use file_classification_core::{models::SearchFile, files::select_files}; // 引入select_files和SearchFile
 
 fn main() {
 	let connection = &mut establish_connection();
@@ -13,16 +13,6 @@ fn main() {
 
 	println!("Displaying {} files", results.len());
 	for file in results {
-		let mut output = format!("ID: {}", file.id);
-
-		output.push_str(&format!(", Type: '{}'", file.type_));
-
-		output.push_str(&format!(", Path: '{}'", file.path));
-
-		output.push_str(&format!(", ReferenceCount: {}", file.reference_count));
-
-		output.push_str(&format!(", GroupID: {}", file.group_id));
-
-		println!("{}", output);
+		println!("File<{:?}>\n", file);
 	}
 }

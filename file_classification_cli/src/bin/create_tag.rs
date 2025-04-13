@@ -1,5 +1,5 @@
-use file_classification_core::create_tag;
-use file_classification_core::establish_connection;
+use file_classification_core::tags::create_tag;
+use file_classification_core::database::establish_connection;
 use std::io::stdin;
 
 fn main() {
@@ -14,7 +14,7 @@ fn main() {
 	let tag = create_tag(connection, name);
 	match tag {
 		Ok(tag) => {
-			println!("\nCreated tag {name} with id {}", tag.id);
+			println!("Tag created successfully!(Tag<{:?}>)", tag);
 		}
 		Err(e) => {
 			println!("\nError creating tag: {}", e);

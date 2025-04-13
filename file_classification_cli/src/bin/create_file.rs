@@ -1,5 +1,5 @@
-use file_classification_core::create_file;
-use file_classification_core::establish_connection;
+use file_classification_core::files::create_file;
+use file_classification_core::database::establish_connection;
 use std::io::stdin;
 
 fn main() {
@@ -10,22 +10,22 @@ fn main() {
 	let mut path = String::new();
 
 	println!("Please input File Name:");
-	stdin().read_line(&mut type_).unwrap();
-	let type_ = type_.trim_end();
-
-	println!("Please input File Type:");
 	stdin().read_line(&mut name).unwrap();
 	let name = name.trim_end();
+
+	println!("Please input File Type:");
+	stdin().read_line(&mut type_).unwrap();
+	let type_ = type_.trim_end();
 
 	println!("Please input File Path:");
 	stdin().read_line(&mut path).unwrap();
 	let path = path.trim_end();
 
-	let result = create_file(connection, name, path, &type_);
+	let result = create_file(connection, name, type_, path);
 	match result {
 		Ok((file, group)) => {
-			println!("\nSaved file {path} with id {}", file.id);
-			println!("Saved group {type_} with id {}", group.id);
+			println!("File created successfully!(File<{:?}>)", file);
+			println!("Group created successfully!(Group<{:?}>)", group);
 		}
 		Err(e) => {
 			eprintln!("An error occurred: {}", e);

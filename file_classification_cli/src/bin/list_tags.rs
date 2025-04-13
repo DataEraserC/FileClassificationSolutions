@@ -1,5 +1,5 @@
-use file_classification_core::establish_connection;
-use file_classification_core::{models::SearchTag, select_tags}; // 引入select_tags和SearchTag
+use file_classification_core::database::establish_connection;
+use file_classification_core::{models::SearchTag, tags::select_tags}; // 引入select_tags和SearchTag
 
 fn main() {
 	let connection = &mut establish_connection();
@@ -12,12 +12,6 @@ fn main() {
 
 	println!("Displaying {} tags", results.len());
 	for tag in results {
-		let mut output = format!("ID: {}", tag.id);
-
-		output.push_str(&format!(", Name: '{}'", tag.name));
-
-		output.push_str(&format!(", ReferenceCount: {}", tag.reference_count));
-
-		println!("{}", output);
+		println!("Tag<{:?}>\n", tag);
 	}
 }
