@@ -1,11 +1,11 @@
 use file_classification_core::database::establish_connection;
-use file_classification_core::{models::SearchGroup, groups::select_groups}; // 引入select_groups和SearchGroup
+use file_classification_core::{groups::select_groups, models::GroupFilter}; // 引入select_groups和SearchGroup
 
 fn main() {
 	let connection = &mut establish_connection();
 
 	// 定义一个空的 SearchGroup 来进行无条件查询
-	let search_input = SearchGroup {
+	let search_input = GroupFilter {
 		id: None,
 		name: None,
 		reference_count: None,

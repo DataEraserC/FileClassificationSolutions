@@ -25,12 +25,24 @@ pub struct NewFile<'a, 'b> {
 
 // NOTE: you may find File is like SearchFile
 // it is bcs IDK how to unify them
-pub struct SearchFile {
+pub struct FileFilter {
 	pub id: Option<i32>,
 	pub type_: Option<String>,
 	pub path: Option<String>,
 	pub reference_count: Option<i32>,
 	pub group_id: Option<i32>,
+}
+
+struct FileSet {
+	pub path: Option<String>,
+	pub type_: Option<String>,
+	pub reference_count: Option<i32>,
+	pub group_id: Option<i32>,
+}
+
+pub struct UpdateFile {
+	pub set: FileSet,
+	pub filter: FileFilter,
 }
 
 // Group Related
@@ -57,7 +69,7 @@ pub struct NewGroup<'a> {
 
 // NOTE: you may find File is like SearchFile
 // it is bcs IDK how to unify them
-pub struct SearchGroup {
+pub struct GroupFilter {
 	pub id: Option<i32>,
 	pub name: Option<String>,
 	pub reference_count: Option<i32>,
@@ -66,6 +78,21 @@ pub struct SearchGroup {
 	pub share_count: Option<i32>,
 	pub create_time: Option<chrono::NaiveDateTime>,
 	pub modify_time: Option<chrono::NaiveDateTime>,
+}
+
+struct GroupSet {
+	pub name: Option<String>,
+	pub reference_count: Option<i32>,
+	pub is_primary: Option<bool>,
+	pub click_count: Option<i32>,
+	pub share_count: Option<i32>,
+	pub create_time: Option<chrono::NaiveDateTime>,
+	pub modify_time: Option<chrono::NaiveDateTime>,
+}
+
+pub struct UpdateGroup {
+	pub set: GroupSet,
+	pub filter: GroupFilter,
 }
 
 // Tag Related
@@ -85,10 +112,20 @@ pub struct NewTag<'a> {
 	pub name: &'a str,
 }
 
-pub struct SearchTag {
+pub struct TagFilter {
 	pub id: Option<i32>,
 	pub name: Option<String>,
 	pub reference_count: Option<i32>,
+}
+
+pub struct TagSet {
+	pub name: Option<String>,
+	pub reference_count: Option<i32>,
+}
+
+pub struct UpdateTag {
+	pub set: TagSet,
+	pub filter: TagFilter,
 }
 
 // FileGroup Related

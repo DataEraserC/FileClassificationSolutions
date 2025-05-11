@@ -1,6 +1,14 @@
 use crate::{
-	database::SqliteConnection, errors::AppError, 
-	file_group::create_file_group, groups::create_group, internal::{files, groups::{find_group_by_name, mark_group_as_primary}, models::{File, Group, NewFile}}, models::SearchFile
+	database::SqliteConnection,
+	errors::AppError,
+	file_group::create_file_group,
+	groups::create_group,
+	internal::{
+		files,
+		groups::{find_group_by_name, mark_group_as_primary},
+		models::{File, Group, NewFile},
+	},
+	models::FileFilter,
 };
 
 pub fn raw_create_file(
@@ -42,8 +50,15 @@ pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), dies
 }
 pub fn select_files(
 	conn: &mut SqliteConnection,
-	search_input: SearchFile,
+	search_input: FileFilter,
 	limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
 	files::select_files(conn, search_input, limit)
 }
+
+// pub fn update_file(
+// 	conn: &mut SqliteConnection,
+// 	update_input: FileFilter,
+// ) -> Result<File, diesel::result::Error> {
+// 	files::update_file(conn, update_input)
+// }

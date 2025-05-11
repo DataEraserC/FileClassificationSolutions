@@ -1,5 +1,5 @@
 use super::{
-	models::{File, NewFile, SearchFile},
+	models::{File, FileFilter, NewFile, UpdateFile},
 	schema::files,
 	schema::files::dsl::*,
 };
@@ -39,7 +39,7 @@ pub fn decrease_file_reference_count(
 
 pub fn select_files(
 	conn: &mut SqliteConnection,
-	search_input: SearchFile,
+	search_input: FileFilter,
 	limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
 	// 使用 into_boxed() 来对查询进行类型擦除
@@ -65,6 +65,46 @@ pub fn select_files(
 	// 执行查询
 	base_query.load(conn)
 }
+
+// pub fn update_file(
+// 	conn: &mut SqliteConnection,
+// 	update_input: UpdateFile,
+// ) -> Result<usize, diesel::result::Error> {
+// 	// 初始化更新查询
+// 	let mut query = diesel::update(files).into_boxed();
+
+// 	// 动态设置需要更新的字段
+// 	if let Some(new_path) = update_input.set.path {
+// 		query = query.set(path.eq(new_path));
+// 	}
+// 	if let Some(new_type) = update_input.set.type_ {
+// 		query = query.set(type_.eq(new_type));
+// 	}
+// 	if let Some(new_ref_count) = update_input.set.reference_count {
+// 		query = query.set(reference_count.eq(new_ref_count));
+// 	}
+// 	if let Some(new_group) = update_input.set.group_id {
+// 		query = query.set(group_id.eq(new_group));
+// 	}
+
+// 	// 动态添加过滤条件
+// 	if let Some(file_id) = update_input.filter.id {
+// 		query = query.filter(id.eq(file_id));
+// 	}
+// 	if let Some(file_type) = update_input.filter.type_ {
+// 		query = query.filter(type_.eq(file_type));
+// 	}
+// 	if let Some(file_path) = update_input.filter.path {
+// 		query = query.filter(path.eq(file_path));
+// 	}
+// 	if let Some(ref_count) = update_input.filter.reference_count {
+// 		query = query.filter(reference_count.eq(ref_count));
+// 	}
+// 	if let Some(group) = update_input.filter.group_id {
+// 		query = query.filter(group_id.eq(group));
+// 	}
+// 	query.load(conn)
+// }
 
 pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), diesel::result::Error> {
 	match diesel::delete(files.filter(files::id.eq(file_id))).execute(conn) {

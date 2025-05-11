@@ -1,11 +1,10 @@
-use crate::
-	errors::AppError;
-use diesel::prelude::*;
 use super::{
-	models::{Group, NewGroup,SearchGroup},
+	models::{Group, GroupFilter, NewGroup},
 	schema::groups,
 	schema::groups::dsl::*,
 };
+use crate::errors::AppError;
+use diesel::prelude::*;
 pub fn create_group(conn: &mut SqliteConnection, new_group: &NewGroup) -> Result<Group, AppError> {
 	diesel::insert_into(groups::table)
 		.values(new_group)
@@ -18,7 +17,6 @@ pub fn find_group_by_name(
 	conn: &mut SqliteConnection,
 	group_name: &str,
 ) -> Result<Option<Group>, AppError> {
-
 	let group = groups
 		.select(Group::as_select())
 		.filter(groups::name.eq(group_name))
@@ -30,7 +28,6 @@ pub fn find_group_by_id(
 	conn: &mut SqliteConnection,
 	group_id: i32,
 ) -> Result<Option<Group>, AppError> {
-
 	let group = groups
 		.select(Group::as_select())
 		.filter(groups::id.eq(group_id))
@@ -39,11 +36,7 @@ pub fn find_group_by_id(
 	Ok(group)
 }
 
-pub fn mark_group_as_primary(
-	conn: &mut SqliteConnection,
-	group_id: i32,
-) -> Result<(), AppError> {
-
+pub fn mark_group_as_primary(conn: &mut SqliteConnection, group_id: i32) -> Result<(), AppError> {
 	diesel::update(groups::table)
 		.filter(groups::id.eq(group_id))
 		.set(groups::is_primary.eq(true))
@@ -61,10 +54,9 @@ pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<(), AppE
 
 pub fn select_groups(
 	conn: &mut SqliteConnection,
-	search_input: SearchGroup,
+	search_input: GroupFilter,
 	limit: i64,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-
 	// 使用 into_boxed() 来对查询进行类型擦除
 	let mut base_query = groups.limit(limit).select(Group::as_select()).into_boxed();
 
@@ -113,7 +105,6 @@ pub fn increase_group_reference_count(
 	conn: &mut SqliteConnection,
 	group_id: i32,
 ) -> Result<(), AppError> {
-
 	diesel::update(groups::table.find(group_id))
 		.set(groups::reference_count.eq(groups::reference_count + 1))
 		.execute(conn)?;
@@ -125,7 +116,6 @@ pub fn decrease_group_reference_count(
 	conn: &mut SqliteConnection,
 	group_id: i32,
 ) -> Result<(), AppError> {
-
 	diesel::update(groups::table.find(group_id))
 		.set(groups::reference_count.eq(groups::reference_count - 1))
 		.execute(conn)?;

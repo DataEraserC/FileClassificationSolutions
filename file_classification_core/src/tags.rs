@@ -4,7 +4,8 @@ use crate::{
 	internal::{
 		models::{NewTag, Tag},
 		tags,
-	}, models::SearchTag,
+	},
+	models::TagFilter,
 };
 pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel::result::Error> {
 	let new_tag = NewTag { name };
@@ -17,7 +18,7 @@ pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<(), diesel
 
 pub fn select_tags(
 	conn: &mut SqliteConnection,
-	search_input: SearchTag,
+	search_input: TagFilter,
 	limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
 	tags::select_tags(conn, search_input, limit)

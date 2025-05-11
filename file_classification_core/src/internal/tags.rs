@@ -1,17 +1,14 @@
-use crate::
-	errors::AppError
-;
-use diesel::prelude::*;
 use super::{
-	models::{NewTag, Tag,SearchTag},
+	models::{NewTag, Tag, TagFilter},
 	schema::tags,
 	schema::tags::dsl::*,
 };
+use crate::errors::AppError;
+use diesel::prelude::*;
 pub fn create_tag(
 	conn: &mut SqliteConnection,
 	new_tag: NewTag,
 ) -> Result<Tag, diesel::result::Error> {
-
 	diesel::insert_into(tags::table).values(&new_tag).returning(Tag::as_returning()).get_result(conn)
 }
 #[allow(dead_code)]
@@ -19,18 +16,13 @@ pub fn find_tag_by_name(
 	conn: &mut SqliteConnection,
 	tag_name: &str,
 ) -> Result<Option<Tag>, AppError> {
-
 	let tag =
 		tags.select(Tag::as_select()).filter(tags::name.eq(tag_name)).first::<Tag>(conn).optional()?;
 
 	Ok(tag)
 }
 #[allow(dead_code)]
-pub fn find_tag_by_id(
-	conn: &mut SqliteConnection,
-	tag_id: i32,
-) -> Result<Option<Tag>, AppError> {
-
+pub fn find_tag_by_id(conn: &mut SqliteConnection, tag_id: i32) -> Result<Option<Tag>, AppError> {
 	let tag =
 		tags.select(Tag::as_select()).filter(tags::id.eq(tag_id)).first::<Tag>(conn).optional()?;
 
@@ -40,7 +32,6 @@ pub fn increase_tag_reference_count(
 	conn: &mut SqliteConnection,
 	tag_id: i32,
 ) -> Result<(), AppError> {
-
 	diesel::update(tags::table.find(tag_id))
 		.set(tags::reference_count.eq(tags::reference_count + 1))
 		.execute(conn)?;
@@ -52,7 +43,6 @@ pub fn decrease_tag_reference_count(
 	conn: &mut SqliteConnection,
 	tag_id: i32,
 ) -> Result<(), AppError> {
-
 	diesel::update(tags::table.find(tag_id))
 		.set(tags::reference_count.eq(tags::reference_count - 1))
 		.execute(conn)?;
@@ -62,10 +52,9 @@ pub fn decrease_tag_reference_count(
 
 pub fn select_tags(
 	conn: &mut SqliteConnection,
-	search_input: SearchTag,
+	search_input: TagFilter,
 	limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-
 	// 使用 into_boxed() 来对查询进行类型擦除
 	let mut base_query = tags.limit(limit).select(Tag::as_select()).into_boxed();
 
@@ -82,7 +71,6 @@ pub fn select_tags(
 }
 
 pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<(), diesel::result::Error> {
-
 	match diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn) {
 		Ok(_) => Ok(()),
 		Err(e) => Err(e),

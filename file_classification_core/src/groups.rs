@@ -1,6 +1,10 @@
 use crate::{
 	errors::AppError,
-	internal::{groups, models::{Group, NewGroup}}, models::SearchGroup,
+	internal::{
+		groups,
+		models::{Group, NewGroup},
+	},
+	models::GroupFilter,
 };
 use diesel::SqliteConnection;
 
@@ -24,7 +28,7 @@ pub fn delete_group(
 }
 pub fn select_groups(
 	conn: &mut SqliteConnection,
-	search_input: SearchGroup,
+	search_input: GroupFilter,
 	limit: i64,
 ) -> Result<Vec<Group>, diesel::result::Error> {
 	groups::select_groups(conn, search_input, limit)
