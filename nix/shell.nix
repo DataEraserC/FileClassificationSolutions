@@ -23,6 +23,8 @@ in
         pkgs.diesel-cli
 
         pkgs.bashInteractive
+
+        pkgs.pkg-config
       ]
       ++ (oa.nativeBuildInputs or []);
 

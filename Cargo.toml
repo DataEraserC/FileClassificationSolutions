@@ -12,6 +12,8 @@ strip = true
 [workspace.dependencies]
 diesel = { version = "2.2.0", features = [
     "sqlite",
+    # "mysql",
+    # "postgres",
     "chrono",
     "returning_clauses_for_sqlite_3_35",
 ] }

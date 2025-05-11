@@ -4,6 +4,9 @@
   rev ? "unknown",
   date ? "19700101",
   sqlite,
+  mysql80,
+  postgresql,
+  pkg-config,
   lib,
   ...
 }: let
@@ -21,6 +24,8 @@ in
     inherit src;
     nativeBuildInputs = [sqlite];
     buildInputs = [sqlite];
+    # nativeBuildInputs = [pkg-config sqlite mysql80 postgresql];
+    # buildInputs = [pkg-config sqlite mysql80 postgresql];
     pname = manifest.name;
     version = manifest.version;
     cargoLock.lockFile = ../Cargo.lock;

@@ -42,20 +42,26 @@ impl Display for AppError {
 			AppError::GroupNotFound => write!(f, "Group not found"),
 			AppError::CreateGroupFailed(msg) => write!(f, "Create group failed: {}", msg),
 			AppError::DeleteGroupFailed(msg) => write!(f, "Delete group failed: {}", msg),
+
 			AppError::FileNotFound => write!(f, "File not found"),
 			AppError::CreateFileFailed(msg) => write!(f, "Create file failed: {}", msg),
 			AppError::DeleteFileFailed(msg) => write!(f, "Delete file failed: {}", msg),
+
 			AppError::TagNotFound => write!(f, "Tag not found"),
 			AppError::CreateTagFailed(msg) => write!(f, "Create tag failed: {}", msg),
 			AppError::DeleteTagFailed(msg) => write!(f, "Delete tag failed: {}", msg),
+
 			AppError::GroupTagNotFound => write!(f, "GroupTag not found"),
 			AppError::CannotAssociateWithPrimary => write!(f, "Cannot associate with primary group"),
 			AppError::CreateGroupTagFailed(msg) => write!(f, "Create GroupTag failed: {}", msg),
 			AppError::DeleteGroupTagFailed(msg) => write!(f, "Delete GroupTag failed: {}", msg),
+
 			AppError::FileGroupNotFound => write!(f, "FileGroup not found"),
 			AppError::CreateFileGroupFailed(msg) => write!(f, "Create FileGroup failed: {}", msg),
 			AppError::DeleteFileGroupFailed(msg) => write!(f, "Delete FileGroup failed: {}", msg),
+
 			AppError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
+
 			AppError::DieselError(e) => write!(f, "Database error: {}", e),
 			// other Errors...
 			_ => write!(f, "Unknown error occurred"),
