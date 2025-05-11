@@ -1,5 +1,5 @@
-use file_classification_core::group_tag::create_group_tag;
 use file_classification_core::database::establish_connection;
+use file_classification_core::group_tag::create_group_tag;
 use std::io::{Write, stdin, stdout};
 
 fn main() {
@@ -21,7 +21,7 @@ fn main() {
 	let result = create_group_tag(connection, group_id, tag_id);
 	match result {
 		Ok(new_group_tag) => {
-			println!("GroupTag created successfully!NewGroupTag<{:?}>", new_group_tag)
+			println!("GroupTag created successfully!GroupTag<{:?}>", new_group_tag)
 		}
 		Err(e) => eprintln!("Error creating GroupTag: {}", e),
 	}

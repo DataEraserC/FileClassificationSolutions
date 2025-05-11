@@ -1,6 +1,10 @@
+use super::{
+	models::{File, NewFile, SearchFile},
+	schema::files,
+	schema::files::dsl::*,
+};
 use crate::errors::AppError;
 use diesel::prelude::*;
-use super::{models::{File, NewFile,SearchFile}, schema::files,schema::files::dsl::*};
 
 pub fn create_file(conn: &mut SqliteConnection, new_file: &NewFile) -> Result<File, AppError> {
 	diesel::insert_into(files::table)
@@ -14,7 +18,6 @@ pub fn increase_file_reference_count(
 	conn: &mut SqliteConnection,
 	file_id: i32,
 ) -> Result<(), AppError> {
-
 	diesel::update(files::table.find(file_id))
 		.set(files::reference_count.eq(files::reference_count + 1))
 		.execute(conn)?;
@@ -39,7 +42,6 @@ pub fn select_files(
 	search_input: SearchFile,
 	limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
-
 	// 使用 into_boxed() 来对查询进行类型擦除
 	let mut base_query = files.limit(limit).select(File::as_select()).into_boxed();
 
@@ -75,7 +77,7 @@ impl Debug for File {
 	fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
 		write!(
 			f,
-			"File {{ id: {}, type_: {}, path: {},reference_count: {}, group_id: {} }}",
+			"File {{ id: {}, type_: {}, path: {}, reference_count: {}, group_id: {} }}",
 			self.id, self.type_, self.path, self.reference_count, self.group_id
 		)
 	}
