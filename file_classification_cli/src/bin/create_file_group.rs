@@ -21,7 +21,7 @@ fn main() {
 	let result = create_file_group(connection, file_id, group_id);
 	match result {
 		Ok(new_file_group) => {
-			println!("FileGroup created successfully!NewFileGroup<{:?}>", new_file_group)
+			println!("FileGroup created successfully!(NewFileGroup<{:?}>)", new_file_group)
 		}
 		Err(e) => eprintln!("Error creating FileGroup: {}", e),
 	}

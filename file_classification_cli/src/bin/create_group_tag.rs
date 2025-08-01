@@ -21,7 +21,7 @@ fn main() {
 	let result = create_group_tag(connection, group_id, tag_id);
 	match result {
 		Ok(new_group_tag) => {
-			println!("GroupTag created successfully!GroupTag<{:?}>", new_group_tag)
+			println!("GroupTag created successfully!(GroupTag<{:?}>)", new_group_tag)
 		}
 		Err(e) => eprintln!("Error creating GroupTag: {}", e),
 	}
