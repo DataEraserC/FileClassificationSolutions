@@ -1,7 +1,8 @@
-pub mod file_group;
 pub mod files;
-pub mod group_tag;
 pub mod groups;
 pub mod tags;
-use super::model::models;
+
+pub mod file_group;
+pub mod group_tag;
+use super::utils::database;
 use super::utils::errors::AppError;

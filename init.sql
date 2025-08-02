@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE TABLE IF NOT EXISTS groups (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE, -- 文件组名
+    reference_count INTEGER NOT NULL DEFAULT 0, -- 引用计数
     is_primary BOOLEAN NOT NULL DEFAULT 0, -- 是否为本命文件组，0表示否，1表示是
     click_count INTEGER NOT NULL DEFAULT 0, -- 点击次数
     share_count INTEGER NOT NULL DEFAULT 0, -- 分享次数
