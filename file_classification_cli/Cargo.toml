@@ -24,6 +24,10 @@ name = "delete_file"
 doc = false
 
 [[bin]]
+name = "update_files_by_conditions"
+doc = false
+
+[[bin]]
 name = "list_groups"
 doc = false
 
@@ -40,6 +44,10 @@ name = "delete_group"
 doc = false
 
 [[bin]]
+name = "update_groups_by_conditions"
+doc = false
+
+[[bin]]
 name = "list_tags"
 doc = false
 
@@ -53,6 +61,10 @@ doc = false
 
 [[bin]]
 name = "delete_tag"
+doc = false
+
+[[bin]]
+name = "update_tags_by_conditions"
 doc = false
 
 [[bin]]

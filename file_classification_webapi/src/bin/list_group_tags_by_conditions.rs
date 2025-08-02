@@ -1,7 +1,7 @@
 use file_classification_core::model::models::GroupTagCondition;
+use file_classification_core::service::group_tag::select_group_tags_by_conditions;
 use file_classification_core::utils::database::establish_connection;
 use std::io::{self, Write};
-use file_classification_core::service::group_tag::select_group_tags_by_conditions;
 
 fn main() {
     let connection = &mut establish_connection();

@@ -1,13 +1,18 @@
 [package]
-name = "file_classification_webapi"
+name = "file_classification_cli"
 version = "0.2.0"
 edition = "2024"
 
 [dependencies]
 file_classification_core = { path = "../file_classification_core" }
+chrono = { workspace = true }
 
 [[bin]]
 name = "list_files"
+doc = false
+
+[[bin]]
+name = "list_files_by_conditions"
 doc = false
 
 [[bin]]
@@ -19,7 +24,15 @@ name = "delete_file"
 doc = false
 
 [[bin]]
+name = "update_files_by_conditions"
+doc = false
+
+[[bin]]
 name = "list_groups"
+doc = false
+
+[[bin]]
+name = "list_groups_by_conditions"
 doc = false
 
 [[bin]]
@@ -31,7 +44,15 @@ name = "delete_group"
 doc = false
 
 [[bin]]
+name = "update_groups_by_conditions"
+doc = false
+
+[[bin]]
 name = "list_tags"
+doc = false
+
+[[bin]]
+name = "list_tags_by_conditions"
 doc = false
 
 [[bin]]
@@ -43,10 +64,29 @@ name = "delete_tag"
 doc = false
 
 [[bin]]
+name = "update_tags_by_conditions"
+doc = false
+
+[[bin]]
+name = "list_group_tags_by_conditions"
+doc = false
+
+[[bin]]
 name = "create_group_tag"
+doc = false
+
+[[bin]]
+name = "delete_group_tag"
+doc = false
+
+[[bin]]
+name = "list_file_groups_by_conditions"
 doc = false
 
 [[bin]]
 name = "create_file_group"
 doc = false
 
+[[bin]]
+name = "delete_file_group"
+doc = false
