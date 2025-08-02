@@ -27,6 +27,10 @@ name = "list_groups"
 doc = false
 
 [[bin]]
+name = "list_groups_by_conditions"
+doc = false
+
+[[bin]]
 name = "create_group"
 doc = false
 
@@ -39,6 +43,10 @@ name = "list_tags"
 doc = false
 
 [[bin]]
+name = "list_tags_by_conditions"
+doc = false
+
+[[bin]]
 name = "create_tag"
 doc = false
 
@@ -48,6 +56,14 @@ doc = false
 
 [[bin]]
 name = "create_group_tag"
+doc = false
+
+[[bin]]
+name = "list_file_groups_by_conditions"
+doc = false
+
+[[bin]]
+name = "list_group_tags_by_conditions"
 doc = false
 
 [[bin]]

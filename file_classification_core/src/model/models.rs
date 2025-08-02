@@ -2,7 +2,8 @@ use super::schema::{file_groups, files, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
 
-// File Related
+/** File Related
+*/
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = files)]
@@ -53,7 +54,8 @@ pub enum FileCondition {
     Or(Vec<FileCondition>),
     Not(Box<FileCondition>),
 }
-struct FileSet {
+
+pub struct FileSet {
     pub path: Option<String>,
     pub type_: Option<String>,
     pub reference_count: Option<i32>,
@@ -65,7 +67,8 @@ pub struct UpdateFile {
     pub filter: FileFilter,
 }
 
-// Group Related
+/** Group Related
+*/
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = groups)]
@@ -87,6 +90,35 @@ pub struct NewGroup<'a> {
     pub name: &'a str,
 }
 
+pub enum GroupCondition {
+    Id(i32),
+    Name(String),
+    ReferenceCount(i32),
+    IsPrimary(bool),
+    ClickCount(i32),
+    ShareCount(i32),
+    CreateTime(chrono::NaiveDateTime),
+    ModifyTime(chrono::NaiveDateTime),
+
+    IdGreaterThan(i32),
+    IdLessThan(i32),
+    NameLike(String),
+    ReferenceCountGreaterThan(i32),
+    ReferenceCountLessThan(i32),
+    ClickCountGreaterThan(i32),
+    ClickCountLessThan(i32),
+    ShareCountGreaterThan(i32),
+    ShareCountLessThan(i32),
+    CreateTimeGreaterThan(chrono::NaiveDateTime),
+    CreateTimeLessThan(chrono::NaiveDateTime),
+    ModifyTimeGreaterThan(chrono::NaiveDateTime),
+    ModifyTimeLessThan(chrono::NaiveDateTime),
+
+    And(Vec<GroupCondition>),
+    Or(Vec<GroupCondition>),
+    Not(Box<GroupCondition>),
+}
+
 // NOTE: you may find File is like SearchFile
 // it is bcs IDK how to unify them
 pub struct GroupFilter {
@@ -100,7 +132,7 @@ pub struct GroupFilter {
     pub modify_time: Option<chrono::NaiveDateTime>,
 }
 
-struct GroupSet {
+pub struct GroupSet {
     pub name: Option<String>,
     pub reference_count: Option<i32>,
     pub is_primary: Option<bool>,
@@ -115,7 +147,8 @@ pub struct UpdateGroup {
     pub filter: GroupFilter,
 }
 
-// Tag Related
+/** Tag Related
+*/
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = tags)]
@@ -130,6 +163,22 @@ pub struct Tag {
 #[diesel(table_name = tags)]
 pub struct CreateTagDTO<'a> {
     pub name: &'a str,
+}
+
+pub enum TagCondition {
+    Id(i32),
+    Name(String),
+    ReferenceCount(i32),
+
+    IdGreaterThan(i32),
+    IdLessThan(i32),
+    NameLike(String),
+    ReferenceCountGreaterThan(i32),
+    ReferenceCountLessThan(i32),
+
+    And(Vec<TagCondition>),
+    Or(Vec<TagCondition>),
+    Not(Box<TagCondition>),
 }
 
 pub struct TagFilter {
@@ -152,20 +201,48 @@ pub struct UpdateTag {
  */
 
 // NOTE: FileGroupDTO == CreateFileGroupDTO
-#[derive(Insertable)]
+#[derive(Queryable, Insertable)]
 #[diesel(table_name = file_groups)]
 pub struct FileGroupDTO {
     pub file_id: i32,
     pub group_id: i32,
 }
 
+pub enum FileGroupCondition {
+    FileId(i32),
+    GroupId(i32),
+
+    FileIdGreaterThan(i32),
+    FileIdLessThan(i32),
+    GroupIdGreaterThan(i32),
+    GroupIdLessThan(i32),
+
+    And(Vec<FileGroupCondition>),
+    Or(Vec<FileGroupCondition>),
+    Not(Box<FileGroupCondition>),
+}
+
 /** GroupTag Related
 */
 
 // NOTE: GroupTagDTO == CreateGroupTagDTO
-#[derive(Insertable)]
+#[derive(Queryable, Insertable)]
 #[diesel(table_name = group_tags)]
 pub struct GroupTagDTO {
     pub group_id: i32,
     pub tag_id: i32,
+}
+
+pub enum GroupTagCondition {
+    GroupId(i32),
+    TagId(i32),
+
+    GroupIdGreaterThan(i32),
+    GroupIdLessThan(i32),
+    TagIdGreaterThan(i32),
+    TagIdLessThan(i32),
+
+    And(Vec<GroupTagCondition>),
+    Or(Vec<GroupTagCondition>),
+    Not(Box<GroupTagCondition>),
 }

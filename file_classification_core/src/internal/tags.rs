@@ -85,3 +85,71 @@ impl Debug for Tag {
         )
     }
 }
+
+
+use super::models::TagCondition;
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
+use diesel::sqlite::Sqlite;
+
+// 将 TagCondition 转换为 diesel 查询条件的辅助函数
+fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+    match condition {
+        TagCondition::Id(_id) => Box::new(tags::id.eq(_id)),
+        TagCondition::Name(_name) => Box::new(tags::name.eq(_name)),
+        TagCondition::ReferenceCount(count) => Box::new(tags::reference_count.eq(count)),
+
+        TagCondition::IdGreaterThan(value) => Box::new(tags::id.gt(value)),
+        TagCondition::IdLessThan(value) => Box::new(tags::id.lt(value)),
+        TagCondition::NameLike(pattern) => Box::new(tags::name.like(pattern)),
+        TagCondition::ReferenceCountGreaterThan(value) => Box::new(tags::reference_count.gt(value)),
+        TagCondition::ReferenceCountLessThan(value) => Box::new(tags::reference_count.lt(value)),
+
+        TagCondition::And(conditions) => {
+            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            for cond in conditions {
+                let expr = build_tag_condition(cond);
+                match result {
+                    None => result = Some(expr),
+                    Some(prev) => result = Some(Box::new(prev.and(expr))),
+                }
+            }
+            result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
+        },
+        TagCondition::Or(conditions) => {
+            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            for cond in conditions {
+                let expr = build_tag_condition(cond);
+                match result {
+                    None => result = Some(expr),
+                    Some(prev) => result = Some(Box::new(prev.or(expr))),
+                }
+            }
+            result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
+        },
+        TagCondition::Not(condition) => {
+            let expr = build_tag_condition(*condition);
+            Box::new(not(expr))
+        }
+    }
+}
+
+// 根据 TagCondition 向量查询标签
+pub fn select_tags_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<TagCondition>,
+    limit: i64,
+) -> Result<Vec<Tag>, diesel::result::Error> {
+    let mut query = tags::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query
+        .limit(limit)
+        .select(Tag::as_select())
+        .load(conn)
+}

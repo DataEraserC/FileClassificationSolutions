@@ -135,3 +135,83 @@ impl Debug for Group {
         )
     }
 }
+
+use super::models::GroupCondition;
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
+use diesel::sqlite::Sqlite;
+
+// 将 GroupCondition 转换为 diesel 查询条件的辅助函数
+fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+    match condition {
+        GroupCondition::Id(_id) => Box::new(groups::id.eq(_id)),
+        GroupCondition::Name(_name) => Box::new(groups::name.eq(_name)),
+        GroupCondition::ReferenceCount(count) => Box::new(groups::reference_count.eq(count)),
+        GroupCondition::IsPrimary(_is_primary) => Box::new(groups::is_primary.eq(_is_primary)),
+        GroupCondition::ClickCount(count) => Box::new(groups::click_count.eq(count)),
+        GroupCondition::ShareCount(count) => Box::new(groups::share_count.eq(count)),
+        GroupCondition::CreateTime(time) => Box::new(groups::create_time.eq(time)),
+        GroupCondition::ModifyTime(time) => Box::new(groups::modify_time.eq(time)),
+
+        GroupCondition::IdGreaterThan(value) => Box::new(groups::id.gt(value)),
+        GroupCondition::IdLessThan(value) => Box::new(groups::id.lt(value)),
+        GroupCondition::NameLike(pattern) => Box::new(groups::name.like(pattern)),
+        GroupCondition::ReferenceCountGreaterThan(value) => Box::new(groups::reference_count.gt(value)),
+        GroupCondition::ReferenceCountLessThan(value) => Box::new(groups::reference_count.lt(value)),
+        GroupCondition::ClickCountGreaterThan(value) => Box::new(groups::click_count.gt(value)),
+        GroupCondition::ClickCountLessThan(value) => Box::new(groups::click_count.lt(value)),
+        GroupCondition::ShareCountGreaterThan(value) => Box::new(groups::share_count.gt(value)),
+        GroupCondition::ShareCountLessThan(value) => Box::new(groups::share_count.lt(value)),
+        GroupCondition::CreateTimeGreaterThan(time) => Box::new(groups::create_time.gt(time)),
+        GroupCondition::CreateTimeLessThan(time) => Box::new(groups::create_time.lt(time)),
+        GroupCondition::ModifyTimeGreaterThan(time) => Box::new(groups::modify_time.gt(time)),
+        GroupCondition::ModifyTimeLessThan(time) => Box::new(groups::modify_time.lt(time)),
+
+        GroupCondition::And(conditions) => {
+            let mut result: Option<Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            for cond in conditions {
+                let expr = build_group_condition(cond);
+                match result {
+                    None => result = Some(expr),
+                    Some(prev) => result = Some(Box::new(prev.and(expr))),
+                }
+            }
+            result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
+        },
+        GroupCondition::Or(conditions) => {
+            let mut result: Option<Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            for cond in conditions {
+                let expr = build_group_condition(cond);
+                match result {
+                    None => result = Some(expr),
+                    Some(prev) => result = Some(Box::new(prev.or(expr))),
+                }
+            }
+            result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
+        },
+        GroupCondition::Not(condition) => {
+            let expr = build_group_condition(*condition);
+            Box::new(not(expr))
+        }
+    }
+}
+
+// 根据 GroupCondition 向量查询组
+pub fn select_groups_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<GroupCondition>,
+    limit: i64,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    let mut query = groups::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query
+        .limit(limit)
+        .select(Group::as_select())
+        .load(conn)
+}

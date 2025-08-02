@@ -32,3 +32,70 @@ impl Debug for FileGroupDTO {
         write!(f, "FileGroup {{ file_id: {}, group_id: {} }}", self.file_id, self.group_id)
     }
 }
+
+// 在 files.rs 文件中添加以下代码（需要添加到文件末尾，在其他 use 语句之后）
+
+use super::models::FileGroupCondition;
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
+use diesel::sqlite::Sqlite;
+
+// 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数
+fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+    match condition {
+        FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
+        FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
+
+        FileGroupCondition::FileIdGreaterThan(value) => Box::new(file_groups::file_id.gt(value)),
+        FileGroupCondition::FileIdLessThan(value) => Box::new(file_groups::file_id.lt(value)),
+        FileGroupCondition::GroupIdGreaterThan(value) => Box::new(file_groups::group_id.gt(value)),
+        FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
+
+        FileGroupCondition::And(conditions) => {
+            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            for cond in conditions {
+                let expr = build_file_group_condition(cond);
+                match result {
+                    None => result = Some(expr),
+                    Some(prev) => result = Some(Box::new(prev.and(expr))),
+                }
+            }
+            result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
+        },
+        FileGroupCondition::Or(conditions) => {
+            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            for cond in conditions {
+                let expr = build_file_group_condition(cond);
+                match result {
+                    None => result = Some(expr),
+                    Some(prev) => result = Some(Box::new(prev.or(expr))),
+                }
+            }
+            result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
+        },
+        FileGroupCondition::Not(condition) => {
+            let expr = build_file_group_condition(*condition);
+            Box::new(not(expr))
+        }
+    }
+}
+
+// 根据 FileGroupCondition 向量查询文件组关联
+pub fn select_file_groups_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<FileGroupCondition>,
+    limit: i64,
+) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+    let mut query = file_groups::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_file_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query
+        .limit(limit)
+        .select((file_groups::file_id, file_groups::group_id))
+        .load(conn)
+}

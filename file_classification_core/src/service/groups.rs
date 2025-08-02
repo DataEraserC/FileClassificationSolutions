@@ -4,6 +4,7 @@ use crate::{
     internal::groups,
     model::models::{Group, GroupFilter, NewGroup},
 };
+use crate::model::models::{GroupCondition};
 
 pub fn create_group(conn: &mut SqliteConnection, name: &str) -> Result<Group, AppError> {
     let new_group = NewGroup { name };
@@ -29,4 +30,12 @@ pub fn select_groups(
     limit: i64,
 ) -> Result<Vec<Group>, diesel::result::Error> {
     groups::select_groups(conn, search_input, limit)
+}
+
+pub fn select_groups_by_conditions(
+    conn: &mut SqliteConnection,
+    condition: Vec<GroupCondition>,
+    limit: i64,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    groups::select_groups_by_conditions(conn, condition, limit)
 }

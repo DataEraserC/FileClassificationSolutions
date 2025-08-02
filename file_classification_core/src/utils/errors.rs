@@ -64,7 +64,7 @@ impl Display for AppError {
 
             AppError::DieselError(e) => write!(f, "Database error: {}", e),
             // other Errors...
-            _ => write!(f, "Unknown error occurred"),
+            // _ => write!(f, "Unknown error occurred"),
         }
     }
 }
