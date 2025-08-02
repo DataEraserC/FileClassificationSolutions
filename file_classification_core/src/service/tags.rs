@@ -3,7 +3,8 @@ use crate::{
     model::models::{CreateTagDTO, Tag, TagFilter},
 };
 use diesel::SqliteConnection;
-use crate::model::models::{TagCondition};
+use crate::model::models::{TagCondition, UpdateTagDTO};
+use crate::utils::errors::AppError;
 
 pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel::result::Error> {
     let new_tag = CreateTagDTO { name };
@@ -28,4 +29,12 @@ pub fn select_tags_by_conditions(
     limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     tags::select_tags_by_conditions(conn, condition, limit)
+}
+
+pub fn update_tags_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<TagCondition>,
+    update_set: UpdateTagDTO,
+) -> Result<usize, AppError> {
+    tags::update_tags_by_conditions(conn, conditions, update_set)
 }

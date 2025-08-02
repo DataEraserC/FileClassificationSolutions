@@ -1,6 +1,6 @@
-use super::{models::{Group, GroupFilter, NewGroup}, AppError};
+use super::{models::{Group, GroupFilter, CreateGroupDTO}, AppError};
 use diesel::prelude::*;
-pub fn create_group(conn: &mut SqliteConnection, new_group: &NewGroup) -> Result<Group, AppError> {
+pub fn create_group(conn: &mut SqliteConnection, new_group: &CreateGroupDTO) -> Result<Group, AppError> {
     diesel::insert_into(groups::table)
         .values(new_group)
         .returning(Group::as_returning())
@@ -94,7 +94,7 @@ pub fn delete_group(
         Err(e) => Err(e),
     }
 }
-use crate::model::schema::groups;
+use crate::model::schema::{groups};
 use crate::model::schema::groups::dsl::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
@@ -140,6 +140,7 @@ use super::models::GroupCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
+use crate::model::models::{UpdateGroupDTO};
 
 // 将 GroupCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -215,3 +216,21 @@ pub fn select_groups_by_conditions(
         .select(Group::as_select())
         .load(conn)
 }
+
+pub fn update_groups_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<GroupCondition>,
+    update_set: UpdateGroupDTO,
+) -> Result<usize, AppError> {
+    let mut query = diesel::update(groups::table).into_boxed::<Sqlite>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = crate::internal::groups::build_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    let result = query.set(update_set).execute(conn)?;
+    Ok(result)
+}
+

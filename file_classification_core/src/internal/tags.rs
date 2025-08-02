@@ -72,7 +72,7 @@ pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<(), diesel
     }
 }
 
-use crate::model::schema::tags;
+use crate::model::schema::{tags};
 use crate::model::schema::tags::dsl::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
@@ -91,6 +91,7 @@ use super::models::TagCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
+use crate::model::models::{UpdateTagDTO};
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数
 fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -153,3 +154,21 @@ pub fn select_tags_by_conditions(
         .select(Tag::as_select())
         .load(conn)
 }
+
+pub fn update_tags_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<TagCondition>,
+    update_set: UpdateTagDTO,
+) -> Result<usize, AppError> {
+    let mut query = diesel::update(tags::table).into_boxed::<Sqlite>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = crate::internal::tags::build_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    let result = query.set(update_set).execute(conn)?;
+    Ok(result)
+}
+

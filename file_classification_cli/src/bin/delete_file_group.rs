@@ -21,7 +21,7 @@ fn main() {
     let result = delete_file_group(connection, file_id, group_id);
     match result {
         Ok(deleted_file_group_num) => {
-            if (deleted_file_group_num == 0) {
+            if deleted_file_group_num == 0 {
                 println!("No FileGroup deleted!");
             } else { println!("FileGroup deleted successfully!({:?} line changed)", deleted_file_group_num) }
         }

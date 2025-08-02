@@ -124,10 +124,11 @@ impl Debug for File {
 }
 
 use diesel::dsl::not;
+use crate::model::models::UpdateFileDTO;
 
 // 将 FileCondition 转换为 diesel 查询条件的辅助函数
 // 更新 build_condition 函数以处理新增的条件类型
-fn build_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
     match condition {
         FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
         FileCondition::Type(t) => Box::new(files::type_.eq(t)),
@@ -148,7 +149,7 @@ fn build_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files:
         FileCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
             for cond in conditions {
-                let expr = build_condition(cond);
+                let expr = build_file_condition(cond);
                 match result {
                     None => result = Some(expr),
                     Some(prev) => result = Some(Box::new(prev.and(expr))),
@@ -159,7 +160,7 @@ fn build_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files:
         FileCondition::Or(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
             for cond in conditions {
-                let expr = build_condition(cond);
+                let expr = build_file_condition(cond);
                 match result {
                     None => result = Some(expr),
                     Some(prev) => result = Some(Box::new(prev.or(expr))),
@@ -168,7 +169,7 @@ fn build_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files:
             result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
         },
         FileCondition::Not(condition) => {
-            let expr = build_condition(*condition);
+            let expr = build_file_condition(*condition);
             Box::new(not(expr))
         }
     }
@@ -185,7 +186,7 @@ pub fn select_files_by_conditions(
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
-        let boxed_condition = build_condition(condition);
+        let boxed_condition = build_file_condition(condition);
         query = query.filter(boxed_condition);
     }
 
@@ -194,3 +195,21 @@ pub fn select_files_by_conditions(
         .select(File::as_select())
         .load(conn)
 }
+
+pub fn update_files_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<FileCondition>,
+    update_set: UpdateFileDTO,
+) -> Result<usize, AppError> {
+    let mut query = diesel::update(files::table).into_boxed::<Sqlite>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_file_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    let result = query.set(update_set).execute(conn)?;
+    Ok(result)
+}
+

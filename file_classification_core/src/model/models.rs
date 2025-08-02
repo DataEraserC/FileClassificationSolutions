@@ -5,9 +5,10 @@ use diesel::prelude::*;
 /** File Related
 */
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, AsChangeset)]
 #[diesel(table_name = files)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(treat_none_as_null = true)]
 pub struct File {
     pub id: i32,
     pub type_: String,
@@ -55,16 +56,13 @@ pub enum FileCondition {
     Not(Box<FileCondition>),
 }
 
-pub struct FileSet {
+#[derive(AsChangeset)]
+#[diesel(table_name = files)]
+pub struct UpdateFileDTO {
     pub path: Option<String>,
     pub type_: Option<String>,
     pub reference_count: Option<i32>,
     pub group_id: Option<i32>,
-}
-
-pub struct UpdateFile {
-    pub set: FileSet,
-    pub filter: FileFilter,
 }
 
 /** Group Related
@@ -86,7 +84,7 @@ pub struct Group {
 
 #[derive(Insertable)]
 #[diesel(table_name = groups)]
-pub struct NewGroup<'a> {
+pub struct CreateGroupDTO<'a> {
     pub name: &'a str,
 }
 
@@ -117,6 +115,19 @@ pub enum GroupCondition {
     And(Vec<GroupCondition>),
     Or(Vec<GroupCondition>),
     Not(Box<GroupCondition>),
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = groups)]
+pub struct UpdateGroupDTO {
+    pub id: Option<i32>,
+    pub name: Option<String>,
+    pub reference_count: Option<i32>,
+    pub is_primary: Option<bool>,
+    pub click_count: Option<i32>,
+    pub share_count: Option<i32>,
+    pub create_time: Option<chrono::NaiveDateTime>,
+    pub modify_time: Option<chrono::NaiveDateTime>,
 }
 
 // NOTE: you may find File is like SearchFile
@@ -179,6 +190,13 @@ pub enum TagCondition {
     And(Vec<TagCondition>),
     Or(Vec<TagCondition>),
     Not(Box<TagCondition>),
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = tags)]
+pub struct UpdateTagDTO {
+    pub name: Option<String>,
+    pub reference_count: Option<i32>,
 }
 
 pub struct TagFilter {

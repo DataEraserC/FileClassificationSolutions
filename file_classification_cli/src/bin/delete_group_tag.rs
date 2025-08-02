@@ -21,7 +21,7 @@ fn main() {
     let result = delete_group_tag(connection, group_id, tag_id);
     match result {
         Ok(deleted_group_tag_num) => {
-            if (deleted_group_tag_num == 0) {
+            if deleted_group_tag_num == 0 {
                 println!("No GroupTag deleted!");
             } else {
                 println!("GroupTag deleted successfully!({:?} line changed)", deleted_group_tag_num)
