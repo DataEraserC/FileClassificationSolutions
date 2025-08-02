@@ -3,7 +3,7 @@ use crate::internal::{
     files::increase_file_reference_count,
     groups::{find_group_by_id, increase_group_reference_count},
 };
-use crate::model::schema::file_groups;
+use crate::model::schema::{file_groups};
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
@@ -27,6 +27,31 @@ pub fn create_file_group(
     let _ = result?;
     Ok(new_file_group)
 }
+
+pub fn delete_file_group(
+    conn: &mut SqliteConnection,
+    file_id: i32,
+    group_id: i32,
+) -> Result<usize, AppError> {
+    let result = conn.transaction::<_, AppError, _>(|conn| {
+        // 减少组和标签的引用计数
+        decrease_group_reference_count(conn, group_id)?;
+        decrease_file_reference_count(conn, file_id)?;
+
+        // 删除关联记录
+        let deleted_count = diesel::delete(
+            file_groups::table
+                .filter(file_groups::group_id.eq(group_id))
+                .filter(file_groups::file_id.eq(file_id))
+        )
+            .execute(conn)?;
+
+        Ok(deleted_count)
+    });
+
+    result.map_err(|e| e)
+}
+
 impl Debug for FileGroupDTO {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
         write!(f, "FileGroup {{ file_id: {}, group_id: {} }}", self.file_id, self.group_id)
@@ -39,6 +64,8 @@ use super::models::FileGroupCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
+use crate::internal::files::decrease_file_reference_count;
+use crate::internal::groups::decrease_group_reference_count;
 
 // 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数
 fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {

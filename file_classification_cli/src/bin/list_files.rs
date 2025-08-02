@@ -1,6 +1,6 @@
+use file_classification_core::model::models::FileFilter;
 use file_classification_core::service::files::select_files;
 use file_classification_core::utils::database::establish_connection;
-use file_classification_core::model::models::FileFilter;
 // 引入select_files和SearchFile
 
 fn main() {

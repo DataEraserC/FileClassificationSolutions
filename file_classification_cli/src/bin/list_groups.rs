@@ -1,6 +1,6 @@
+use file_classification_core::model::models::GroupFilter;
 use file_classification_core::service::groups::select_groups;
 use file_classification_core::utils::database::establish_connection;
-use file_classification_core::model::models::GroupFilter;
 // 引入select_groups和SearchGroup
 
 fn main() {

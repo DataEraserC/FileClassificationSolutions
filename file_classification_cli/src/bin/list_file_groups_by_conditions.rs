@@ -1,7 +1,7 @@
 use file_classification_core::model::models::FileGroupCondition;
+use file_classification_core::service::file_group::select_file_groups_by_conditions;
 use file_classification_core::utils::database::establish_connection;
 use std::io::{self, Write};
-use file_classification_core::service::file_group::select_file_groups_by_conditions;
 
 fn main() {
     let connection = &mut establish_connection();

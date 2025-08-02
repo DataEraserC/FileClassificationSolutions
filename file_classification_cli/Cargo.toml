@@ -55,7 +55,15 @@ name = "delete_tag"
 doc = false
 
 [[bin]]
+name = "list_group_tags_by_conditions"
+doc = false
+
+[[bin]]
 name = "create_group_tag"
+doc = false
+
+[[bin]]
+name = "delete_group_tag"
 doc = false
 
 [[bin]]
@@ -63,10 +71,9 @@ name = "list_file_groups_by_conditions"
 doc = false
 
 [[bin]]
-name = "list_group_tags_by_conditions"
-doc = false
-
-[[bin]]
 name = "create_file_group"
 doc = false
 
+[[bin]]
+name = "delete_file_group"
+doc = false

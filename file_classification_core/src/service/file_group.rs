@@ -11,6 +11,14 @@ pub fn create_file_group(
     file_groups::create_file_group(conn, file_id, group_id)
 }
 
+pub fn delete_file_group(
+    conn: &mut SqliteConnection,
+    file_id: i32,
+    group_id: i32,
+) -> Result<usize, AppError> {
+    file_groups::delete_file_group(conn, file_id, group_id)
+}
+
 pub fn select_file_groups_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<FileGroupCondition>,

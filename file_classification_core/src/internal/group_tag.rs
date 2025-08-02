@@ -17,6 +17,31 @@ pub fn create_group_tag(
     let _ = result?;
     Ok(new_group_tag)
 }
+
+pub fn delete_group_tag(
+    conn: &mut SqliteConnection,
+    group_id: i32,
+    tag_id: i32,
+) -> Result<usize, AppError> {
+    let result = conn.transaction::<_, AppError, _>(|conn| {
+        // 减少组和标签的引用计数
+        decrease_group_reference_count(conn, group_id)?;
+        decrease_tag_reference_count(conn, tag_id)?;
+
+        // 删除关联记录
+        let deleted_count = diesel::delete(
+            group_tags::table
+                .filter(group_tags::group_id.eq(group_id))
+                .filter(group_tags::tag_id.eq(tag_id))
+        )
+        .execute(conn)?;
+
+        Ok(deleted_count)
+    });
+
+    result.map_err(|e| e)
+}
+
 impl Debug for GroupTagDTO {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
         write!(f, "GroupTag {{ group_id: {}, tag_id: {} }}", self.group_id, self.tag_id)
@@ -29,6 +54,8 @@ use super::models::GroupTagCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
+use crate::internal::groups::decrease_group_reference_count;
+use crate::internal::tags::decrease_tag_reference_count;
 
 // 将 GroupTagCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExpression<group_tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
