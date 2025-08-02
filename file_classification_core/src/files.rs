@@ -4,9 +4,9 @@ use crate::{
 	file_group::create_file_group,
 	groups::create_group,
 	internal::{
-		files,
-		groups::{find_group_by_name, mark_group_as_primary},
-		models::{File, Group, NewFile},
+        files,
+        groups::{find_group_by_name, mark_group_as_primary},
+        models::{File, Group, CreateFileDTO},
 	},
 	models::FileFilter,
 };
@@ -17,7 +17,7 @@ pub fn raw_create_file(
 	path_: &str,
 	group_id: i32,
 ) -> Result<File, AppError> {
-	let new_file = NewFile { type_, path: path_, group_id };
+	let new_file = CreateFileDTO { type_, path: path_, group_id };
 	files::create_file(conn, &new_file)
 }
 pub fn create_file(

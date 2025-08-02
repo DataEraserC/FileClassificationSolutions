@@ -2,13 +2,13 @@ use crate::{
 	database::SqliteConnection,
 	errors::AppError,
 	internal::{
-		models::{NewTag, Tag},
+		models::{CreateTagDTO, Tag},
 		tags,
 	},
 	models::TagFilter,
 };
 pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel::result::Error> {
-	let new_tag = NewTag { name };
+	let new_tag = CreateTagDTO { name };
 	tags::create_tag(conn, new_tag)
 }
 

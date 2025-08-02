@@ -17,7 +17,7 @@ pub struct File {
 
 #[derive(Insertable)]
 #[diesel(table_name = files)]
-pub struct NewFile<'a, 'b> {
+pub struct CreateFileDTO<'a, 'b> {
 	pub type_: &'a str,
 	pub path: &'b str,
 	pub group_id: i32,
@@ -108,7 +108,7 @@ pub struct Tag {
 
 #[derive(Insertable)]
 #[diesel(table_name = tags)]
-pub struct NewTag<'a> {
+pub struct CreateTagDTO<'a> {
 	pub name: &'a str,
 }
 
@@ -128,22 +128,24 @@ pub struct UpdateTag {
 	pub filter: TagFilter,
 }
 
-// FileGroup Related
+/** FileGroup Related
+ */
 
-// NOTE: FileGroup == NewFileGroup
+// NOTE: FileGroupDTO == CreateFileGroupDTO
 #[derive(Insertable)]
 #[diesel(table_name = file_groups)]
-pub struct FileGroup {
+pub struct FileGroupDTO {
 	pub file_id: i32,
 	pub group_id: i32,
 }
 
-// GroupTag Related
+/** GroupTag Related
+*/
 
-// NOTE: GroupTag == NewGroupTag
+// NOTE: GroupTagDTO == CreateGroupTagDTO
 #[derive(Insertable)]
 #[diesel(table_name = group_tags)]
-pub struct GroupTag {
+pub struct GroupTagDTO {
 	pub group_id: i32,
 	pub tag_id: i32,
 }

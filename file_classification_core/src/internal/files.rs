@@ -1,12 +1,12 @@
 use super::{
-	models::{File, FileFilter, NewFile, UpdateFile},
+	models::{File, FileFilter, CreateFileDTO, UpdateFile},
 	schema::files,
 	schema::files::dsl::*,
 };
 use crate::errors::AppError;
 use diesel::prelude::*;
 
-pub fn create_file(conn: &mut SqliteConnection, new_file: &NewFile) -> Result<File, AppError> {
+pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<File, AppError> {
 	diesel::insert_into(files::table)
 		.values(new_file)
 		.returning(File::as_returning())

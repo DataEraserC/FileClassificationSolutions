@@ -1,5 +1,5 @@
 use super::{
-	models::{NewTag, Tag, TagFilter},
+	models::{CreateTagDTO, Tag, TagFilter},
 	schema::tags,
 	schema::tags::dsl::*,
 };
@@ -7,7 +7,7 @@ use crate::errors::AppError;
 use diesel::prelude::*;
 pub fn create_tag(
 	conn: &mut SqliteConnection,
-	new_tag: NewTag,
+	new_tag: CreateTagDTO,
 ) -> Result<Tag, diesel::result::Error> {
 	diesel::insert_into(tags::table).values(&new_tag).returning(Tag::as_returning()).get_result(conn)
 }
