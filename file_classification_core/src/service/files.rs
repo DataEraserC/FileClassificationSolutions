@@ -9,6 +9,7 @@ use crate::{
     },
     model::models::{CreateFileDTO, File, FileFilter, Group},
 };
+use crate::model::models::FileCondition;
 
 pub fn raw_create_file(
     conn: &mut SqliteConnection,
@@ -53,6 +54,14 @@ pub fn select_files(
     limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
     files::select_files(conn, search_input, limit)
+}
+
+pub fn select_files_by_conditions(
+    conn: &mut SqliteConnection,
+    condition: Vec<FileCondition>,
+    limit: i64,
+) -> Result<Vec<File>, diesel::result::Error> {
+    files::select_files_by_conditions(conn, condition, limit)
 }
 
 // pub fn update_file(

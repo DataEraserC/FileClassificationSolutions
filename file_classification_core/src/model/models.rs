@@ -33,6 +33,26 @@ pub struct FileFilter {
     pub group_id: Option<i32>,
 }
 
+pub enum FileCondition {
+    Id(i32),
+    Type(String),
+    Path(String),
+    ReferenceCount(i32),
+    GroupId(i32),
+
+    IdGreaterThan(i32),
+    IdLessThan(i32),
+    TypeLike(String),
+    PathLike(String),
+    ReferenceCountGreaterThan(i32),
+    ReferenceCountLessThan(i32),
+    GroupIdGreaterThan(i32),
+    GroupIdLessThan(i32),
+
+    And(Vec<FileCondition>),
+    Or(Vec<FileCondition>),
+    Not(Box<FileCondition>),
+}
 struct FileSet {
     pub path: Option<String>,
     pub type_: Option<String>,
