@@ -1,37 +1,34 @@
-use super::{models::{CreateFileDTO, File, FileFilter, FileCondition}, AppError};
+use super::{models::{UpdateFileDTO, CreateFileDTO, File, FileFilter, FileCondition}};
 use diesel::prelude::*;
 
-pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<File, AppError> {
+pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error>  {
     diesel::insert_into(files::table)
-        .values(new_file)
-        // NOTE: as_returning 只有一部分数据库支持
-        // TODO: 若不支持则需要另外处理
-        .returning(File::as_returning())
-        .get_result(conn)
-        .map_err(|e| AppError::CreateFileFailed(e.to_string()))
+        .values(new_file).execute(conn)
 }
 
+pub fn find_file_by_id(conn: &mut SqliteConnection, _id: i32) -> Result<Option<File>, diesel::result::Error> {
+    files::table
+        .filter(files::id.eq(_id))
+        .select(File::as_select())
+        .first(conn)
+        .optional()
+}
 pub fn increase_file_reference_count(
     conn: &mut SqliteConnection,
     file_id: i32,
-) -> Result<(), AppError> {
+) -> Result<usize, diesel::result::Error> {
     diesel::update(files::table.find(file_id))
         .set(files::reference_count.eq(files::reference_count + 1))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
 
-#[allow(dead_code)]
 pub fn decrease_file_reference_count(
     conn: &mut SqliteConnection,
     file_id: i32,
-) -> Result<(), AppError> {
+) -> Result<usize, diesel::result::Error> {
     diesel::update(files::table.find(file_id))
         .set(files::reference_count.eq(files::reference_count - 1))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
 
 #[deprecated]
@@ -64,52 +61,10 @@ pub fn select_files(
     base_query.load(conn)
 }
 
-// pub fn update_file(
-// 	conn: &mut SqliteConnection,
-// 	update_input: UpdateFile,
-// ) -> Result<usize, diesel::result::Error> {
-// 	// 初始化更新查询
-// 	let mut query = diesel::update(files).into_boxed();
-
-// 	// 动态设置需要更新的字段
-// 	if let Some(new_path) = update_input.set.path {
-// 		query = query.set(path.eq(new_path));
-// 	}
-// 	if let Some(new_type) = update_input.set.type_ {
-// 		query = query.set(type_.eq(new_type));
-// 	}
-// 	if let Some(new_ref_count) = update_input.set.reference_count {
-// 		query = query.set(reference_count.eq(new_ref_count));
-// 	}
-// 	if let Some(new_group) = update_input.set.group_id {
-// 		query = query.set(group_id.eq(new_group));
-// 	}
-
-// 	// 动态添加过滤条件
-// 	if let Some(file_id) = update_input.filter.id {
-// 		query = query.filter(id.eq(file_id));
-// 	}
-// 	if let Some(file_type) = update_input.filter.type_ {
-// 		query = query.filter(type_.eq(file_type));
-// 	}
-// 	if let Some(file_path) = update_input.filter.path {
-// 		query = query.filter(path.eq(file_path));
-// 	}
-// 	if let Some(ref_count) = update_input.filter.reference_count {
-// 		query = query.filter(reference_count.eq(ref_count));
-// 	}
-// 	if let Some(group) = update_input.filter.group_id {
-// 		query = query.filter(group_id.eq(group));
-// 	}
-// 	query.load(conn)
-// }
-
-pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), diesel::result::Error> {
-    match diesel::delete(files.filter(files::id.eq(file_id))).execute(conn) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
+pub fn delete_file_by_id(conn: &mut SqliteConnection, file_id: i32) -> Result<usize, diesel::result::Error> {
+    diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
+
 use crate::model::schema::files;
 use crate::model::schema::files::dsl::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
@@ -126,8 +81,6 @@ impl Debug for File {
     }
 }
 
-use diesel::dsl::not;
-use crate::model::models::UpdateFileDTO;
 
 // 将 FileCondition 转换为 diesel 查询条件的辅助函数
 // 更新 build_condition 函数以处理新增的条件类型
@@ -173,7 +126,7 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
         },
         FileCondition::Not(condition) => {
             let expr = build_file_condition(*condition);
-            Box::new(not(expr))
+            Box::new(diesel::dsl::not(expr))
         }
     }
 }
@@ -203,7 +156,7 @@ pub fn update_files_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<FileCondition>,
     update_set: UpdateFileDTO,
-) -> Result<usize, AppError> {
+) -> Result<usize, diesel::result::Error> {
     let mut query = diesel::update(files::table).into_boxed::<Sqlite>();
 
     // 应用所有条件
@@ -212,7 +165,20 @@ pub fn update_files_by_conditions(
         query = query.filter(boxed_condition);
     }
 
-    let result = query.set(update_set).execute(conn)?;
-    Ok(result)
+    query.set(update_set).execute(conn)
 }
 
+pub fn delete_files_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<FileCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::delete(files::table).into_boxed::<Sqlite>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_file_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query.execute(conn)
+}

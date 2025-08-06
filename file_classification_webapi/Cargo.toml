@@ -1,5 +1,5 @@
 [package]
-name = "file_classification_cli"
+name = "file_classification_webapi"
 version = "0.2.0"
 edition = "2024"
 
@@ -13,10 +13,6 @@ doc = false
 
 [[bin]]
 name = "list_files_by_conditions"
-doc = false
-
-[[bin]]
-name = "create_file"
 doc = false
 
 [[bin]]

@@ -6,46 +6,32 @@ pub fn create_tag(
 ) -> Result<Tag, diesel::result::Error> {
     diesel::insert_into(tags::table).values(&new_tag).returning(Tag::as_returning()).get_result(conn)
 }
-#[allow(dead_code)]
 pub fn find_tag_by_name(
     conn: &mut SqliteConnection,
     tag_name: &str,
-) -> Result<Option<Tag>, AppError> {
-    let tag =
-        tags.select(Tag::as_select()).filter(tags::name.eq(tag_name)).first::<Tag>(conn).optional()?;
-
-    Ok(tag)
+) -> Result<Option<Tag>, diesel::result::Error> {
+    tags.select(Tag::as_select()).filter(tags::name.eq(tag_name)).first::<Tag>(conn).optional()
 }
-#[allow(dead_code)]
-pub fn find_tag_by_id(conn: &mut SqliteConnection, tag_id: i32) -> Result<Option<Tag>, AppError> {
-    let tag =
-        tags.select(Tag::as_select()).filter(tags::id.eq(tag_id)).first::<Tag>(conn).optional()?;
-
-    Ok(tag)
+pub fn find_tag_by_id(conn: &mut SqliteConnection, tag_id: i32) -> Result<Option<Tag>, diesel::result::Error> {
+    tags.select(Tag::as_select()).filter(tags::id.eq(tag_id)).first::<Tag>(conn).optional()
 }
 pub fn increase_tag_reference_count(
     conn: &mut SqliteConnection,
     tag_id: i32,
-) -> Result<(), AppError> {
+) -> Result<usize, diesel::result::Error> {
     diesel::update(tags::table.find(tag_id))
         .set(tags::reference_count.eq(tags::reference_count + 1))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
-#[allow(dead_code)]
 pub fn decrease_tag_reference_count(
     conn: &mut SqliteConnection,
     tag_id: i32,
-) -> Result<(), AppError> {
+) -> Result<usize, diesel::result::Error> {
     diesel::update(tags::table.find(tag_id))
         .set(tags::reference_count.eq(tags::reference_count - 1))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
 
-#[deprecated]
 pub fn select_tags(
     conn: &mut SqliteConnection,
     search_input: TagFilter,
@@ -66,11 +52,8 @@ pub fn select_tags(
     base_query.load(conn)
 }
 
-pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<(), diesel::result::Error> {
-    match diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
+pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
+    diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
 }
 
 use crate::model::schema::{tags};
@@ -160,7 +143,7 @@ pub fn update_tags_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<TagCondition>,
     update_set: UpdateTagDTO,
-) -> Result<usize, AppError> {
+) -> Result<usize, diesel::result::Error> {
     let mut query = diesel::update(tags::table).into_boxed::<Sqlite>();
 
     // 应用所有条件
@@ -169,7 +152,20 @@ pub fn update_tags_by_conditions(
         query = query.filter(boxed_condition);
     }
 
-    let result = query.set(update_set).execute(conn)?;
-    Ok(result)
+    query.set(update_set).execute(conn)
 }
 
+pub fn delete_tags_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<TagCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::delete(tags::table).into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query.execute(conn)
+}

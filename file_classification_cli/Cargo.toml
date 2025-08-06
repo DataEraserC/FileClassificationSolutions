@@ -16,10 +16,6 @@ name = "list_files_by_conditions"
 doc = false
 
 [[bin]]
-name = "create_file"
-doc = false
-
-[[bin]]
 name = "delete_file"
 doc = false
 

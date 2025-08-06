@@ -1,42 +1,28 @@
-use super::{groups::increase_group_reference_count, models::GroupTagDTO, tags::increase_tag_reference_count, AppError};
+use super::{groups::increase_group_reference_count, models::GroupTagDTO, tags::increase_tag_reference_count};
 use crate::model::schema::group_tags;
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
-pub fn create_group_tag(
+// 在 group_tag.rs 中添加数据访问层函数
+pub fn insert_group_tag(
     conn: &mut SqliteConnection,
-    group_tag_dto: GroupTagDTO
-) -> Result<GroupTagDTO, AppError> {
-    let result = conn.transaction::<_, AppError, _>(|conn| {
-        increase_group_reference_count(conn, group_tag_dto.group_id)?;
-        increase_tag_reference_count(conn, group_tag_dto.tag_id)?;
-        Ok(diesel::insert_into(group_tags::table).values(&group_tag_dto).execute(conn))
-    });
-    let _ = result?;
-    Ok(group_tag_dto)
+    group_tag_dto: &GroupTagDTO
+) -> Result<usize, diesel::result::Error> {
+    diesel::insert_into(group_tags::table)
+        .values(group_tag_dto)
+        .execute(conn)
 }
 
-pub fn delete_group_tag(
+pub fn delete_group_tag_by_id(
     conn: &mut SqliteConnection,
-    group_tag_dto: GroupTagDTO
-) -> Result<usize, AppError> {
-    let result = conn.transaction::<_, AppError, _>(|conn| {
-        // 减少组和标签的引用计数
-        decrease_group_reference_count(conn, group_tag_dto.group_id)?;
-        decrease_tag_reference_count(conn, group_tag_dto.tag_id)?;
-
-        // 删除关联记录
-        let deleted_count = diesel::delete(
-            group_tags::table
-                .filter(group_tags::group_id.eq(group_tag_dto.group_id))
-                .filter(group_tags::tag_id.eq(group_tag_dto.tag_id))
-        )
-        .execute(conn)?;
-
-        Ok(deleted_count)
-    });
-
-    result.map_err(|e| e)
+    group_tag_dto: &GroupTagDTO
+) -> Result<usize, diesel::result::Error> {
+    diesel::delete(
+        group_tags::table
+            .filter(group_tags::group_id.eq(group_tag_dto.group_id))
+            .filter(group_tags::tag_id.eq(group_tag_dto.tag_id))
+    )
+    .execute(conn)
 }
 
 impl Debug for GroupTagDTO {
@@ -51,8 +37,6 @@ use super::models::GroupTagCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
-use crate::internal::groups::decrease_group_reference_count;
-use crate::internal::tags::decrease_tag_reference_count;
 
 // 将 GroupTagCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExpression<group_tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -112,4 +96,19 @@ pub fn select_group_tags_by_conditions(
         .limit(limit)
         .select((group_tags::group_id, group_tags::tag_id))
         .load(conn)
+}
+
+pub fn delete_group_tags_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<GroupTagCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::delete(group_tags::table).into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_group_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query.execute(conn)
 }

@@ -11,7 +11,7 @@ pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel
     tags::create_tag(conn, new_tag)
 }
 
-pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<(), diesel::result::Error> {
+pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     tags::delete_tag(conn, tag_id)
 }
 
@@ -35,6 +35,14 @@ pub fn update_tags_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<TagCondition>,
     update_set: UpdateTagDTO,
-) -> Result<usize, AppError> {
+) -> Result<usize, diesel::result::Error> {
     tags::update_tags_by_conditions(conn, conditions, update_set)
+}
+
+
+pub fn delete_tags_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<TagCondition>,
+) -> Result<usize, diesel::result::Error> {
+    tags::delete_tags_by_conditions(conn, conditions)
 }

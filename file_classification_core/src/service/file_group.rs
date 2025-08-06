@@ -1,20 +1,66 @@
+use diesel::Connection;
+use diesel::result::Error;
 use super::database::SqliteConnection;
 use crate::internal::file_group as file_groups;
+use crate::internal::files::{decrease_file_reference_count, find_file_by_id, increase_file_reference_count};
+use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
 use crate::model::models::{FileGroupCondition, FileGroupDTO};
 use crate::service::AppError;
 
 pub fn create_file_group(
     conn: &mut SqliteConnection,
-    file_group_dto : FileGroupDTO
+    file_group_dto: FileGroupDTO,
 ) -> Result<FileGroupDTO, AppError> {
-    file_groups::create_file_group(conn, file_group_dto)
+    // 业务规则验证
+    let group = find_group_by_id(conn, file_group_dto.group_id)?
+        .ok_or(AppError::GroupNotFound)?;
+
+    let file = find_file_by_id(conn, file_group_dto.file_id)?
+        .ok_or(AppError::FileNotFound)?;
+
+    if group.is_primary {
+        return Err(AppError::CannotBindToPrimaryGroup);
+    }
+
+    // 使用事务处理引用计数和数据插入
+    let result = conn.transaction::<_, AppError, _>(|conn| {
+        increase_file_reference_count(conn, file_group_dto.file_id)?;
+        increase_group_reference_count(conn, file_group_dto.group_id)?;
+        // 错误类型转换，将 diesel::result::Error 转换为 AppError
+        file_groups::insert_file_group(conn, &file_group_dto)?;
+        Ok(())
+    })?;
+
+    Ok(file_group_dto)
 }
 
 pub fn delete_file_group(
     conn: &mut SqliteConnection,
-    file_group_dto : FileGroupDTO
+    file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
-    file_groups::delete_file_group(conn, file_group_dto)
+
+    let mut group = find_group_by_id(conn, file_group_dto.group_id)?
+        .ok_or(AppError::GroupNotFound)?;
+
+    let mut file = find_file_by_id(conn, file_group_dto.file_id)?
+        .ok_or(AppError::FileNotFound)?;
+
+    if group.is_primary {
+        return Err(AppError::CannotUnbindPrimaryGroup);
+    }
+
+    let result = conn.transaction::<_, AppError, _>(|conn| {
+        // 减少组和标签的引用计数
+        decrease_group_reference_count(conn, file_group_dto.group_id)?;
+        decrease_file_reference_count(conn, file_group_dto.file_id)?;
+
+        // 调用数据访问层执行删除操作
+        let deleted_count = file_groups::delete_file_group_by_id(conn, &file_group_dto)?;
+
+        Ok(deleted_count)
+    });
+
+    result
 }
 
 pub fn select_file_groups_by_conditions(
@@ -23,4 +69,11 @@ pub fn select_file_groups_by_conditions(
     limit: i64,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
     crate::internal::file_group::select_file_groups_by_conditions(conn, condition, limit)
+}
+
+pub fn delete_file_groups_by_conditions(
+    conn: &mut SqliteConnection,
+    condition: Vec<FileGroupCondition>,
+) -> Result<usize, Error> {
+    crate::internal::file_group::delete_file_groups_by_conditions(conn, condition)
 }

@@ -1,50 +1,40 @@
 use super::{models::{Group, GroupFilter, CreateGroupDTO}, AppError};
 use diesel::prelude::*;
-pub fn create_group(conn: &mut SqliteConnection, new_group: &CreateGroupDTO) -> Result<Group, AppError> {
+pub fn create_group(conn: &mut SqliteConnection, new_group: &CreateGroupDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(groups::table)
-        .values(new_group)
-        .returning(Group::as_returning())
-        .get_result(conn)
-        .map_err(|e| AppError::CreateGroupFailed(e.to_string()))
+        .values(new_group).execute(conn)
 }
 
 pub fn find_group_by_name(
     conn: &mut SqliteConnection,
     group_name: &str,
-) -> Result<Option<Group>, AppError> {
-    let group = groups
+) -> Result<Option<Group>, diesel::result::Error> {
+    groups
         .select(Group::as_select())
         .filter(groups::name.eq(group_name))
         .first::<Group>(conn)
-        .optional()?;
-    Ok(group)
+        .optional()
 }
 pub fn find_group_by_id(
     conn: &mut SqliteConnection,
     group_id: i32,
-) -> Result<Option<Group>, AppError> {
-    let group = groups
+) -> Result<Option<Group>, diesel::result::Error> {
+    groups
         .select(Group::as_select())
         .filter(groups::id.eq(group_id))
         .first::<Group>(conn)
-        .optional()?;
-    Ok(group)
+        .optional()
 }
 
-pub fn mark_group_as_primary(conn: &mut SqliteConnection, group_id: i32) -> Result<(), AppError> {
+pub fn mark_group_as_primary(conn: &mut SqliteConnection, group_id: i32) -> Result<usize, diesel::result::Error>{
     diesel::update(groups::table)
         .filter(groups::id.eq(group_id))
         .set(groups::is_primary.eq(true))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
 
-#[allow(dead_code)]
-pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<(), AppError> {
-    diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)?;
-
-    Ok(())
+pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<usize, diesel::result::Error>{
+    diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)
 }
 
 #[deprecated]
@@ -89,11 +79,8 @@ pub fn select_groups(
 pub fn delete_group(
     conn: &mut SqliteConnection,
     group_id: i32,
-) -> Result<(), diesel::result::Error> {
-    match diesel::delete(groups.filter(groups::id.eq(group_id))).execute(conn) {
-        Ok(_) => Ok(()),
-        Err(e) => Err(e),
-    }
+) -> Result<usize, diesel::result::Error> {
+    diesel::delete(groups.filter(groups::id.eq(group_id))).execute(conn)
 }
 use crate::model::schema::{groups};
 use crate::model::schema::groups::dsl::*;
@@ -102,23 +89,18 @@ use std::fmt::{Debug, Formatter, Result as fmtResult};
 pub fn increase_group_reference_count(
     conn: &mut SqliteConnection,
     group_id: i32,
-) -> Result<(), AppError> {
+) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table.find(group_id))
         .set(groups::reference_count.eq(groups::reference_count + 1))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
-#[allow(dead_code)]
 pub fn decrease_group_reference_count(
     conn: &mut SqliteConnection,
     group_id: i32,
-) -> Result<(), AppError> {
+) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table.find(group_id))
         .set(groups::reference_count.eq(groups::reference_count - 1))
-        .execute(conn)?;
-
-    Ok(())
+        .execute(conn)
 }
 impl Debug for Group {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
@@ -222,7 +204,7 @@ pub fn update_groups_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<GroupCondition>,
     update_set: UpdateGroupDTO,
-) -> Result<usize, AppError> {
+) -> Result<usize, diesel::result::Error> {
     let mut query = diesel::update(groups::table).into_boxed::<Sqlite>();
 
     // 应用所有条件
@@ -231,7 +213,20 @@ pub fn update_groups_by_conditions(
         query = query.filter(boxed_condition);
     }
 
-    let result = query.set(update_set).execute(conn)?;
-    Ok(result)
+    query.set(update_set).execute(conn)
 }
 
+pub fn delete_groups_by_conditions(
+    conn: &mut SqliteConnection,
+    conditions: Vec<GroupCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::delete(groups::table).into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    query.execute(conn)
+}

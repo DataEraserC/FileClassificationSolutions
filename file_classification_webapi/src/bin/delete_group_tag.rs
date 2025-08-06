@@ -1,6 +1,7 @@
-use file_classification_core::service::group_tag::delete_group_tag;
+use file_classification_core::service::group_tag::delete_group_tag_by_id;
 use file_classification_core::utils::database::establish_connection;
 use std::io::{stdin, stdout, Write};
+use file_classification_core::model::models::GroupTagDTO;
 
 fn main() {
     let connection = &mut establish_connection();
@@ -18,7 +19,7 @@ fn main() {
     stdin().read_line(&mut tag_id_input).unwrap();
     let tag_id: i32 = tag_id_input.trim().parse().expect("Invalid Tag ID");
 
-    let result = delete_group_tag(connection, group_id, tag_id);
+    let result = delete_group_tag_by_id(connection, GroupTagDTO{group_id, tag_id});
     match result {
         Ok(deleted_group_tag_num) => {
             if deleted_group_tag_num == 0 {

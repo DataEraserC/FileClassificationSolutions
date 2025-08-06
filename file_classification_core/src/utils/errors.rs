@@ -20,7 +20,6 @@ pub enum AppError {
 
     // GroupTag errors
     GroupTagNotFound,
-    CannotAssociateWithPrimary,
     CreateGroupTagFailed(String),
     DeleteGroupTagFailed(String),
 
@@ -28,6 +27,8 @@ pub enum AppError {
     FileGroupNotFound,
     CreateFileGroupFailed(String),
     DeleteFileGroupFailed(String),
+    CannotBindToPrimaryGroup,
+    CannotUnbindPrimaryGroup,
 
     // Validation errors
     ValidationError(String),
@@ -52,13 +53,14 @@ impl Display for AppError {
             AppError::DeleteTagFailed(msg) => write!(f, "Delete tag failed: {}", msg),
 
             AppError::GroupTagNotFound => write!(f, "GroupTag not found"),
-            AppError::CannotAssociateWithPrimary => write!(f, "Cannot associate with primary group"),
             AppError::CreateGroupTagFailed(msg) => write!(f, "Create GroupTag failed: {}", msg),
             AppError::DeleteGroupTagFailed(msg) => write!(f, "Delete GroupTag failed: {}", msg),
 
             AppError::FileGroupNotFound => write!(f, "FileGroup not found"),
             AppError::CreateFileGroupFailed(msg) => write!(f, "Create FileGroup failed: {}", msg),
             AppError::DeleteFileGroupFailed(msg) => write!(f, "Delete FileGroup failed: {}", msg),
+            AppError::CannotBindToPrimaryGroup => write!(f, "Cannot associate with primary group"),
+            AppError::CannotUnbindPrimaryGroup => write!(f, "Cannot unbind from primary group"),
 
             AppError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
 

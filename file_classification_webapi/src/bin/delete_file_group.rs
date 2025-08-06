@@ -1,6 +1,7 @@
 use file_classification_core::service::file_group::delete_file_group;
 use file_classification_core::utils::database::establish_connection;
 use std::io::{stdin, stdout, Write};
+use file_classification_core::model::models::FileGroupDTO;
 
 fn main() {
     let connection = &mut establish_connection();
@@ -18,7 +19,7 @@ fn main() {
     stdin().read_line(&mut group_id_input).unwrap();
     let group_id: i32 = group_id_input.trim().parse().expect("Invalid Group ID");
 
-    let result = delete_file_group(connection, file_id, group_id);
+    let result = delete_file_group(connection, FileGroupDTO{file_id, group_id});
     match result {
         Ok(deleted_file_group_num) => {
             if deleted_file_group_num == 0 {
