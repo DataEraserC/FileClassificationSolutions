@@ -47,6 +47,7 @@ pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<(), AppE
     Ok(())
 }
 
+#[deprecated]
 pub fn select_groups(
     conn: &mut SqliteConnection,
     search_input: GroupFilter,

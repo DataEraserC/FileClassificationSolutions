@@ -5,18 +5,16 @@ use crate::service::AppError;
 
 pub fn create_file_group(
     conn: &mut SqliteConnection,
-    file_id: i32,
-    group_id: i32,
+    file_group_dto : FileGroupDTO
 ) -> Result<FileGroupDTO, AppError> {
-    file_groups::create_file_group(conn, file_id, group_id)
+    file_groups::create_file_group(conn, file_group_dto)
 }
 
 pub fn delete_file_group(
     conn: &mut SqliteConnection,
-    file_id: i32,
-    group_id: i32,
+    file_group_dto : FileGroupDTO
 ) -> Result<usize, AppError> {
-    file_groups::delete_file_group(conn, file_id, group_id)
+    file_groups::delete_file_group(conn, file_group_dto)
 }
 
 pub fn select_file_groups_by_conditions(

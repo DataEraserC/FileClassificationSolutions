@@ -5,18 +5,16 @@ use crate::service::AppError;
 
 pub fn create_group_tag(
     conn: &mut SqliteConnection,
-    group_id: i32,
-    tag_id: i32,
+    group_tag_dto: GroupTagDTO
 ) -> Result<GroupTagDTO, AppError> {
-    group_tags::create_group_tag(conn, group_id, tag_id)
+    group_tags::create_group_tag(conn, group_tag_dto)
 }
 
 pub fn delete_group_tag(
     conn: &mut SqliteConnection,
-    group_id: i32,
-    tag_id: i32,
+    group_tag_dto: GroupTagDTO
 ) -> Result<usize, AppError> {
-    group_tags::delete_group_tag(conn, group_id, tag_id)
+    group_tags::delete_group_tag(conn, group_tag_dto)
 }
 
 pub fn select_group_tags_by_conditions(

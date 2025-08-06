@@ -9,7 +9,7 @@ use crate::{
     },
     model::models::{CreateFileDTO, File, FileFilter, Group},
 };
-use crate::model::models::{FileCondition, UpdateFileDTO};
+use crate::model::models::{FileCondition, FileGroupDTO, UpdateFileDTO};
 
 pub fn raw_create_file(
     conn: &mut SqliteConnection,
@@ -38,7 +38,7 @@ pub fn create_file(
 
     let file = raw_create_file(conn, type_, path_, group.id)?;
 
-    create_file_group(conn, file.id, group.id)?;
+    create_file_group(conn, FileGroupDTO{ file_id: file.id, group_id: group.id})?;
     if is_primary {
         mark_group_as_primary(conn, group.id)?;
     }

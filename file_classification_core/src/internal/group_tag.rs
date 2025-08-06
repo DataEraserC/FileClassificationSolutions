@@ -5,34 +5,31 @@ use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn create_group_tag(
     conn: &mut SqliteConnection,
-    group_id: i32,
-    tag_id: i32,
+    group_tag_dto: GroupTagDTO
 ) -> Result<GroupTagDTO, AppError> {
-    let new_group_tag = GroupTagDTO { group_id, tag_id };
     let result = conn.transaction::<_, AppError, _>(|conn| {
-        increase_group_reference_count(conn, group_id)?;
-        increase_tag_reference_count(conn, tag_id)?;
-        Ok(diesel::insert_into(group_tags::table).values(&new_group_tag).execute(conn))
+        increase_group_reference_count(conn, group_tag_dto.group_id)?;
+        increase_tag_reference_count(conn, group_tag_dto.tag_id)?;
+        Ok(diesel::insert_into(group_tags::table).values(&group_tag_dto).execute(conn))
     });
     let _ = result?;
-    Ok(new_group_tag)
+    Ok(group_tag_dto)
 }
 
 pub fn delete_group_tag(
     conn: &mut SqliteConnection,
-    group_id: i32,
-    tag_id: i32,
+    group_tag_dto: GroupTagDTO
 ) -> Result<usize, AppError> {
     let result = conn.transaction::<_, AppError, _>(|conn| {
         // 减少组和标签的引用计数
-        decrease_group_reference_count(conn, group_id)?;
-        decrease_tag_reference_count(conn, tag_id)?;
+        decrease_group_reference_count(conn, group_tag_dto.group_id)?;
+        decrease_tag_reference_count(conn, group_tag_dto.tag_id)?;
 
         // 删除关联记录
         let deleted_count = diesel::delete(
             group_tags::table
-                .filter(group_tags::group_id.eq(group_id))
-                .filter(group_tags::tag_id.eq(tag_id))
+                .filter(group_tags::group_id.eq(group_tag_dto.group_id))
+                .filter(group_tags::tag_id.eq(group_tag_dto.tag_id))
         )
         .execute(conn)?;
 

@@ -45,6 +45,7 @@ pub fn decrease_tag_reference_count(
     Ok(())
 }
 
+#[deprecated]
 pub fn select_tags(
     conn: &mut SqliteConnection,
     search_input: TagFilter,

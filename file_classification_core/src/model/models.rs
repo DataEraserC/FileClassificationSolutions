@@ -1,11 +1,12 @@
 use super::schema::{file_groups, files, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
+use serde::Serialize;
 
 /** File Related
 */
 
-#[derive(Queryable, Selectable, AsChangeset)]
+#[derive(Queryable, Selectable, AsChangeset, Serialize)]
 #[diesel(table_name = files)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(treat_none_as_null = true)]
@@ -161,7 +162,7 @@ pub struct UpdateGroup {
 /** Tag Related
 */
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = tags)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Tag {
@@ -219,7 +220,7 @@ pub struct UpdateTag {
  */
 
 // NOTE: FileGroupDTO == CreateFileGroupDTO
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Serialize)]
 #[diesel(table_name = file_groups)]
 pub struct FileGroupDTO {
     pub file_id: i32,
@@ -244,7 +245,7 @@ pub enum FileGroupCondition {
 */
 
 // NOTE: GroupTagDTO == CreateGroupTagDTO
-#[derive(Queryable, Insertable)]
+#[derive(Queryable, Insertable, Serialize)]
 #[diesel(table_name = group_tags)]
 pub struct GroupTagDTO {
     pub group_id: i32,

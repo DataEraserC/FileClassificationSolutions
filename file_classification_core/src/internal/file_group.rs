@@ -9,40 +9,37 @@ use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn create_file_group(
     conn: &mut SqliteConnection,
-    file_id: i32,
-    group_id: i32,
+    file_group_dto: FileGroupDTO,
 ) -> Result<FileGroupDTO, AppError> {
-    let group = find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
+    let group = find_group_by_id(conn, file_group_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
     if group.is_primary {
         return Err(AppError::CannotAssociateWithPrimary);
     }
 
-    let new_file_group = FileGroupDTO { file_id, group_id };
     let result = conn.transaction::<_, AppError, _>(|conn| {
-        increase_file_reference_count(conn, file_id)?;
-        increase_group_reference_count(conn, group_id)?;
-        Ok(diesel::insert_into(file_groups::table).values(&new_file_group).execute(conn))
+        increase_file_reference_count(conn, file_group_dto.file_id)?;
+        increase_group_reference_count(conn, file_group_dto.group_id)?;
+        Ok(diesel::insert_into(file_groups::table).values(&file_group_dto).execute(conn))
     });
     let _ = result?;
-    Ok(new_file_group)
+    Ok(file_group_dto)
 }
 
 pub fn delete_file_group(
     conn: &mut SqliteConnection,
-    file_id: i32,
-    group_id: i32,
+    file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
     let result = conn.transaction::<_, AppError, _>(|conn| {
         // 减少组和标签的引用计数
-        decrease_group_reference_count(conn, group_id)?;
-        decrease_file_reference_count(conn, file_id)?;
+        decrease_group_reference_count(conn, file_group_dto.group_id)?;
+        decrease_file_reference_count(conn, file_group_dto.file_id)?;
 
         // 删除关联记录
         let deleted_count = diesel::delete(
             file_groups::table
-                .filter(file_groups::group_id.eq(group_id))
-                .filter(file_groups::file_id.eq(file_id))
+                .filter(file_groups::group_id.eq(file_group_dto.group_id))
+                .filter(file_groups::file_id.eq(file_group_dto.file_id))
         )
             .execute(conn)?;
 

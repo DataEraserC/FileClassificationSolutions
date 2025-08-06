@@ -4,6 +4,8 @@ use diesel::prelude::*;
 pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<File, AppError> {
     diesel::insert_into(files::table)
         .values(new_file)
+        // NOTE: as_returning 只有一部分数据库支持
+        // TODO: 若不支持则需要另外处理
         .returning(File::as_returning())
         .get_result(conn)
         .map_err(|e| AppError::CreateFileFailed(e.to_string()))
@@ -32,6 +34,7 @@ pub fn decrease_file_reference_count(
     Ok(())
 }
 
+#[deprecated]
 pub fn select_files(
     conn: &mut SqliteConnection,
     search_input: FileFilter,
