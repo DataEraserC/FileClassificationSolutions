@@ -156,6 +156,7 @@ pub fn select_files_by_conditions(
         .load(conn)
 }
 
+#[allow(dead_code)]
 pub fn select_files_by_conditions_with_options(
     conn: &mut SqliteConnection,
     conditions: Vec<FileCondition>,

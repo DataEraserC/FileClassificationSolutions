@@ -15,7 +15,7 @@ pub fn create_file_group(
     let group = find_group_by_id(conn, file_group_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;
 
-    let file = find_file_by_id(conn, file_group_dto.file_id)?
+    let _file = find_file_by_id(conn, file_group_dto.file_id)?
         .ok_or(AppError::FileNotFound)?;
 
     if group.is_primary {
@@ -23,7 +23,7 @@ pub fn create_file_group(
     }
 
     // 使用事务处理引用计数和数据插入
-    let result = conn.transaction::<_, AppError, _>(|conn| {
+    let _result = conn.transaction::<_, AppError, _>(|conn| {
         increase_file_reference_count(conn, file_group_dto.file_id)?;
         increase_group_reference_count(conn, file_group_dto.group_id)?;
         // 错误类型转换，将 diesel::result::Error 转换为 AppError
@@ -38,10 +38,10 @@ pub fn delete_file_group(
     conn: &mut SqliteConnection,
     file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
-    let mut group = find_group_by_id(conn, file_group_dto.group_id)?
+    let group = find_group_by_id(conn, file_group_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;
 
-    let mut file = find_file_by_id(conn, file_group_dto.file_id)?
+    let _file = find_file_by_id(conn, file_group_dto.file_id)?
         .ok_or(AppError::FileNotFound)?;
 
     if group.is_primary {

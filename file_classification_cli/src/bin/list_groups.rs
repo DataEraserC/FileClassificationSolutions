@@ -1,8 +1,10 @@
 use file_classification_core::model::models::GroupFilter;
+#[allow(deprecated)]
 use file_classification_core::service::groups::select_groups;
 use file_classification_core::utils::database::establish_connection;
 // 引入select_groups和SearchGroup
 
+#[allow(deprecated)]
 fn main() {
     let connection = &mut establish_connection();
 

@@ -1,8 +1,10 @@
 use file_classification_core::model::models::FileFilter;
+#[allow(deprecated)]
 use file_classification_core::service::files::select_files;
 use file_classification_core::utils::database::establish_connection;
 // 引入select_files和SearchFile
 
+#[allow(deprecated)]
 fn main() {
     let connection = &mut establish_connection();
 

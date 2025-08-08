@@ -26,13 +26,14 @@ pub fn find_group_by_id(
         .optional()
 }
 
+#[allow(dead_code)]
 pub fn mark_group_as_primary(conn: &mut SqliteConnection, group_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table)
         .filter(groups::id.eq(group_id))
         .set(groups::is_primary.eq(true))
         .execute(conn)
 }
-
+#[allow(dead_code)]
 pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)
 }
@@ -204,6 +205,7 @@ pub fn select_groups_by_conditions(
 }
 
 
+#[allow(dead_code)]
 pub fn select_groups_by_conditions_with_options(
     conn: &mut SqliteConnection,
     conditions: Vec<GroupCondition>,

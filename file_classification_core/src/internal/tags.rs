@@ -6,6 +6,7 @@ pub fn create_tag(
 ) -> Result<Tag, diesel::result::Error> {
     diesel::insert_into(tags::table).values(&new_tag).returning(Tag::as_returning()).get_result(conn)
 }
+#[allow(dead_code)]
 pub fn find_tag_by_name(
     conn: &mut SqliteConnection,
     tag_name: &str,
@@ -142,6 +143,7 @@ pub fn select_tags_by_conditions(
         .load(conn)
 }
 
+#[allow(dead_code)]
 pub fn select_tags_by_conditions_with_options(
     conn: &mut SqliteConnection,
     conditions: Vec<TagCondition>,

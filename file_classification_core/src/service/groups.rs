@@ -41,7 +41,8 @@ pub fn delete_group(
         groups::delete_group(conn, group_id)
     })
 }
-
+#[allow(deprecated)]
+#[deprecated]
 pub fn select_groups(
     conn: &mut SqliteConnection,
     search_input: GroupFilter,

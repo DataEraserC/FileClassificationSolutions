@@ -96,6 +96,7 @@ pub fn select_file_groups_by_conditions(
         .load(conn)
 }
 
+#[allow(dead_code)]
 pub fn select_file_groups_by_conditions_with_options(
     conn: &mut SqliteConnection,
     conditions: Vec<FileGroupCondition>,
