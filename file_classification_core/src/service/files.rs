@@ -67,7 +67,16 @@ pub fn create_file(conn: &mut SqliteConnection, create_file_dto: CreateFileDTO) 
 
     update_groups_by_conditions(conn, vec![
         GroupCondition::Id(group.id)
-    ], UpdateGroupDTO { id: None, name: None, reference_count: None, is_primary: Some(true), click_count: None, share_count: None, create_time: None, modify_time: None }).expect("Error when creating group");
+    ], UpdateGroupDTO {
+        id: None,
+        name: None,
+        reference_count: None,
+        is_primary: Some(true),
+        click_count: None,
+        share_count: None,
+        create_time: None,
+        modify_time: None,
+    }).expect("Error when creating group");
 
     match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: group.id }) {
         Ok(_) => {
@@ -110,6 +119,7 @@ pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), AppE
 }
 
 
+#[deprecated]
 pub fn select_files(
     conn: &mut SqliteConnection,
     search_input: FileFilter,
