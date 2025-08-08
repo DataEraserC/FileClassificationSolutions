@@ -1,13 +1,12 @@
-use diesel::Connection;
-use diesel::dsl::count;
 use super::database::SqliteConnection;
-use crate::service::AppError;
-use crate::{internal, service};
 use crate::internal::file_group::select_file_groups_by_conditions;
 use crate::internal::groups::select_groups_by_conditions;
-use crate::model::models::{CreateFileDTO, File, FileFilter, FileCondition, FileGroupCondition, GroupTagCondition, GroupTagDTO, UpdateFileDTO, GroupCondition, UpdateGroupDTO, FileGroupDTO};
+use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, GroupCondition, GroupTagCondition, UpdateFileDTO, UpdateGroupDTO};
 use crate::service::groups::update_groups_by_conditions;
-use crate::utils::errors::AppError::{CannotBindToPrimaryGroup, GroupNotFound};
+use crate::service::AppError;
+use crate::utils::errors::AppError::CannotBindToPrimaryGroup;
+use crate::{internal, service};
+use diesel::Connection;
 
 pub fn raw_create_file(
     conn: &mut SqliteConnection,
@@ -45,26 +44,25 @@ pub fn raw_create_file(
 // }
 
 pub fn create_file(conn: &mut SqliteConnection, create_file_dto: CreateFileDTO) -> Result<usize, AppError> {
-     let group_list = select_groups_by_conditions(conn, vec![
+    let group_list = select_groups_by_conditions(conn, vec![
         GroupCondition::Id(create_file_dto.group_id)
-     ], None)?;
+    ], None)?;
     let Some(group) = group_list.get(0) else { todo!() };
     let file_groups = select_file_groups_by_conditions(
         conn,
         vec![
             FileGroupCondition::GroupId(create_file_dto.group_id)
-
-        ],None
+        ], None,
     )?;
 
-    if(file_groups.len() != 0){
-        return Err(CannotBindToPrimaryGroup)
+    if (file_groups.len() != 0) {
+        return Err(CannotBindToPrimaryGroup);
     }
     let mut count = 0;
     count += internal::files::create_file(conn, &create_file_dto)?;
     let file_list = internal::files::select_files_by_conditions(conn, vec![
         FileCondition::GroupId(create_file_dto.group_id)
-    ],None)?;
+    ], None)?;
     let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
 
     update_groups_by_conditions(conn, vec![
@@ -74,13 +72,12 @@ pub fn create_file(conn: &mut SqliteConnection, create_file_dto: CreateFileDTO) 
     match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: group.id }) {
         Ok(_) => {
             count += 1;
-        },
+        }
         Err(e) => {
             return Err(e)
         }
     }
     Ok(count)
-
 }
 pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), AppError> {
     // 开始事务
@@ -94,19 +91,19 @@ pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), AppE
         // 删除与文件关联的组标签
         internal::group_tag::delete_group_tags_by_conditions(
             conn,
-            vec![GroupTagCondition::GroupId(file_required_to_delete.group_id)]
+            vec![GroupTagCondition::GroupId(file_required_to_delete.group_id)],
         )?;
 
         // 删除与文件关联的文件组关系
         internal::file_group::delete_file_groups_by_conditions(
             conn,
-            vec![FileGroupCondition::FileId(file_required_to_delete.id)]
+            vec![FileGroupCondition::FileId(file_required_to_delete.id)],
         )?;
 
         // 删除组和文件本身
         service::groups::delete_group(conn, file_required_to_delete.group_id)?;
         internal::files::delete_file_by_id(conn, file_id)?;
-        
+
         Ok(())
     })?;
     Ok(())

@@ -1,4 +1,4 @@
-use super::{models::{CreateTagDTO, Tag, TagFilter}, AppError};
+use super::models::{CreateTagDTO, Tag, TagFilter};
 use diesel::prelude::*;
 pub fn create_tag(
     conn: &mut SqliteConnection,
@@ -56,8 +56,8 @@ pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<usize, die
     diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
 }
 
-use crate::model::schema::{tags};
 use crate::model::schema::tags::dsl::*;
+use crate::model::schema::tags;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 impl Debug for Tag {
@@ -72,13 +72,13 @@ impl Debug for Tag {
 
 
 use super::models::TagCondition;
+use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
-use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数
-fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
     match condition {
         TagCondition::Id(_id) => Box::new(tags::id.eq(_id)),
         TagCondition::Name(_name) => Box::new(tags::name.eq(_name)),
@@ -91,7 +91,7 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
         TagCondition::ReferenceCountLessThan(value) => Box::new(tags::reference_count.lt(value)),
 
         TagCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_tag_condition(cond);
                 match result {
@@ -100,9 +100,9 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
                 }
             }
             result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
-        },
+        }
         TagCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_tag_condition(cond);
                 match result {
@@ -111,7 +111,7 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
                 }
             }
             result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
-        },
+        }
         TagCondition::Not(condition) => {
             let expr = build_tag_condition(*condition);
             Box::new(not(expr))
@@ -172,19 +172,19 @@ pub fn select_tags_by_conditions_with_options(
                     OrderDirection::Asc => query.order(tags::id.asc()),
                     OrderDirection::Desc => query.order(tags::id.desc()),
                 }
-            },
+            }
             TagOrderBy::Name(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(tags::name.asc()),
                     OrderDirection::Desc => query.order(tags::name.desc()),
                 }
-            },
+            }
             TagOrderBy::ReferenceCount(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(tags::reference_count.asc()),
                     OrderDirection::Desc => query.order(tags::reference_count.desc()),
                 }
-            },
+            }
         };
     }
 

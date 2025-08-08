@@ -19,7 +19,7 @@ fn main() {
             // break;
         }
 
-        match select_tags_by_conditions(connection, conditions, 20) {
+        match select_tags_by_conditions(connection, conditions, Some(20)) {
             Ok(tags) => {
                 println!("\n查询结果 (共 {} 条记录):", tags.len());
                 println!("-------------------------");

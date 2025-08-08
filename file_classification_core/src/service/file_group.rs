@@ -1,11 +1,11 @@
-use diesel::Connection;
-use diesel::result::Error;
 use super::database::SqliteConnection;
 use crate::internal::file_group as file_groups;
 use crate::internal::files::{decrease_file_reference_count, find_file_by_id, increase_file_reference_count};
 use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
 use crate::model::models::{FileGroupCondition, FileGroupDTO};
 use crate::service::AppError;
+use diesel::result::Error;
+use diesel::Connection;
 
 pub fn create_file_group(
     conn: &mut SqliteConnection,
@@ -38,7 +38,6 @@ pub fn delete_file_group(
     conn: &mut SqliteConnection,
     file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
-
     let mut group = find_group_by_id(conn, file_group_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;
 

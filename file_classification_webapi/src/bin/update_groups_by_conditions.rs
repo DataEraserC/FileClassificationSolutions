@@ -1,8 +1,8 @@
+use chrono;
 use file_classification_core::model::models::{GroupCondition, UpdateGroupDTO};
+use file_classification_core::service::groups::update_groups_by_conditions;
 use file_classification_core::utils::database::establish_connection;
 use std::io::{self, Write};
-use chrono;
-use file_classification_core::service::groups::update_groups_by_conditions;
 
 fn main() {
     let connection = &mut establish_connection();
@@ -26,12 +26,12 @@ fn main() {
         let update_set = get_update_fields();
 
         if update_set.name.is_none() &&
-           update_set.reference_count.is_none() &&
-           update_set.is_primary.is_none() &&
-           update_set.click_count.is_none() &&
-           update_set.share_count.is_none() &&
-           update_set.create_time.is_none() &&
-           update_set.modify_time.is_none() {
+            update_set.reference_count.is_none() &&
+            update_set.is_primary.is_none() &&
+            update_set.click_count.is_none() &&
+            update_set.share_count.is_none() &&
+            update_set.create_time.is_none() &&
+            update_set.modify_time.is_none() {
             println!("未设置任何要更新的字段。");
             if !ask_continue() {
                 break;
@@ -507,7 +507,7 @@ fn get_update_fields() -> UpdateGroupDTO {
     let reference_count: Option<i32>;
     let is_primary: Option<bool>;
     let click_count: Option<i32>;
-    let share_count: Option<i32> ;
+    let share_count: Option<i32>;
     let create_time: Option<chrono::NaiveDateTime> = None;
     let modify_time: Option<chrono::NaiveDateTime> = Some(chrono::Local::now().naive_local());
 

@@ -1,4 +1,4 @@
-use super::{models::{Group, GroupFilter, CreateGroupDTO}, AppError};
+use super::models::{CreateGroupDTO, Group, GroupFilter};
 use diesel::prelude::*;
 pub fn create_group(conn: &mut SqliteConnection, new_group: &CreateGroupDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(groups::table)
@@ -26,14 +26,14 @@ pub fn find_group_by_id(
         .optional()
 }
 
-pub fn mark_group_as_primary(conn: &mut SqliteConnection, group_id: i32) -> Result<usize, diesel::result::Error>{
+pub fn mark_group_as_primary(conn: &mut SqliteConnection, group_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table)
         .filter(groups::id.eq(group_id))
         .set(groups::is_primary.eq(true))
         .execute(conn)
 }
 
-pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<usize, diesel::result::Error>{
+pub fn mark_group_as_non_primary(conn: &mut SqliteConnection) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)
 }
 
@@ -82,8 +82,8 @@ pub fn delete_group(
 ) -> Result<usize, diesel::result::Error> {
     diesel::delete(groups.filter(groups::id.eq(group_id))).execute(conn)
 }
-use crate::model::schema::{groups};
 use crate::model::schema::groups::dsl::*;
+use crate::model::schema::groups;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn increase_group_reference_count(
@@ -120,13 +120,13 @@ impl Debug for Group {
 }
 
 use super::models::GroupCondition;
+use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
-use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
 
 // 将 GroupCondition 转换为 diesel 查询条件的辅助函数
-fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
     match condition {
         GroupCondition::Id(_id) => Box::new(groups::id.eq(_id)),
         GroupCondition::Name(_name) => Box::new(groups::name.eq(_name)),
@@ -152,7 +152,7 @@ fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression
         GroupCondition::ModifyTimeLessThan(time) => Box::new(groups::modify_time.lt(time)),
 
         GroupCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<groups::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_group_condition(cond);
                 match result {
@@ -161,9 +161,9 @@ fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression
                 }
             }
             result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
-        },
+        }
         GroupCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<groups::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_group_condition(cond);
                 match result {
@@ -172,7 +172,7 @@ fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression
                 }
             }
             result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
-        },
+        }
         GroupCondition::Not(condition) => {
             let expr = build_group_condition(*condition);
             Box::new(not(expr))
@@ -234,49 +234,49 @@ pub fn select_groups_by_conditions_with_options(
                     OrderDirection::Asc => query.order(groups::id.asc()),
                     OrderDirection::Desc => query.order(groups::id.desc()),
                 }
-            },
+            }
             GroupOrderBy::Name(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::name.asc()),
                     OrderDirection::Desc => query.order(groups::name.desc()),
                 }
-            },
+            }
             GroupOrderBy::ReferenceCount(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::reference_count.asc()),
                     OrderDirection::Desc => query.order(groups::reference_count.desc()),
                 }
-            },
+            }
             GroupOrderBy::IsPrimary(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::is_primary.asc()),
                     OrderDirection::Desc => query.order(groups::is_primary.desc()),
                 }
-            },
+            }
             GroupOrderBy::ClickCount(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::click_count.asc()),
                     OrderDirection::Desc => query.order(groups::click_count.desc()),
                 }
-            },
+            }
             GroupOrderBy::ShareCount(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::share_count.asc()),
                     OrderDirection::Desc => query.order(groups::share_count.desc()),
                 }
-            },
+            }
             GroupOrderBy::CreateTime(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::create_time.asc()),
                     OrderDirection::Desc => query.order(groups::create_time.desc()),
                 }
-            },
+            }
             GroupOrderBy::ModifyTime(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(groups::modify_time.asc()),
                     OrderDirection::Desc => query.order(groups::modify_time.desc()),
                 }
-            },
+            }
         };
     }
 

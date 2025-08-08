@@ -1,9 +1,9 @@
-use diesel::Connection;
-use diesel::result::Error;
 use super::database::SqliteConnection;
-use crate::service::{file_group, files, group_tag, AppError};
-use crate::{internal::groups, model::models::{Group, GroupFilter, CreateGroupDTO}, service};
 use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupTagCondition, UpdateGroupDTO};
+use crate::service::{file_group, files, group_tag, AppError};
+use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
+use diesel::result::Error;
+use diesel::Connection;
 
 pub fn create_group(conn: &mut SqliteConnection, name: &str) -> Result<usize, Error> {
     let new_group = CreateGroupDTO { name };

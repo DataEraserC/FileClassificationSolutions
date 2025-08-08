@@ -1,10 +1,9 @@
+use crate::model::models::{TagCondition, UpdateTagDTO};
 use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
 };
 use diesel::SqliteConnection;
-use crate::model::models::{TagCondition, UpdateTagDTO};
-use crate::utils::errors::AppError;
 
 pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel::result::Error> {
     let new_tag = CreateTagDTO { name };

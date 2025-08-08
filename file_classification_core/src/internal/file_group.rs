@@ -1,12 +1,12 @@
-use super::models::{FileGroupDTO,FileGroupCondition};
-use crate::model::schema::{file_groups};
+use super::models::{FileGroupCondition, FileGroupDTO};
+use crate::model::schema::file_groups;
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn insert_file_group(
     conn: &mut SqliteConnection,
     file_group_dto: &FileGroupDTO,
-) -> Result<usize, diesel::result::Error>{
+) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(file_groups::table)
         .values(file_group_dto)
         .execute(conn)
@@ -30,11 +30,11 @@ impl Debug for FileGroupDTO {
     }
 }
 
-use diesel::sqlite::Sqlite;
 use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
+use diesel::sqlite::Sqlite;
 
 // 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数
-fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
     match condition {
         FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
         FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
@@ -45,7 +45,7 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
         FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
 
         FileGroupCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_group_condition(cond);
                 match result {
@@ -54,9 +54,9 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
                 }
             }
             result.unwrap_or_else(|| Box::new(true.into_sql::<diesel::sql_types::Bool>()))
-        },
+        }
         FileGroupCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_group_condition(cond);
                 match result {
@@ -65,7 +65,7 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
                 }
             }
             result.unwrap_or_else(|| Box::new(false.into_sql::<diesel::sql_types::Bool>()))
-        },
+        }
         FileGroupCondition::Not(condition) => {
             let expr = build_file_group_condition(*condition);
             Box::new(diesel::dsl::not(expr))
@@ -87,7 +87,7 @@ pub fn select_file_groups_by_conditions(
         query = query.filter(boxed_condition);
     }
 
-    if let Some(limit) = limit{
+    if let Some(limit) = limit {
         query = query.limit(limit)
     }
 
@@ -126,13 +126,13 @@ pub fn select_file_groups_by_conditions_with_options(
                     OrderDirection::Asc => query.order(file_groups::file_id.asc()),
                     OrderDirection::Desc => query.order(file_groups::file_id.desc()),
                 }
-            },
+            }
             FileGroupOrderBy::GroupId(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(file_groups::group_id.asc()),
                     OrderDirection::Desc => query.order(file_groups::group_id.desc()),
                 }
-            },
+            }
         };
     }
 

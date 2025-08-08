@@ -1,7 +1,7 @@
 use file_classification_core::model::models::{TagCondition, UpdateTagDTO};
+use file_classification_core::service::tags::update_tags_by_conditions;
 use file_classification_core::utils::database::establish_connection;
 use std::io::{self, Write};
-use file_classification_core::service::tags::update_tags_by_conditions;
 
 fn main() {
     let connection = &mut establish_connection();
@@ -25,7 +25,7 @@ fn main() {
         let update_set = get_update_fields();
 
         if update_set.name.is_none() &&
-           update_set.reference_count.is_none() {
+            update_set.reference_count.is_none() {
             println!("未设置任何要更新的字段。");
             if !ask_continue() {
                 break;

@@ -25,9 +25,9 @@ fn main() {
         let update_set = get_update_fields();
 
         if update_set.path.is_none() &&
-           update_set.type_.is_none() &&
-           update_set.reference_count.is_none() &&
-           update_set.group_id.is_none() {
+            update_set.type_.is_none() &&
+            update_set.reference_count.is_none() &&
+            update_set.group_id.is_none() {
             println!("未设置任何要更新的字段。");
             if !ask_continue() {
                 break;

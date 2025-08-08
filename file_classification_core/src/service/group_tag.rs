@@ -1,15 +1,15 @@
-use diesel::Connection;
-use diesel::result::Error;
 use super::database::SqliteConnection;
-use crate::internal::{group_tag as group_tags, group_tag};
 use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
 use crate::internal::tags::{decrease_tag_reference_count, find_tag_by_id, increase_tag_reference_count};
+use crate::internal::{group_tag as group_tags, group_tag};
 use crate::model::models::{GroupTagCondition, GroupTagDTO};
 use crate::service::AppError;
+use diesel::result::Error;
+use diesel::Connection;
 
 pub fn create_group_tag(
     conn: &mut SqliteConnection,
-    group_tag_dto: GroupTagDTO
+    group_tag_dto: GroupTagDTO,
 ) -> Result<GroupTagDTO, AppError> {
     let group = find_group_by_id(conn, group_tag_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;
@@ -32,7 +32,7 @@ pub fn create_group_tag(
 
 pub fn delete_group_tag_by_id(
     conn: &mut SqliteConnection,
-    group_tag_dto: GroupTagDTO
+    group_tag_dto: GroupTagDTO,
 ) -> Result<usize, AppError> {
     let group = find_group_by_id(conn, group_tag_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;

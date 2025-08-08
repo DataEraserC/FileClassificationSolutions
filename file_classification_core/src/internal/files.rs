@@ -1,7 +1,7 @@
-use super::{models::{UpdateFileDTO, CreateFileDTO, File, FileFilter, FileCondition}};
+use super::models::{CreateFileDTO, File, FileCondition, FileFilter, UpdateFileDTO};
 use diesel::prelude::*;
 
-pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error>  {
+pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(files::table)
         .values(new_file).execute(conn)
 }
@@ -65,12 +65,12 @@ pub fn delete_file_by_id(conn: &mut SqliteConnection, file_id: i32) -> Result<us
     diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
 
+use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
 use crate::model::schema::files;
 use crate::model::schema::files::dsl::*;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
-use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
+use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 impl Debug for File {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
@@ -85,7 +85,7 @@ impl Debug for File {
 
 // 将 FileCondition 转换为 diesel 查询条件的辅助函数
 // 更新 build_condition 函数以处理新增的条件类型
-fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
+fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
     match condition {
         FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
         FileCondition::Type(t) => Box::new(files::type_.eq(t)),
@@ -104,7 +104,7 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
         FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
 
         FileCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_condition(cond);
                 match result {
@@ -113,9 +113,9 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
                 }
             }
             result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
-        },
+        }
         FileCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType = diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_condition(cond);
                 match result {
@@ -124,7 +124,7 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
                 }
             }
             result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
-        },
+        }
         FileCondition::Not(condition) => {
             let expr = build_file_condition(*condition);
             Box::new(diesel::dsl::not(expr))
@@ -186,31 +186,31 @@ pub fn select_files_by_conditions_with_options(
                     OrderDirection::Asc => query.order(files::id.asc()),
                     OrderDirection::Desc => query.order(files::id.desc()),
                 }
-            },
+            }
             FileOrderBy::Type(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(files::type_.asc()),
                     OrderDirection::Desc => query.order(files::type_.desc()),
                 }
-            },
+            }
             FileOrderBy::Path(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(files::path.asc()),
                     OrderDirection::Desc => query.order(files::path.desc()),
                 }
-            },
+            }
             FileOrderBy::ReferenceCount(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(files::reference_count.asc()),
                     OrderDirection::Desc => query.order(files::reference_count.desc()),
                 }
-            },
+            }
             FileOrderBy::GroupId(direction) => {
                 match direction {
                     OrderDirection::Asc => query.order(files::group_id.asc()),
                     OrderDirection::Desc => query.order(files::group_id.desc()),
                 }
-            },
+            }
         };
     }
 
