@@ -58,7 +58,7 @@ pub fn delete_group_tag_by_id(
 pub fn select_group_tags_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<GroupTagCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
     group_tags::select_group_tags_by_conditions(conn, condition, limit)
 }

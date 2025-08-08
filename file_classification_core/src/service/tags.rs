@@ -26,7 +26,7 @@ pub fn select_tags(
 pub fn select_tags_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<TagCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     tags::select_tags_by_conditions(conn, condition, limit)
 }

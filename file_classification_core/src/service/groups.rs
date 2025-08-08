@@ -53,7 +53,7 @@ pub fn select_groups(
 pub fn select_groups_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<GroupCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
     groups::select_groups_by_conditions(conn, condition, limit)
 }

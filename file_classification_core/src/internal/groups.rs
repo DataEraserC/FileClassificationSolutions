@@ -123,7 +123,7 @@ use super::models::GroupCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
-use crate::model::models::{UpdateGroupDTO};
+use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
 
 // 将 GroupCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -184,7 +184,7 @@ fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression
 pub fn select_groups_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<GroupCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
     let mut query = groups::table.into_boxed::<Sqlite>();
 
@@ -194,11 +194,95 @@ pub fn select_groups_by_conditions(
         query = query.filter(boxed_condition);
     }
 
+    if let Some(limit) = limit {
+        query = query.limit(limit);
+    }
+
     query
-        .limit(limit)
         .select(Group::as_select())
         .load(conn)
 }
+
+
+pub fn select_groups_by_conditions_with_options(
+    conn: &mut SqliteConnection,
+    conditions: Vec<GroupCondition>,
+    options: GroupQueryOptions,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    let mut query = groups::table.into_boxed::<Sqlite>();
+
+    // 应用过滤条件
+    for condition in conditions {
+        let boxed_condition = build_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 应用查询选项（排序、限制等）
+    if let Some(limit) = options.limit {
+        query = query.limit(limit);
+    }
+
+    if let Some(offset) = options.offset {
+        query = query.offset(offset);
+    }
+
+    // 应用排序
+    for order_by in options.order_by {
+        query = match order_by {
+            GroupOrderBy::Id(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::id.asc()),
+                    OrderDirection::Desc => query.order(groups::id.desc()),
+                }
+            },
+            GroupOrderBy::Name(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::name.asc()),
+                    OrderDirection::Desc => query.order(groups::name.desc()),
+                }
+            },
+            GroupOrderBy::ReferenceCount(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::reference_count.asc()),
+                    OrderDirection::Desc => query.order(groups::reference_count.desc()),
+                }
+            },
+            GroupOrderBy::IsPrimary(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::is_primary.asc()),
+                    OrderDirection::Desc => query.order(groups::is_primary.desc()),
+                }
+            },
+            GroupOrderBy::ClickCount(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::click_count.asc()),
+                    OrderDirection::Desc => query.order(groups::click_count.desc()),
+                }
+            },
+            GroupOrderBy::ShareCount(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::share_count.asc()),
+                    OrderDirection::Desc => query.order(groups::share_count.desc()),
+                }
+            },
+            GroupOrderBy::CreateTime(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::create_time.asc()),
+                    OrderDirection::Desc => query.order(groups::create_time.desc()),
+                }
+            },
+            GroupOrderBy::ModifyTime(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(groups::modify_time.asc()),
+                    OrderDirection::Desc => query.order(groups::modify_time.desc()),
+                }
+            },
+        };
+    }
+
+    query.select(Group::as_select()).load(conn)
+}
+
 
 pub fn update_groups_by_conditions(
     conn: &mut SqliteConnection,

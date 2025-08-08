@@ -28,6 +28,7 @@ pub struct CreateFileDTO<'a, 'b> {
 
 // NOTE: you may find File is like SearchFile
 // it is bcs IDK how to unify them
+#[derive(serde::Deserialize)]
 pub struct FileFilter {
     pub id: Option<i32>,
     pub type_: Option<String>,
@@ -36,6 +37,7 @@ pub struct FileFilter {
     pub group_id: Option<i32>,
 }
 
+#[derive(serde::Deserialize)]
 pub enum FileCondition {
     Id(i32),
     Type(String),
@@ -57,7 +59,22 @@ pub enum FileCondition {
     Not(Box<FileCondition>),
 }
 
-#[derive(AsChangeset)]
+#[derive(Default)]
+pub struct FileQueryOptions {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub order_by: Vec<FileOrderBy>,
+}
+
+pub enum FileOrderBy {
+    Id(OrderDirection),
+    Type(OrderDirection),
+    Path(OrderDirection),
+    ReferenceCount(OrderDirection),
+    GroupId(OrderDirection),
+}
+
+#[derive(AsChangeset, serde::Deserialize)]
 #[diesel(table_name = files)]
 pub struct UpdateFileDTO {
     pub path: Option<String>,
@@ -116,6 +133,29 @@ pub enum GroupCondition {
     And(Vec<GroupCondition>),
     Or(Vec<GroupCondition>),
     Not(Box<GroupCondition>),
+}
+
+#[derive(Default)]
+pub struct GroupQueryOptions {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub order_by: Vec<GroupOrderBy>,
+}
+
+pub enum GroupOrderBy {
+    Id(OrderDirection),
+    Name(OrderDirection),
+    ReferenceCount(OrderDirection),
+    IsPrimary(OrderDirection),
+    ClickCount(OrderDirection),
+    ShareCount(OrderDirection),
+    CreateTime(OrderDirection),
+    ModifyTime(OrderDirection),
+}
+
+pub enum OrderDirection {
+    Asc,
+    Desc,
 }
 
 #[derive(AsChangeset)]
@@ -193,6 +233,19 @@ pub enum TagCondition {
     Not(Box<TagCondition>),
 }
 
+#[derive(Default)]
+pub struct TagQueryOptions {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub order_by: Vec<TagOrderBy>,
+}
+
+pub enum TagOrderBy {
+    Id(OrderDirection),
+    Name(OrderDirection),
+    ReferenceCount(OrderDirection),
+}
+
 #[derive(AsChangeset)]
 #[diesel(table_name = tags)]
 pub struct UpdateTagDTO {
@@ -220,13 +273,14 @@ pub struct UpdateTag {
  */
 
 // NOTE: FileGroupDTO == CreateFileGroupDTO
-#[derive(Queryable, Insertable, Serialize)]
+#[derive(Queryable, Insertable, Serialize, serde::Deserialize)]
 #[diesel(table_name = file_groups)]
 pub struct FileGroupDTO {
     pub file_id: i32,
     pub group_id: i32,
 }
 
+#[derive(serde::Deserialize)]
 pub enum FileGroupCondition {
     FileId(i32),
     GroupId(i32),
@@ -239,6 +293,18 @@ pub enum FileGroupCondition {
     And(Vec<FileGroupCondition>),
     Or(Vec<FileGroupCondition>),
     Not(Box<FileGroupCondition>),
+}
+
+#[derive(Default)]
+pub struct FileGroupQueryOptions {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub order_by: Vec<FileGroupOrderBy>,
+}
+
+pub enum FileGroupOrderBy {
+    FileId(OrderDirection),
+    GroupId(OrderDirection),
 }
 
 /** GroupTag Related
@@ -264,4 +330,16 @@ pub enum GroupTagCondition {
     And(Vec<GroupTagCondition>),
     Or(Vec<GroupTagCondition>),
     Not(Box<GroupTagCondition>),
+}
+
+#[derive(Default)]
+pub struct GroupTagQueryOptions {
+    pub limit: Option<i64>,
+    pub offset: Option<i64>,
+    pub order_by: Vec<GroupTagOrderBy>,
+}
+
+pub enum GroupTagOrderBy {
+    GroupId(OrderDirection),
+    TagId(OrderDirection),
 }

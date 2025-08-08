@@ -17,7 +17,7 @@ fn main() {
             // break;
         }
 
-        match select_file_groups_by_conditions(connection, conditions, 20) {
+        match select_file_groups_by_conditions(connection, conditions, Some(20)) {
             Ok(file_groups) => {
                 println!("\n查询结果 (共 {} 条记录):", file_groups.len());
                 println!("-------------------------");

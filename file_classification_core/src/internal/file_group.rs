@@ -31,6 +31,7 @@ impl Debug for FileGroupDTO {
 }
 
 use diesel::sqlite::Sqlite;
+use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
 
 // 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数
 fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -76,7 +77,7 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
 pub fn select_file_groups_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<FileGroupCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
     let mut query = file_groups::table.into_boxed::<Sqlite>();
 
@@ -86,8 +87,56 @@ pub fn select_file_groups_by_conditions(
         query = query.filter(boxed_condition);
     }
 
+    if let Some(limit) = limit{
+        query = query.limit(limit)
+    }
+
     query
-        .limit(limit)
+        .select((file_groups::file_id, file_groups::group_id))
+        .load(conn)
+}
+
+pub fn select_file_groups_by_conditions_with_options(
+    conn: &mut SqliteConnection,
+    conditions: Vec<FileGroupCondition>,
+    options: FileGroupQueryOptions,
+) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+    let mut query = file_groups::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_file_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 应用查询选项（排序、限制等）
+    if let Some(limit) = options.limit {
+        query = query.limit(limit);
+    }
+
+    if let Some(offset) = options.offset {
+        query = query.offset(offset);
+    }
+
+    // 应用排序
+    for order_by in options.order_by {
+        query = match order_by {
+            FileGroupOrderBy::FileId(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(file_groups::file_id.asc()),
+                    OrderDirection::Desc => query.order(file_groups::file_id.desc()),
+                }
+            },
+            FileGroupOrderBy::GroupId(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(file_groups::group_id.asc()),
+                    OrderDirection::Desc => query.order(file_groups::group_id.desc()),
+                }
+            },
+        };
+    }
+
+    query
         .select((file_groups::file_id, file_groups::group_id))
         .load(conn)
 }

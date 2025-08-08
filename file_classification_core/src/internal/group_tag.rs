@@ -37,6 +37,7 @@ use super::models::GroupTagCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
+use crate::model::models::{GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
 
 // 将 GroupTagCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExpression<group_tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -82,7 +83,7 @@ fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExp
 pub fn select_group_tags_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<GroupTagCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
     let mut query = group_tags::table.into_boxed::<Sqlite>();
 
@@ -92,8 +93,56 @@ pub fn select_group_tags_by_conditions(
         query = query.filter(boxed_condition);
     }
 
+    if let Some(limit) = limit {
+        query = query.limit(limit);
+    }
+
     query
-        .limit(limit)
+        .select((group_tags::group_id, group_tags::tag_id))
+        .load(conn)
+}
+
+pub fn select_group_tags_by_conditions_with_options(
+    conn: &mut SqliteConnection,
+    conditions: Vec<GroupTagCondition>,
+    options: GroupTagQueryOptions,
+) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+    let mut query = group_tags::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_group_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 应用查询选项（排序、限制等）
+    if let Some(limit) = options.limit {
+        query = query.limit(limit);
+    }
+
+    if let Some(offset) = options.offset {
+        query = query.offset(offset);
+    }
+
+    // 应用排序
+    for order_by in options.order_by {
+        query = match order_by {
+            GroupTagOrderBy::GroupId(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(group_tags::group_id.asc()),
+                    OrderDirection::Desc => query.order(group_tags::group_id.desc()),
+                }
+            },
+            GroupTagOrderBy::TagId(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(group_tags::tag_id.asc()),
+                    OrderDirection::Desc => query.order(group_tags::tag_id.desc()),
+                }
+            },
+        };
+    }
+
+    query
         .select((group_tags::group_id, group_tags::tag_id))
         .load(conn)
 }

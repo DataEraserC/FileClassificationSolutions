@@ -1,8 +1,13 @@
 use diesel::Connection;
+use diesel::dsl::count;
 use super::database::SqliteConnection;
 use crate::service::AppError;
 use crate::{internal, service};
-use crate::model::models::{CreateFileDTO, File, FileFilter,FileCondition, FileGroupCondition, GroupTagCondition, GroupTagDTO, UpdateFileDTO};
+use crate::internal::file_group::select_file_groups_by_conditions;
+use crate::internal::groups::select_groups_by_conditions;
+use crate::model::models::{CreateFileDTO, File, FileFilter, FileCondition, FileGroupCondition, GroupTagCondition, GroupTagDTO, UpdateFileDTO, GroupCondition, UpdateGroupDTO, FileGroupDTO};
+use crate::service::groups::update_groups_by_conditions;
+use crate::utils::errors::AppError::{CannotBindToPrimaryGroup, GroupNotFound};
 
 pub fn raw_create_file(
     conn: &mut SqliteConnection,
@@ -38,6 +43,45 @@ pub fn raw_create_file(
 //
 //     Ok((file, group))
 // }
+
+pub fn create_file(conn: &mut SqliteConnection, create_file_dto: CreateFileDTO) -> Result<usize, AppError> {
+     let group_list = select_groups_by_conditions(conn, vec![
+        GroupCondition::Id(create_file_dto.group_id)
+     ], None)?;
+    let Some(group) = group_list.get(0) else { todo!() };
+    let file_groups = select_file_groups_by_conditions(
+        conn,
+        vec![
+            FileGroupCondition::GroupId(create_file_dto.group_id)
+
+        ],None
+    )?;
+
+    if(file_groups.len() != 0){
+        return Err(CannotBindToPrimaryGroup)
+    }
+    let mut count = 0;
+    count += internal::files::create_file(conn, &create_file_dto)?;
+    let file_list = internal::files::select_files_by_conditions(conn, vec![
+        FileCondition::GroupId(create_file_dto.group_id)
+    ],None)?;
+    let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
+
+    update_groups_by_conditions(conn, vec![
+        GroupCondition::Id(group.id)
+    ], UpdateGroupDTO { id: None, name: None, reference_count: None, is_primary: Some(true), click_count: None, share_count: None, create_time: None, modify_time: None }).expect("Error when creating group");
+
+    match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: group.id }) {
+        Ok(_) => {
+            count += 1;
+        },
+        Err(e) => {
+            return Err(e)
+        }
+    }
+    Ok(count)
+
+}
 pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), AppError> {
     // 开始事务
     conn.transaction::<(), diesel::result::Error, _>(|conn| {
@@ -80,7 +124,7 @@ pub fn select_files(
 pub fn select_files_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<FileCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
     internal::files::select_files_by_conditions(conn, condition, limit)
 }

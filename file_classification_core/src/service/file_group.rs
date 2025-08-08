@@ -66,7 +66,7 @@ pub fn delete_file_group(
 pub fn select_file_groups_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<FileGroupCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
     crate::internal::file_group::select_file_groups_by_conditions(conn, condition, limit)
 }

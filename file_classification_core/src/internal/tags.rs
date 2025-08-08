@@ -75,7 +75,7 @@ use super::models::TagCondition;
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
-use crate::model::models::{UpdateTagDTO};
+use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数
 fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, Sqlite, SqlType = diesel::sql_types::Bool>> {
@@ -123,7 +123,7 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
 pub fn select_tags_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<TagCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     let mut query = tags::table.into_boxed::<Sqlite>();
 
@@ -133,8 +133,62 @@ pub fn select_tags_by_conditions(
         query = query.filter(boxed_condition);
     }
 
+    if let Some(limit) = limit {
+        query = query.limit(limit);
+    }
+
     query
-        .limit(limit)
+        .select(Tag::as_select())
+        .load(conn)
+}
+
+pub fn select_tags_by_conditions_with_options(
+    conn: &mut SqliteConnection,
+    conditions: Vec<TagCondition>,
+    options: TagQueryOptions,
+) -> Result<Vec<Tag>, diesel::result::Error> {
+    let mut query = tags::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 应用查询选项（排序、限制等）
+    if let Some(limit) = options.limit {
+        query = query.limit(limit);
+    }
+
+    if let Some(offset) = options.offset {
+        query = query.offset(offset);
+    }
+
+    // 应用排序
+    for order_by in options.order_by {
+        query = match order_by {
+            TagOrderBy::Id(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(tags::id.asc()),
+                    OrderDirection::Desc => query.order(tags::id.desc()),
+                }
+            },
+            TagOrderBy::Name(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(tags::name.asc()),
+                    OrderDirection::Desc => query.order(tags::name.desc()),
+                }
+            },
+            TagOrderBy::ReferenceCount(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(tags::reference_count.asc()),
+                    OrderDirection::Desc => query.order(tags::reference_count.desc()),
+                }
+            },
+        };
+    }
+
+    query
         .select(Tag::as_select())
         .load(conn)
 }

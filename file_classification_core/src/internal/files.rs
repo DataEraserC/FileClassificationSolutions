@@ -70,6 +70,7 @@ use crate::model::schema::files::dsl::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 use diesel::sql_types::Bool;
 use diesel::sqlite::Sqlite;
+use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
 
 impl Debug for File {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
@@ -136,7 +137,7 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
 pub fn select_files_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<FileCondition>,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
     let mut query = files::table.into_boxed::<Sqlite>();
 
@@ -146,8 +147,74 @@ pub fn select_files_by_conditions(
         query = query.filter(boxed_condition);
     }
 
+    if let Some(limit) = limit {
+        query = query.limit(limit)
+    }
+
     query
-        .limit(limit)
+        .select(File::as_select())
+        .load(conn)
+}
+
+pub fn select_files_by_conditions_with_options(
+    conn: &mut SqliteConnection,
+    conditions: Vec<FileCondition>,
+    options: FileQueryOptions,
+) -> Result<Vec<File>, diesel::result::Error> {
+    let mut query = files::table.into_boxed::<Sqlite>();
+
+    // 对每个条件应用 AND 逻辑
+    for condition in conditions {
+        let boxed_condition = build_file_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 应用查询选项（排序、限制等）
+    if let Some(limit) = options.limit {
+        query = query.limit(limit);
+    }
+
+    if let Some(offset) = options.offset {
+        query = query.offset(offset);
+    }
+
+    // 应用排序
+    for order_by in options.order_by {
+        query = match order_by {
+            FileOrderBy::Id(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(files::id.asc()),
+                    OrderDirection::Desc => query.order(files::id.desc()),
+                }
+            },
+            FileOrderBy::Type(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(files::type_.asc()),
+                    OrderDirection::Desc => query.order(files::type_.desc()),
+                }
+            },
+            FileOrderBy::Path(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(files::path.asc()),
+                    OrderDirection::Desc => query.order(files::path.desc()),
+                }
+            },
+            FileOrderBy::ReferenceCount(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(files::reference_count.asc()),
+                    OrderDirection::Desc => query.order(files::reference_count.desc()),
+                }
+            },
+            FileOrderBy::GroupId(direction) => {
+                match direction {
+                    OrderDirection::Asc => query.order(files::group_id.asc()),
+                    OrderDirection::Desc => query.order(files::group_id.desc()),
+                }
+            },
+        };
+    }
+
+    query
         .select(File::as_select())
         .load(conn)
 }

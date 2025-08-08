@@ -19,7 +19,7 @@ fn main() {
             // break;
         }
 
-        match select_groups_by_conditions(connection, conditions, 20) {
+        match select_groups_by_conditions(connection, conditions, Some(20)) {
             Ok(groups) => {
                 println!("\n查询结果 (共 {} 条记录):", groups.len());
                 println!("-------------------------");
