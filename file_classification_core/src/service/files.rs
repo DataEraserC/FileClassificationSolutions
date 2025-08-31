@@ -148,10 +148,14 @@ pub fn update_files_by_conditions(
     internal::files::update_files_by_conditions(conn, conditions, update_set)
 }
 
+// NOTE: 这个方法在core里不应该有用法
+// 要暴露给用户使用的话 应当改为先select再delete_by_id
+// 防止引用计算问题
 pub fn delete_files_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
+    // TODO: 减少文件的引用计数
     internal::files::delete_files_by_conditions(conn, conditions)
 }
 

@@ -1,6 +1,6 @@
 use super::database::SqliteConnection;
 use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupTagCondition, UpdateGroupDTO};
-use crate::service::{file_group, files, group_tag, AppError};
+use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
 use diesel::Connection;
@@ -27,15 +27,15 @@ pub fn delete_group(
     conn.transaction::<usize, Error, _>(|conn| {
         let group = groups::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
         if group.is_primary {
-            files::delete_files_by_conditions(conn, vec![
+            crate::internal::files::delete_files_by_conditions(conn, vec![
                 FileCondition::GroupId(group_id)
             ])?;
         } else {
-            file_group::delete_file_groups_by_conditions(conn, vec![
+            crate::internal::file_group::delete_file_groups_by_conditions(conn, vec![
                 FileGroupCondition::GroupId(group_id)
             ])?;
         }
-        group_tag::delete_group_tags_by_conditions(conn, vec![
+        crate::internal::group_tag::delete_group_tags_by_conditions(conn, vec![
             GroupTagCondition::GroupId(group_id)
         ])?;
         groups::delete_group(conn, group_id)
@@ -68,10 +68,14 @@ pub fn update_groups_by_conditions(
 }
 
 
+// NOTE: 这个方法在core里不应该有用法
+// 要暴露给用户使用的话 应当改为先select再delete_by_id
+// 防止引用计算问题
 pub fn delete_groups_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<GroupCondition>,
 ) -> Result<usize, Error> {
+    // TODO: 减少组的引用计数
     groups::delete_groups_by_conditions(conn, conditions)
 }
 

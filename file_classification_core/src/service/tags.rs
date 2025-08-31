@@ -39,9 +39,13 @@ pub fn update_tags_by_conditions(
 }
 
 
+// NOTE: 这个方法在core里不应该有用法
+// 要暴露给用户使用的话 应当改为先select再delete_by_id
+// 防止引用计算问题
 pub fn delete_tags_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<TagCondition>,
 ) -> Result<usize, diesel::result::Error> {
+    // TODO: 减少标签的引用计数
     tags::delete_tags_by_conditions(conn, conditions)
 }

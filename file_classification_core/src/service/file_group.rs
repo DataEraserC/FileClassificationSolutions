@@ -70,9 +70,13 @@ pub fn select_file_groups_by_conditions(
     crate::internal::file_group::select_file_groups_by_conditions(conn, condition, limit)
 }
 
+// NOTE: 这个方法在core里不应该有用法
+// 要暴露给用户使用的话 应当改为先select再delete_by_id
+// 防止引用计算问题
 pub fn delete_file_groups_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<FileGroupCondition>,
 ) -> Result<usize, Error> {
+    // TODO: 减少文件和组的引用计数
     crate::internal::file_group::delete_file_groups_by_conditions(conn, condition)
 }
