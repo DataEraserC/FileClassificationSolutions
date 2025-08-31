@@ -10,13 +10,19 @@ in
     nativeBuildInputs =
       [
         (rust-bin.stable.latest.default.override {
+          # rustc cargo rust-std rust-mingw rust-docs rustfmt-preview clippy-preview
           extensions = [
             "rust-src"
             "rustfmt"
             "rust-analyzer"
             "clippy"
+            # for rust-rover (?)
+            # "rust-std"
           ];
         })
+
+        # for rust-rover (?)
+        # pkgs.rustup
 
         nodePackages.cspell
 
