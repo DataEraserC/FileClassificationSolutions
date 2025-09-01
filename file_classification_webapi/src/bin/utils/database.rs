@@ -1,29 +1,28 @@
-use once_cell::sync::Lazy as SyncLazy;
-use std::sync::Arc;
-use diesel::r2d2::{self, ConnectionManager};
-use diesel::SqliteConnection;
-use once_cell::unsync::Lazy as UnsyncLazy;
-use once_cell::unsync::Lazy;
+pub use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+pub use diesel::{Connection, QueryResult};
+use dotenvy::dotenv;
+use std::env;
+use file_classification_core::utils::database::AnyConnection;
 
-// 创建连接池类型别名
-pub type Pool = r2d2::Pool<ConnectionManager<SqliteConnection>>;
-pub type PooledConnection = r2d2::PooledConnection<ConnectionManager<SqliteConnection>>;
+// 定义连接池类型
+pub type DbPool = Pool<ConnectionManager<AnyConnection>>;
+// 定义池化连接类型
+pub type DbPooledConnection = PooledConnection<ConnectionManager<AnyConnection>>;
 
-// pub static DB_POOL: Lazy<Arc<Pool>> = Lazy::new(|| {
-//     let manager = ConnectionManager::<SqliteConnection>::new("data.db");
-//     let pool = r2d2::Pool::builder()
-//         .max_size(10)
-//         .build(manager)
-//         .expect("无法创建连接池");
-//
-//     Arc::new(pool)
-// });
-//
-// // 获取连接的辅助函数
-// pub fn get_connection() -> Result<PooledConnection, r2d2::Error> {
-//     DB_POOL.get()
-// }
+pub fn establish_connection_pool() -> DbPool {
+    dotenv().ok();
+    // NOTE: from ./.env
+    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_type = env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
 
-// 使用示例:
-// let conn = get_connection().unwrap();
-// do_something_with_connection(&conn);
+    let manager = match database_type.as_str() {
+        "sqlite" => {
+            ConnectionManager::<AnyConnection>::new(&database_url)
+        },
+        _ => panic!("Unsupported database type: {}", database_type),
+    };
+
+    Pool::builder()
+        .build(manager)
+        .expect("Failed to create pool.")
+}

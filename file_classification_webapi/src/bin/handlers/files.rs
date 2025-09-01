@@ -1,12 +1,16 @@
 use actix_web::{get, post, put, delete, web, HttpResponse, Result};
 use serde_json::json;
 use file_classification_core::{model::models::{FileCondition, UpdateFileDTO, FileFilter}, service::files::{select_files, select_files_by_conditions, update_files_by_conditions, delete_file}, utils};
-use crate::utils::models::{ApiResponse, ApiError};
+use file_classification_core::service::files::create_file;
+use crate::utils::database::{DbPool, DbPooledConnection};
+use crate::utils::models::{ApiResponse, ApiError, CreateFileDTO};
+
 #[get("/api/files")]
 async fn api_list_files(
     query: web::Query<FileFilter>,
+    pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    let mut conn = utils::database::establish_connection();
+    let mut conn = pool.get().expect("Failed to get connection from pool");
     match select_files(&mut conn, query.into_inner(), 100) {
         Ok(files) => {
             let count = files.len();
@@ -27,8 +31,9 @@ async fn api_list_files(
 #[post("/api/files/search")]
 async fn api_list_files_by_conditions(
     conditions: web::Json<Vec<FileCondition>>,
+    pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    let mut conn = utils::database::establish_connection();
+    let mut conn = pool.get().expect("Failed to get connection from pool");
     match select_files_by_conditions(&mut conn, conditions.into_inner(), Some(100)) {
         Ok(files) => {
             let count = files.len();
@@ -49,6 +54,7 @@ async fn api_list_files_by_conditions(
 // #[post("/api/files")]
 // async fn api_create_file(
 //     file_dto: web::Json<CreateFileDTO>,
+//     pool: web::Data<DbPool>,
 // ) -> Result<HttpResponse> {
 //     let create_dto = file_classification_core::model::models::CreateFileDTO {
 //         type_: &file_dto.type_,
@@ -56,8 +62,8 @@ async fn api_list_files_by_conditions(
 //         group_id: file_dto.group_id,
 //     };
 //
-//     let mut conn = utils::database::establish_connection();
-//     match create_file(&mut conn, &create_dto) {
+//     let mut conn = pool.get().expect("Failed to get connection from pool");
+//     match create_file(&mut conn, create_dto) {
 //         Ok(file) => Ok(HttpResponse::Created().json(ApiResponse::from(file))),
 //         Err(e) => Ok(HttpResponse::InternalServerError().json(ApiError {
 //             success: false,
@@ -69,10 +75,11 @@ async fn api_list_files_by_conditions(
 #[put("/api/files")]
 async fn api_update_files_by_conditions(
     payload: web::Json<(Vec<FileCondition>, UpdateFileDTO)>,
+    pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let (conditions, update_dto) = payload.into_inner();
 
-    let mut conn = utils::database::establish_connection();
+    let mut conn = pool.get().expect("Failed to get connection from pool");
     match update_files_by_conditions(&mut conn, conditions, update_dto) {
         Ok(count) => Ok(HttpResponse::Ok().json(json!({
             "success": true,
@@ -89,10 +96,11 @@ async fn api_update_files_by_conditions(
 #[delete("/api/files/{id}")]
 async fn api_delete_file(
     path: web::Path<i32>,
+    pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let file_id = path.into_inner();
 
-    let mut conn = utils::database::establish_connection();
+    let mut conn = pool.get().expect("Failed to get connection from pool");
     match delete_file(&mut conn, file_id) {
         Ok(_) => Ok(HttpResponse::Ok().json(json!({
             "success": true,

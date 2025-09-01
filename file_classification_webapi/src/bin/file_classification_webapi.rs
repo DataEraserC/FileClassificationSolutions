@@ -1,16 +1,20 @@
 use actix_web::{web, App, HttpServer, middleware::Logger};
-use file_classification_core::utils::database::establish_connection;
 mod handlers;
 mod utils;
+
+use utils::database::establish_connection_pool;
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     println!("正在启动文件分类 Web API...");
 
-    HttpServer::new(|| {
+    let pool = establish_connection_pool();
+
+    HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(establish_connection()))
+            .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
             .service(handlers::files::api_list_files)
             .service(handlers::files::api_list_files_by_conditions)

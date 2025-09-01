@@ -666,6 +666,7 @@ dependencies = [
  "actix-web",
  "chrono",
  "diesel",
+ "dotenvy",
  "env_logger",
  "file_classification_core",
  "lazy_static",
