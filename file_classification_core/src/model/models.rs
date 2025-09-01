@@ -1,12 +1,12 @@
 use super::schema::{file_groups, files, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 /** File Related
 */
 
-#[derive(Queryable, Selectable, AsChangeset, Serialize)]
+#[derive(Queryable, Selectable, AsChangeset, Serialize, Deserialize)]
 #[diesel(table_name = files)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(treat_none_as_null = true)]
@@ -86,7 +86,7 @@ pub struct UpdateFileDTO {
 /** Group Related
 */
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = groups)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Group {
@@ -106,6 +106,7 @@ pub struct CreateGroupDTO<'a> {
     pub name: &'a str,
 }
 
+#[derive(Deserialize)]
 pub enum GroupCondition {
     Id(i32),
     Name(String),
@@ -158,7 +159,7 @@ pub enum OrderDirection {
     Desc,
 }
 
-#[derive(AsChangeset)]
+#[derive(AsChangeset, Deserialize)]
 #[diesel(table_name = groups)]
 pub struct UpdateGroupDTO {
     pub id: Option<i32>,
@@ -173,6 +174,7 @@ pub struct UpdateGroupDTO {
 
 // NOTE: you may find File is like SearchFile
 // it is bcs IDK how to unify them
+#[derive(Deserialize)]
 pub struct GroupFilter {
     pub id: Option<i32>,
     pub name: Option<String>,
@@ -217,6 +219,7 @@ pub struct CreateTagDTO<'a> {
     pub name: &'a str,
 }
 
+#[derive(Deserialize)]
 pub enum TagCondition {
     Id(i32),
     Name(String),
@@ -246,13 +249,14 @@ pub enum TagOrderBy {
     ReferenceCount(OrderDirection),
 }
 
-#[derive(AsChangeset)]
+#[derive(AsChangeset, Deserialize)]
 #[diesel(table_name = tags)]
 pub struct UpdateTagDTO {
     pub name: Option<String>,
     pub reference_count: Option<i32>,
 }
 
+#[derive(Deserialize)]
 pub struct TagFilter {
     pub id: Option<i32>,
     pub name: Option<String>,
@@ -311,13 +315,14 @@ pub enum FileGroupOrderBy {
 */
 
 // NOTE: GroupTagDTO == CreateGroupTagDTO
-#[derive(Queryable, Insertable, Serialize)]
+#[derive(Queryable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = group_tags)]
 pub struct GroupTagDTO {
     pub group_id: i32,
     pub tag_id: i32,
 }
 
+#[derive(serde::Deserialize)]
 pub enum GroupTagCondition {
     GroupId(i32),
     TagId(i32),

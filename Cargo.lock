@@ -660,14 +660,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "file_classification_webapi"
-version = "0.2.0"
-dependencies = [
- "chrono",
- "file_classification_core",
-]
-
-[[package]]
 name = "file_classification_webapi2"
 version = "0.2.0"
 dependencies = [
