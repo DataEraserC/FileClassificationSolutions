@@ -1,13 +1,13 @@
-use super::database::SqliteConnection;
 use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
 use crate::internal::tags::{decrease_tag_reference_count, find_tag_by_id, increase_tag_reference_count};
 use crate::model::models::{GroupTagCondition, GroupTagDTO};
 use crate::service::AppError;
 use diesel::result::Error;
 use diesel::Connection;
+use crate::utils::database::AnyConnection;
 
 pub fn create_group_tag(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     group_tag_dto: GroupTagDTO,
 ) -> Result<GroupTagDTO, AppError> {
     let _group = find_group_by_id(conn, group_tag_dto.group_id)?
@@ -30,7 +30,7 @@ pub fn create_group_tag(
 }
 
 pub fn delete_group_tag_by_id(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     group_tag_dto: GroupTagDTO,
 ) -> Result<usize, AppError> {
     let _group = find_group_by_id(conn, group_tag_dto.group_id)?
@@ -55,7 +55,7 @@ pub fn delete_group_tag_by_id(
 
 
 pub fn select_group_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<GroupTagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
@@ -66,7 +66,7 @@ pub fn select_group_tags_by_conditions(
 // 要暴露给用户使用的话 应当改为先select再delete_by_id
 // 防止引用计算问题
 pub fn delete_group_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<GroupTagCondition>,
 ) -> Result<usize, Error> {
     // 首先查询将要删除的组标签关联

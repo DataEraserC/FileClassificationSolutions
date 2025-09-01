@@ -3,19 +3,20 @@ use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
 };
-use diesel::{Connection, SqliteConnection};
+use diesel::Connection;
+use crate::utils::database::AnyConnection;
 
-pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel::result::Error> {
+pub fn create_tag(conn: &mut AnyConnection, name: &str) -> Result<Tag, diesel::result::Error> {
     let new_tag = CreateTagDTO { name };
     tags::create_tag(conn, new_tag)
 }
 
-pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
+pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     tags::delete_tag(conn, tag_id)
 }
 
 pub fn select_tags(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     search_input: TagFilter,
     limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
@@ -23,7 +24,7 @@ pub fn select_tags(
 }
 
 pub fn select_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<TagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
@@ -31,7 +32,7 @@ pub fn select_tags_by_conditions(
 }
 
 pub fn update_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
     update_set: UpdateTagDTO,
 ) -> Result<usize, diesel::result::Error> {
@@ -43,7 +44,7 @@ pub fn update_tags_by_conditions(
 // 要暴露给用户使用的话 应当改为先select再delete_by_id
 // 防止引用计算问题
 pub fn delete_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
 ) -> Result<usize, diesel::result::Error> {
     // 首先查询将要删除的标签

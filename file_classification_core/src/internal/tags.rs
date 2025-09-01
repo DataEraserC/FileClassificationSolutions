@@ -1,31 +1,50 @@
 use super::models::{CreateTagDTO, Tag, TagFilter};
 use diesel::prelude::*;
+use crate::utils::database::AnyConnection;
+
 pub fn create_tag(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     new_tag: CreateTagDTO,
 ) -> Result<Tag, diesel::result::Error> {
-    diesel::insert_into(tags::table).values(&new_tag).returning(Tag::as_returning()).get_result(conn)
+    diesel::insert_into(tags::table)
+        .values(&new_tag)
+        .execute(conn)?;
+
+    // 手动获取最新插入的记录
+    tags.order(tags::id.desc())
+        .select((tags::id, tags::name, tags::reference_count))
+        .first(conn)
 }
+
 #[allow(dead_code)]
 pub fn find_tag_by_name(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     tag_name: &str,
 ) -> Result<Option<Tag>, diesel::result::Error> {
-    tags.select(Tag::as_select()).filter(tags::name.eq(tag_name)).first::<Tag>(conn).optional()
+    tags.filter(tags::name.eq(tag_name))
+        .select((tags::id, tags::name, tags::reference_count))
+        .first::<Tag>(conn)
+        .optional()
 }
-pub fn find_tag_by_id(conn: &mut SqliteConnection, tag_id: i32) -> Result<Option<Tag>, diesel::result::Error> {
-    tags.select(Tag::as_select()).filter(tags::id.eq(tag_id)).first::<Tag>(conn).optional()
+
+pub fn find_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Option<Tag>, diesel::result::Error> {
+    tags.filter(tags::id.eq(tag_id))
+        .select((tags::id, tags::name, tags::reference_count))
+        .first::<Tag>(conn)
+        .optional()
 }
+
 pub fn increase_tag_reference_count(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(tags::table.find(tag_id))
         .set(tags::reference_count.eq(tags::reference_count + 1))
         .execute(conn)
 }
+
 pub fn decrease_tag_reference_count(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(tags::table.find(tag_id))
@@ -34,12 +53,12 @@ pub fn decrease_tag_reference_count(
 }
 
 pub fn select_tags(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     search_input: TagFilter,
     limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     // 使用 into_boxed() 来对查询进行类型擦除
-    let mut base_query = tags.limit(limit).select(Tag::as_select()).into_boxed();
+    let mut base_query = tags.limit(limit).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 如果 search_input 中有 id，则添加过滤条件
     if let Some(tag_id) = search_input.id {
@@ -49,11 +68,13 @@ pub fn select_tags(
         base_query = base_query.filter(tags::name.eq(tag_name));
     }
 
-    // 执行查询
-    base_query.load(conn)
+    // 执行查询，手动指定选择的字段
+    base_query
+        .select((tags::id, tags::name, tags::reference_count))
+        .load(conn)
 }
 
-pub fn delete_tag(conn: &mut SqliteConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
+pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
 }
 
@@ -71,15 +92,13 @@ impl Debug for Tag {
     }
 }
 
-
 use super::models::TagCondition;
 use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
-use diesel::sqlite::Sqlite;
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数
-fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
+fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         TagCondition::Id(_id) => Box::new(tags::id.eq(_id)),
         TagCondition::Name(_name) => Box::new(tags::name.eq(_name)),
@@ -92,7 +111,7 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
         TagCondition::ReferenceCountLessThan(value) => Box::new(tags::reference_count.lt(value)),
 
         TagCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_tag_condition(cond);
                 match result {
@@ -103,7 +122,7 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
             result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
         }
         TagCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<tags::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_tag_condition(cond);
                 match result {
@@ -122,11 +141,11 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
 
 // 根据 TagCondition 向量查询标签
 pub fn select_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    let mut query = tags::table.into_boxed::<Sqlite>();
+    let mut query = tags::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -139,17 +158,17 @@ pub fn select_tags_by_conditions(
     }
 
     query
-        .select(Tag::as_select())
+        .select((tags::id, tags::name, tags::reference_count))
         .load(conn)
 }
 
 #[allow(dead_code)]
 pub fn select_tags_by_conditions_with_options(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
     options: TagQueryOptions,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    let mut query = tags::table.into_boxed::<Sqlite>();
+    let mut query = tags::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -191,16 +210,16 @@ pub fn select_tags_by_conditions_with_options(
     }
 
     query
-        .select(Tag::as_select())
+        .select((tags::id, tags::name, tags::reference_count))
         .load(conn)
 }
 
 pub fn update_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
     update_set: UpdateTagDTO,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::update(tags::table).into_boxed::<Sqlite>();
+    let mut query = diesel::update(tags::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 应用所有条件
     for condition in conditions {
@@ -212,10 +231,10 @@ pub fn update_tags_by_conditions(
 }
 
 pub fn delete_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::delete(tags::table).into_boxed::<Sqlite>();
+    let mut query = diesel::delete(tags::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {

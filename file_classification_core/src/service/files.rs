@@ -1,4 +1,3 @@
-use super::database::SqliteConnection;
 use crate::internal::file_group::select_file_groups_by_conditions;
 use crate::internal::groups::select_groups_by_conditions;
 use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, GroupCondition, GroupTagCondition, UpdateFileDTO, UpdateGroupDTO};
@@ -7,9 +6,10 @@ use crate::service::AppError;
 use crate::utils::errors::AppError::CannotBindToPrimaryGroup;
 use crate::{internal, service};
 use diesel::Connection;
+use crate::utils::database::AnyConnection;
 
 pub fn raw_create_file(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     type_: &str,
     path_: &str,
     group_id: i32,
@@ -18,7 +18,7 @@ pub fn raw_create_file(
     internal::files::create_file(conn, &new_file)
 }
 // pub fn create_file(
-//     conn: &mut SqliteConnection,
+//     conn: &mut AnyConnection,
 //     name: &str,
 //     type_: &str,
 //     path_: &str,
@@ -43,7 +43,7 @@ pub fn raw_create_file(
 //     Ok((file, group))
 // }
 
-pub fn create_file(conn: &mut SqliteConnection, create_file_dto: CreateFileDTO) -> Result<usize, AppError> {
+pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> Result<usize, AppError> {
     conn.transaction::<usize, AppError, _>(|conn| {
         let group_list = select_groups_by_conditions(conn, vec![
             GroupCondition::Id(create_file_dto.group_id)
@@ -91,7 +91,7 @@ pub fn create_file(conn: &mut SqliteConnection, create_file_dto: CreateFileDTO) 
     })
 }
 
-pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), AppError> {
+pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppError> {
     // 开始事务
     conn.transaction::<(), diesel::result::Error, _>(|conn| {
         // 0. 删除对应的PrimaryGroup对应的GroupTag
@@ -125,7 +125,7 @@ pub fn delete_file(conn: &mut SqliteConnection, file_id: i32) -> Result<(), AppE
 #[allow(deprecated)]
 #[deprecated]
 pub fn select_files(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     search_input: FileFilter,
     limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
@@ -133,7 +133,7 @@ pub fn select_files(
 }
 
 pub fn select_files_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<FileCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
@@ -141,7 +141,7 @@ pub fn select_files_by_conditions(
 }
 
 pub fn update_files_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
     update_set: UpdateFileDTO,
 ) -> Result<usize, diesel::result::Error> {
@@ -152,7 +152,7 @@ pub fn update_files_by_conditions(
 // 要暴露给用户使用的话 应当改为先select再delete_by_id
 // 防止引用计算问题
 pub fn delete_files_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
     // 首先查询将要删除的文件

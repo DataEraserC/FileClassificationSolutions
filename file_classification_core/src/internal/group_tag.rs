@@ -2,10 +2,11 @@ use super::models::GroupTagDTO;
 use crate::model::schema::group_tags;
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
+use crate::utils::database::AnyConnection;
 
 // 在 group_tag.rs 中添加数据访问层函数
 pub fn insert_group_tag(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     group_tag_dto: &GroupTagDTO,
 ) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(group_tags::table)
@@ -14,7 +15,7 @@ pub fn insert_group_tag(
 }
 
 pub fn delete_group_tag_by_id(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     group_tag_dto: &GroupTagDTO,
 ) -> Result<usize, diesel::result::Error> {
     diesel::delete(
@@ -31,16 +32,13 @@ impl Debug for GroupTagDTO {
     }
 }
 
-// 在 groups.rs 文件中添加以下代码（需要添加到文件末尾，在其他 use 语句之后）
-
 use super::models::GroupTagCondition;
 use crate::model::models::{GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
-use diesel::sqlite::Sqlite;
 
 // 将 GroupTagCondition 转换为 diesel 查询条件的辅助函数
-fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExpression<group_tags::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
+fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExpression<group_tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         GroupTagCondition::GroupId(id) => Box::new(group_tags::group_id.eq(id)),
         GroupTagCondition::TagId(id) => Box::new(group_tags::tag_id.eq(id)),
@@ -51,7 +49,7 @@ fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExp
         GroupTagCondition::TagIdLessThan(value) => Box::new(group_tags::tag_id.lt(value)),
 
         GroupTagCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<group_tags::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<group_tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_group_tag_condition(cond);
                 match result {
@@ -62,7 +60,7 @@ fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExp
             result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
         }
         GroupTagCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<group_tags::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<group_tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_group_tag_condition(cond);
                 match result {
@@ -81,11 +79,11 @@ fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExp
 
 // 根据 GroupTagCondition 向量查询组标签关联
 pub fn select_group_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<GroupTagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    let mut query = group_tags::table.into_boxed::<Sqlite>();
+    let mut query = group_tags::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -104,11 +102,11 @@ pub fn select_group_tags_by_conditions(
 
 #[allow(dead_code)]
 pub fn select_group_tags_by_conditions_with_options(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<GroupTagCondition>,
     options: GroupTagQueryOptions,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    let mut query = group_tags::table.into_boxed::<Sqlite>();
+    let mut query = group_tags::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -149,10 +147,10 @@ pub fn select_group_tags_by_conditions_with_options(
 }
 
 pub fn delete_group_tags_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<GroupTagCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::delete(group_tags::table).into_boxed::<Sqlite>();
+    let mut query = diesel::delete(group_tags::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {

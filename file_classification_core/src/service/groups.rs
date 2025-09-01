@@ -1,24 +1,24 @@
-use super::database::SqliteConnection;
 use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupTagCondition, UpdateGroupDTO};
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
 use diesel::Connection;
+use crate::utils::database::AnyConnection;
 
-pub fn create_group(conn: &mut SqliteConnection, name: &str) -> Result<usize, Error> {
+pub fn create_group(conn: &mut AnyConnection, name: &str) -> Result<usize, Error> {
     let new_group = CreateGroupDTO { name };
     groups::create_group(conn, &new_group)
 }
 
 pub fn find_group_by_name(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     name: &str,
 ) -> Result<Option<Group>, AppError> {
     Ok(groups::find_group_by_name(conn, name)?)
 }
 
 pub fn delete_group(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<usize, Error> {
     // 1.判断是否是primary
@@ -44,7 +44,7 @@ pub fn delete_group(
 #[allow(deprecated)]
 #[deprecated]
 pub fn select_groups(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     search_input: GroupFilter,
     limit: i64,
 ) -> Result<Vec<Group>, diesel::result::Error> {
@@ -52,7 +52,7 @@ pub fn select_groups(
 }
 
 pub fn select_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<GroupCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
@@ -60,7 +60,7 @@ pub fn select_groups_by_conditions(
 }
 
 pub fn update_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
     update_set: UpdateGroupDTO,
 ) -> Result<usize, Error> {
@@ -72,7 +72,7 @@ pub fn update_groups_by_conditions(
 // 要暴露给用户使用的话 应当改为先select再delete_by_id
 // 防止引用计算问题
 pub fn delete_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
 ) -> Result<usize, Error> {
     // 首先查询将要删除的组

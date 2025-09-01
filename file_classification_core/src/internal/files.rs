@@ -1,20 +1,22 @@
 use super::models::{CreateFileDTO, File, FileCondition, FileFilter, UpdateFileDTO};
 use diesel::prelude::*;
+use crate::utils::database::AnyConnection;
 
-pub fn create_file(conn: &mut SqliteConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
+pub fn create_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(files::table)
         .values(new_file).execute(conn)
 }
 
-pub fn find_file_by_id(conn: &mut SqliteConnection, _id: i32) -> Result<Option<File>, diesel::result::Error> {
+pub fn find_file_by_id(conn: &mut AnyConnection, _id: i32) -> Result<Option<File>, diesel::result::Error> {
     files::table
         .filter(files::id.eq(_id))
-        .select(File::as_select())
+        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
         .first(conn)
         .optional()
 }
+
 pub fn increase_file_reference_count(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(files::table.find(file_id))
@@ -23,7 +25,7 @@ pub fn increase_file_reference_count(
 }
 
 pub fn decrease_file_reference_count(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(files::table.find(file_id))
@@ -33,12 +35,12 @@ pub fn decrease_file_reference_count(
 
 #[deprecated]
 pub fn select_files(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     search_input: FileFilter,
     limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
     // 使用 into_boxed() 来对查询进行类型擦除
-    let mut base_query = files.limit(limit).select(File::as_select()).into_boxed();
+    let mut base_query = files.limit(limit).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 如果 search_input 中有各字段，则添加相应的过滤条件
     if let Some(file_id) = search_input.id {
@@ -58,10 +60,12 @@ pub fn select_files(
     }
 
     // 执行查询
-    base_query.load(conn)
+    base_query
+        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
+        .load(conn)
 }
 
-pub fn delete_file_by_id(conn: &mut SqliteConnection, file_id: i32) -> Result<usize, diesel::result::Error> {
+pub fn delete_file_by_id(conn: &mut AnyConnection, file_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
 
@@ -69,7 +73,6 @@ use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
 use crate::model::schema::files;
 use crate::model::schema::files::dsl::*;
 use diesel::sql_types::Bool;
-use diesel::sqlite::Sqlite;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 impl Debug for File {
@@ -82,10 +85,9 @@ impl Debug for File {
     }
 }
 
-
 // 将 FileCondition 转换为 diesel 查询条件的辅助函数
 // 更新 build_condition 函数以处理新增的条件类型
-fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
+fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
         FileCondition::Type(t) => Box::new(files::type_.eq(t)),
@@ -104,7 +106,7 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
         FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
 
         FileCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<files::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_condition(cond);
                 match result {
@@ -115,7 +117,7 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
             result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
         }
         FileCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<files::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<files::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_condition(cond);
                 match result {
@@ -132,14 +134,13 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
     }
 }
 
-
 // 修改 select_files_by_condition 函数以接受 Vec<FileCondition>
 pub fn select_files_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    let mut query = files::table.into_boxed::<Sqlite>();
+    let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -152,17 +153,17 @@ pub fn select_files_by_conditions(
     }
 
     query
-        .select(File::as_select())
+        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
         .load(conn)
 }
 
 #[allow(dead_code)]
 pub fn select_files_by_conditions_with_options(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
     options: FileQueryOptions,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    let mut query = files::table.into_boxed::<Sqlite>();
+    let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -216,16 +217,16 @@ pub fn select_files_by_conditions_with_options(
     }
 
     query
-        .select(File::as_select())
+        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
         .load(conn)
 }
 
 pub fn update_files_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
     update_set: UpdateFileDTO,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::update(files::table).into_boxed::<Sqlite>();
+    let mut query = diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 应用所有条件
     for condition in conditions {
@@ -237,10 +238,10 @@ pub fn update_files_by_conditions(
 }
 
 pub fn delete_files_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::delete(files::table).into_boxed::<Sqlite>();
+    let mut query = diesel::delete(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 应用所有条件
     for condition in conditions {

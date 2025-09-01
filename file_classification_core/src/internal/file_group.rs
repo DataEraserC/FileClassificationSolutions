@@ -2,9 +2,10 @@ use super::models::{FileGroupCondition, FileGroupDTO};
 use crate::model::schema::file_groups;
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
+use crate::utils::database::AnyConnection;
 
 pub fn insert_file_group(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     file_group_dto: &FileGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(file_groups::table)
@@ -13,7 +14,7 @@ pub fn insert_file_group(
 }
 
 pub fn delete_file_group_by_id(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     file_group_dto: &FileGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
     // 删除关联记录
@@ -31,10 +32,9 @@ impl Debug for FileGroupDTO {
 }
 
 use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
-use diesel::sqlite::Sqlite;
 
 // 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数
-fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType=diesel::sql_types::Bool>> {
+fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
         FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
@@ -45,7 +45,7 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
         FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
 
         FileGroupCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_group_condition(cond);
                 match result {
@@ -56,7 +56,7 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
             result.unwrap_or_else(|| Box::new(true.into_sql::<diesel::sql_types::Bool>()))
         }
         FileGroupCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, Sqlite, SqlType=diesel::sql_types::Bool>>> = None;
+            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {
                 let expr = build_file_group_condition(cond);
                 match result {
@@ -75,11 +75,11 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
 
 // 根据 FileGroupCondition 向量查询文件组关联
 pub fn select_file_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileGroupCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    let mut query = file_groups::table.into_boxed::<Sqlite>();
+    let mut query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -98,11 +98,11 @@ pub fn select_file_groups_by_conditions(
 
 #[allow(dead_code)]
 pub fn select_file_groups_by_conditions_with_options(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileGroupCondition>,
     options: FileGroupQueryOptions,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    let mut query = file_groups::table.into_boxed::<Sqlite>();
+    let mut query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -143,10 +143,10 @@ pub fn select_file_groups_by_conditions_with_options(
 }
 
 pub fn delete_file_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     conditions: Vec<FileGroupCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::delete(file_groups::table).into_boxed::<Sqlite>();
+    let mut query = diesel::delete(file_groups::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
     // 对每个条件应用 AND 逻辑
     for condition in conditions {
@@ -156,4 +156,3 @@ pub fn delete_file_groups_by_conditions(
 
     query.execute(conn)
 }
-

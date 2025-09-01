@@ -660,7 +660,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "file_classification_webapi2"
+name = "file_classification_webapi"
 version = "0.2.0"
 dependencies = [
  "actix-web",

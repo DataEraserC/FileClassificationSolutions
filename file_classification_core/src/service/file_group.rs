@@ -1,4 +1,3 @@
-use super::database::SqliteConnection;
 use crate::internal::file_group as file_groups;
 use crate::internal::files::{decrease_file_reference_count, find_file_by_id, increase_file_reference_count};
 use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
@@ -6,9 +5,10 @@ use crate::model::models::{FileGroupCondition, FileGroupDTO};
 use crate::service::AppError;
 use diesel::result::Error;
 use diesel::Connection;
+use crate::utils::database::AnyConnection;
 
 pub fn create_file_group(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     file_group_dto: FileGroupDTO,
 ) -> Result<FileGroupDTO, AppError> {
     // 业务规则验证
@@ -35,7 +35,7 @@ pub fn create_file_group(
 }
 
 pub fn delete_file_group(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
     let group = find_group_by_id(conn, file_group_dto.group_id)?
@@ -63,7 +63,7 @@ pub fn delete_file_group(
 }
 
 pub fn select_file_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<FileGroupCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
@@ -74,7 +74,7 @@ pub fn select_file_groups_by_conditions(
 // 要暴露给用户使用的话 应当改为先select再delete_by_id
 // 防止引用计算问题
 pub fn delete_file_groups_by_conditions(
-    conn: &mut SqliteConnection,
+    conn: &mut AnyConnection,
     condition: Vec<FileGroupCondition>,
 ) -> Result<usize, Error> {
     // 首先查询将要删除的记录

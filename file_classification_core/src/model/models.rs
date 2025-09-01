@@ -37,7 +37,7 @@ pub struct FileFilter {
     pub group_id: Option<i32>,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub enum FileCondition {
     Id(i32),
     Type(String),
@@ -106,7 +106,7 @@ pub struct CreateGroupDTO<'a> {
     pub name: &'a str,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize,Clone)]
 pub enum GroupCondition {
     Id(i32),
     Name(String),
@@ -219,7 +219,7 @@ pub struct CreateTagDTO<'a> {
     pub name: &'a str,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub enum TagCondition {
     Id(i32),
     Name(String),
@@ -284,7 +284,7 @@ pub struct FileGroupDTO {
     pub group_id: i32,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub enum FileGroupCondition {
     FileId(i32),
     GroupId(i32),
@@ -322,7 +322,7 @@ pub struct GroupTagDTO {
     pub tag_id: i32,
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub enum GroupTagCondition {
     GroupId(i32),
     TagId(i32),
