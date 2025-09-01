@@ -10,15 +10,14 @@
   lib,
   ...
 }: let
-  manifest = (lib.importTOML ../file_classification_cli/Cargo.toml).package;
+  manifest = (lib.importTOML ../file_classification_webapi/Cargo.toml).package;
   src = lib.fileset.toSource {
     root = ../.;
     fileset = lib.fileset.unions [
       ../Cargo.toml
       ../Cargo.lock
-#      (lib.fileset.fromSource (lib.sources.sourceByRegex ../. ["^file_classification_.*"]))
       ../file_classification_core
-      ../file_classification_cli
+      ../file_classification_webapi
     ];
   };
 in

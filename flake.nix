@@ -46,6 +46,14 @@
               rustPlatform
               ;
           };
+          file_classification_webapi = pkgs.callPackage ./nix/file_classification_webapi.nix {
+            inherit
+              version
+              rev
+              date
+              rustPlatform
+              ;
+          };
           default = self.packages.${system}.file_classification_cli;
         };
 
