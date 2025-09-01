@@ -18,8 +18,8 @@ pub type PooledConnection = r2d2::PooledConnection<ConnectionManager<SqliteConne
 //
 //     Arc::new(pool)
 // });
-
-// 获取连接的辅助函数
+//
+// // 获取连接的辅助函数
 // pub fn get_connection() -> Result<PooledConnection, r2d2::Error> {
 //     DB_POOL.get()
 // }

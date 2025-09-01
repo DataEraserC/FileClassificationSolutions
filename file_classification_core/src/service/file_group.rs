@@ -77,6 +77,27 @@ pub fn delete_file_groups_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<FileGroupCondition>,
 ) -> Result<usize, Error> {
-    // TODO: 减少文件和组的引用计数
-    crate::internal::file_group::delete_file_groups_by_conditions(conn, condition)
+    // 首先查询将要删除的记录
+    let file_groups_to_delete = select_file_groups_by_conditions(conn, condition.clone(), None)
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => Error::NotFound,
+            _ => e,
+        })?;
+
+    // 使用事务确保数据一致性
+    conn.transaction::<_, Error, _>(|conn| {
+        // 对于每个要删除的文件组关联，减少对应的文件和组的引用计数
+        for file_group in &file_groups_to_delete {
+            // 减少文件的引用计数
+            decrease_file_reference_count(conn, file_group.file_id)?;
+
+            // 减少组的引用计数
+            decrease_group_reference_count(conn, file_group.group_id)?;
+        }
+
+        // 执行实际的删除操作
+        let deleted_count = crate::internal::file_group::delete_file_groups_by_conditions(conn, condition)?;
+
+        Ok(deleted_count)
+    })
 }

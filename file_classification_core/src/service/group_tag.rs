@@ -69,6 +69,27 @@ pub fn delete_group_tags_by_conditions(
     conn: &mut SqliteConnection,
     condition: Vec<GroupTagCondition>,
 ) -> Result<usize, Error> {
-    // TODO: 减少组和标签的引用计数
-    crate::internal::group_tag::delete_group_tags_by_conditions(conn, condition)
+    // 首先查询将要删除的组标签关联
+    let group_tags_to_delete = select_group_tags_by_conditions(conn, condition.clone(), None)
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => diesel::result::Error::NotFound,
+            _ => e,
+        })?;
+
+    // 使用事务确保数据一致性
+    conn.transaction::<_, Error, _>(|conn| {
+        // 对于每个要删除的组标签关联，减少对应的组和标签的引用计数
+        for group_tag in &group_tags_to_delete {
+            // 减少组的引用计数
+            decrease_group_reference_count(conn, group_tag.group_id)?;
+
+            // 减少标签的引用计数
+            decrease_tag_reference_count(conn, group_tag.tag_id)?;
+        }
+
+        // 执行实际的删除操作
+        let deleted_count = crate::internal::group_tag::delete_group_tags_by_conditions(conn, condition)?;
+
+        Ok(deleted_count)
+    })
 }

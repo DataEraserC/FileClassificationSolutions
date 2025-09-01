@@ -75,7 +75,45 @@ pub fn delete_groups_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<GroupCondition>,
 ) -> Result<usize, Error> {
-    // TODO: 减少组的引用计数
-    groups::delete_groups_by_conditions(conn, conditions)
+    // 首先查询将要删除的组
+    let groups_to_delete = select_groups_by_conditions(conn, conditions.clone(), None)
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => diesel::result::Error::NotFound,
+            _ => e,
+        })?;
+
+    // 使用事务确保数据一致性
+    conn.transaction::<_, Error, _>(|conn| {
+        let mut total_deleted = 0;
+
+        // 对于每个要删除的组，处理相关的引用关系和关联数据
+        for group in &groups_to_delete {
+            // 如果是主组，则删除相关的文件
+            if group.is_primary {
+                crate::internal::files::delete_files_by_conditions(
+                    conn,
+                    vec![FileCondition::GroupId(group.id)]
+                )?;
+            } else {
+                // 如果不是主组，则删除文件组关联
+                crate::internal::file_group::delete_file_groups_by_conditions(
+                    conn,
+                    vec![FileGroupCondition::GroupId(group.id)]
+                )?;
+            }
+
+            // 删除组标签关联
+            crate::internal::group_tag::delete_group_tags_by_conditions(
+                conn,
+                vec![GroupTagCondition::GroupId(group.id)]
+            )?;
+
+            // 删除组本身
+            let deleted_count = groups::delete_group(conn, group.id)?;
+            total_deleted += deleted_count;
+        }
+
+        Ok(total_deleted)
+    })
 }
 

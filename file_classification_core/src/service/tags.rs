@@ -1,9 +1,9 @@
-use crate::model::models::{TagCondition, UpdateTagDTO};
+use crate::model::models::{GroupTagCondition, TagCondition, UpdateTagDTO};
 use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
 };
-use diesel::SqliteConnection;
+use diesel::{Connection, SqliteConnection};
 
 pub fn create_tag(conn: &mut SqliteConnection, name: &str) -> Result<Tag, diesel::result::Error> {
     let new_tag = CreateTagDTO { name };
@@ -46,6 +46,30 @@ pub fn delete_tags_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<TagCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    // TODO: 减少标签的引用计数
-    tags::delete_tags_by_conditions(conn, conditions)
+    // 首先查询将要删除的标签
+    let tags_to_delete = select_tags_by_conditions(conn, conditions.clone(), None)
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => diesel::result::Error::NotFound,
+            _ => e,
+        })?;
+
+    // 使用事务确保数据一致性
+    conn.transaction::<_, diesel::result::Error, _>(|conn| {
+        let mut total_deleted = 0;
+
+        // 对于每个要删除的标签，处理相关的引用关系和关联数据
+        for tag in &tags_to_delete {
+            // 删除与该标签关联的所有组标签关系
+            crate::internal::group_tag::delete_group_tags_by_conditions(
+                conn,
+                vec![GroupTagCondition::TagId(tag.id)]
+            )?;
+
+            // 删除标签本身
+            let deleted_count = tags::delete_tag(conn, tag.id)?;
+            total_deleted += deleted_count;
+        }
+
+        Ok(total_deleted)
+    })
 }

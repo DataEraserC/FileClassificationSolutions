@@ -155,7 +155,43 @@ pub fn delete_files_by_conditions(
     conn: &mut SqliteConnection,
     conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    // TODO: 减少文件的引用计数
-    internal::files::delete_files_by_conditions(conn, conditions)
+    // 首先查询将要删除的文件
+    let files_to_delete = select_files_by_conditions(conn, conditions.clone(), None)
+        .map_err(|e| match e {
+            diesel::result::Error::NotFound => diesel::result::Error::NotFound,
+            _ => e,
+        })?;
+
+    // 使用事务确保数据一致性
+    conn.transaction::<_, diesel::result::Error, _>(|conn| {
+        let mut total_deleted = 0;
+
+        // 对于每个要删除的文件，处理相关的引用关系
+        for file in &files_to_delete {
+            // 查找与该文件关联的所有文件组关系
+            let file_groups = select_file_groups_by_conditions(
+                conn,
+                vec![FileGroupCondition::FileId(file.id)],
+                None,
+            )?;
+
+            // 对于每个文件组关系，减少对应组的引用计数
+            for file_group in &file_groups {
+                internal::groups::decrease_group_reference_count(conn, file_group.group_id)?;
+            }
+
+            // 删除与该文件关联的所有文件组关系
+            internal::file_group::delete_file_groups_by_conditions(
+                conn,
+                vec![FileGroupCondition::FileId(file.id)],
+            )?;
+
+            // 删除文件本身
+            let deleted_count = internal::files::delete_file_by_id(conn, file.id)?;
+            total_deleted += deleted_count;
+        }
+
+        Ok(total_deleted)
+    })
 }
 
