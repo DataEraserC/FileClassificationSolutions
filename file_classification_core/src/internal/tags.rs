@@ -110,6 +110,10 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
         TagCondition::ReferenceCountGreaterThan(value) => Box::new(tags::reference_count.gt(value)),
         TagCondition::ReferenceCountLessThan(value) => Box::new(tags::reference_count.lt(value)),
 
+        TagCondition::IdIn(values) => Box::new(tags::id.eq_any(values)),
+        TagCondition::NameIn(values) => Box::new(tags::name.eq_any(values)),
+        TagCondition::ReferenceCountIn(values) => Box::new(tags::reference_count.eq_any(values)),
+
         TagCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {

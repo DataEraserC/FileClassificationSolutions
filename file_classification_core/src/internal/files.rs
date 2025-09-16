@@ -104,6 +104,12 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
         FileCondition::ReferenceCountLessThan(value) => Box::new(files::reference_count.lt(value)),
         FileCondition::GroupIdGreaterThan(value) => Box::new(files::group_id.gt(value)),
         FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
+        
+        FileCondition::IdIn(values) => Box::new(files::id.eq_any(values)),
+        FileCondition::TypeIn(values) => Box::new(files::type_.eq_any(values)),
+        FileCondition::PathIn(values) => Box::new(files::path.eq_any(values)),
+        FileCondition::ReferenceCountIn(values) => Box::new(files::reference_count.eq_any(values)),
+        FileCondition::GroupIdIn(values) => Box::new(files::group_id.eq_any(values)),
 
         FileCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<files::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;

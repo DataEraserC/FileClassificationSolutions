@@ -152,6 +152,14 @@ fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression
         GroupCondition::CreateTimeLessThan(time) => Box::new(groups::create_time.lt(time)),
         GroupCondition::ModifyTimeGreaterThan(time) => Box::new(groups::modify_time.gt(time)),
         GroupCondition::ModifyTimeLessThan(time) => Box::new(groups::modify_time.lt(time)),
+        
+        GroupCondition::IdIn(values) => Box::new(groups::id.eq_any(values)),
+        GroupCondition::NameIn(values) => Box::new(groups::name.eq_any(values)),
+        GroupCondition::ReferenceCountIn(values) => Box::new(groups::reference_count.eq_any(values)),
+        GroupCondition::ClickCountIn(values) => Box::new(groups::click_count.eq_any(values)),
+        GroupCondition::ShareCountIn(values) => Box::new(groups::share_count.eq_any(values)),
+        GroupCondition::CreateTimeIn(values) => Box::new(groups::create_time.eq_any(values)),
+        GroupCondition::ModifyTimeIn(values) => Box::new(groups::modify_time.eq_any(values)),
 
         GroupCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;

@@ -47,6 +47,9 @@ fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExp
         GroupTagCondition::GroupIdLessThan(value) => Box::new(group_tags::group_id.lt(value)),
         GroupTagCondition::TagIdGreaterThan(value) => Box::new(group_tags::tag_id.gt(value)),
         GroupTagCondition::TagIdLessThan(value) => Box::new(group_tags::tag_id.lt(value)),
+        
+        GroupTagCondition::GroupIdIn(values) => Box::new(group_tags::group_id.eq_any(values)),
+        GroupTagCondition::TagIdIn(values) => Box::new(group_tags::tag_id.eq_any(values)),
 
         GroupTagCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<group_tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;

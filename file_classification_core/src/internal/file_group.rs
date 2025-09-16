@@ -44,6 +44,9 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
         FileGroupCondition::GroupIdGreaterThan(value) => Box::new(file_groups::group_id.gt(value)),
         FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
 
+        FileGroupCondition::FileIdIn(values) => Box::new(file_groups::file_id.eq_any(values)),
+        FileGroupCondition::GroupIdIn(values) => Box::new(file_groups::group_id.eq_any(values)),
+
         FileGroupCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
             for cond in conditions {

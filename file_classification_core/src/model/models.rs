@@ -54,6 +54,12 @@ pub enum FileCondition {
     GroupIdGreaterThan(i32),
     GroupIdLessThan(i32),
 
+    IdIn(Vec<i32>),
+    TypeIn(Vec<String>),
+    PathIn(Vec<String>),
+    ReferenceCountIn(Vec<i32>),
+    GroupIdIn(Vec<i32>),
+
     And(Vec<FileCondition>),
     Or(Vec<FileCondition>),
     Not(Box<FileCondition>),
@@ -130,6 +136,14 @@ pub enum GroupCondition {
     CreateTimeLessThan(chrono::NaiveDateTime),
     ModifyTimeGreaterThan(chrono::NaiveDateTime),
     ModifyTimeLessThan(chrono::NaiveDateTime),
+
+    IdIn(Vec<i32>),
+    NameIn(Vec<String>),
+    ReferenceCountIn(Vec<i32>),
+    ClickCountIn(Vec<i32>),
+    ShareCountIn(Vec<i32>),
+    CreateTimeIn(Vec<chrono::NaiveDateTime>),
+    ModifyTimeIn(Vec<chrono::NaiveDateTime>),
 
     And(Vec<GroupCondition>),
     Or(Vec<GroupCondition>),
@@ -231,6 +245,10 @@ pub enum TagCondition {
     ReferenceCountGreaterThan(i32),
     ReferenceCountLessThan(i32),
 
+    IdIn(Vec<i32>),
+    NameIn(Vec<String>),
+    ReferenceCountIn(Vec<i32>),
+
     And(Vec<TagCondition>),
     Or(Vec<TagCondition>),
     Not(Box<TagCondition>),
@@ -294,6 +312,9 @@ pub enum FileGroupCondition {
     GroupIdGreaterThan(i32),
     GroupIdLessThan(i32),
 
+    FileIdIn(Vec<i32>),
+    GroupIdIn(Vec<i32>),
+
     And(Vec<FileGroupCondition>),
     Or(Vec<FileGroupCondition>),
     Not(Box<FileGroupCondition>),
@@ -331,6 +352,9 @@ pub enum GroupTagCondition {
     GroupIdLessThan(i32),
     TagIdGreaterThan(i32),
     TagIdLessThan(i32),
+
+    GroupIdIn(Vec<i32>),
+    TagIdIn(Vec<i32>),
 
     And(Vec<GroupTagCondition>),
     Or(Vec<GroupTagCondition>),
