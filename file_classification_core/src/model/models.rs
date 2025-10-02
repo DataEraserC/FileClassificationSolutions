@@ -26,17 +26,6 @@ pub struct CreateFileDTO<'a, 'b> {
     pub group_id: i32,
 }
 
-// NOTE: you may find File is like SearchFile
-// it is bcs IDK how to unify them
-#[derive(serde::Deserialize)]
-pub struct FileFilter {
-    pub id: Option<i32>,
-    pub type_: Option<String>,
-    pub path: Option<String>,
-    pub reference_count: Option<i32>,
-    pub group_id: Option<i32>,
-}
-
 #[derive(serde::Deserialize, Clone)]
 pub enum FileCondition {
     Id(i32),
@@ -87,6 +76,30 @@ pub struct UpdateFileDTO {
     pub type_: Option<String>,
     pub reference_count: Option<i32>,
     pub group_id: Option<i32>,
+}
+
+// NOTE: you may find File is like SearchFile
+// it is bcs IDK how to unify them,
+// and it was used to select or update or delete
+#[derive(serde::Deserialize)]
+pub struct FileFilter {
+    pub id: Option<i32>,
+    pub type_: Option<String>,
+    pub path: Option<String>,
+    pub reference_count: Option<i32>,
+    pub group_id: Option<i32>,
+}
+
+pub struct FileSet {
+    pub path: Option<String>,
+    pub type_: Option<String>,
+    pub reference_count: Option<i32>,
+    pub group_id: Option<i32>,
+}
+
+ pub struct UpdateFile {
+    pub set: FileSet,
+    pub filter: FileFilter,
 }
 
 /** Group Related
@@ -187,7 +200,8 @@ pub struct UpdateGroupDTO {
 }
 
 // NOTE: you may find File is like SearchFile
-// it is bcs IDK how to unify them
+// it is bcs IDK how to unify them,
+// and it was used to select or update or delete
 #[derive(Deserialize)]
 pub struct GroupFilter {
     pub id: Option<i32>,
