@@ -1,129 +1,269 @@
-# File Classification Solutions
+# FileClassificationSolutions
 
-## Design
+## Project Overview
 
-An innovative file classification storage technology designed to provide users with an efficient and convenient way to manage and retrieve various file types, such as stickers, text files, or other abstract data types. This technology establishes a non-file-system-based database architecture, allowing files to be categorized and quickly retrieved based on their content and attributes (such as tags and groups). Key features include:
+FileClassificationSolutions is an innovative file classification and storage system developed in the Rust programming language. It aims to provide users with an efficient and convenient way to manage and retrieve various types of file data, such as memes, text files, or other abstract data types. The system establishes a non-file-system-like database architecture that allows files to be categorized and quickly retrieved based on their content and attributes (such as tags and groups).
 
-1. **Database Structure**: Utilizes several core tables (files table, groups table, file-groups relationship table, tags table, and group-tags relationship table) to store file information, tags, and their many-to-many relationships.
-2. **File Management**: Files are stored using a unique identifier (such as an integer ID) and keep track of their type and path.
-3. **Grouping System**: Allows files to be categorized into different groups, supporting the identification of primary groups.
-4. **Tagging System**: Organizes and classifies files through tags, enabling users to quickly find related files based on specific tags.
-5. **Flexible Retrieval**: Users can search for files by tags or groups, facilitating efficient data retrieval.
-6. **Extensibility**: This technology is not only suitable for stickers but can also be extended to other file types, providing a general file management and search solution.
+## Core Features
 
-### Database Table Structure Design
+- **Multi-dimensional Classification**: Achieve multi-dimensional file management through groups (`groups`) and tags (`tags`)
+- **Reference Counting Mechanism**: Automatically track associations between files, groups, and tags to ensure data consistency
+- **Flexible Querying**: Support complex queries based on multiple conditions including equals, greater than, less than, LIKE pattern matching, etc.
+- **Batch Operations**: Support batch updates and deletions based on conditions
+- **Primary Group Concept**: Distinguish between primary groups and ordinary groups, where primary groups have a one-to-one relationship with files
+- **Multiple Access Methods**: Provide both Command Line Interface (CLI) and Web API access methods
 
-Here’s the specific database table structure:
+## System Architecture
 
-1. `files` table: Stores basic information about files.
-2. `groups` table: Stores information about file groups.
-3. `file_groups` table: Stores the many-to-many relationships between files and groups.
-4. `tags` table: Stores information about tags.
-5. `group_tags` table: Stores the many-to-many relationships between groups and tags.
+The project adopts a modular architecture design, including the following core components:
 
-Here are the SQL create table statements:
+### Core Library (file_classification_core)
+
+This is the business logic core of the entire project, containing data models, database access layer, and business services.
+
+### Command Line Interface (file_classification_cli)
+
+Provides an interactive command-line tool for operating the file classification system, including complete CRUD functionality.
+
+### Web API (file_classification_webapi)
+
+A RESTful API service built on the Actix-web framework that provides HTTP interfaces for data operations.
+
+## Database Design
+
+### Core Table Structure
+
+The system uses the following 5 core tables to store data:
+
+1. `files` table: Stores basic file information
+2. `groups` table: Stores file group information
+3. `file_groups` table: Stores many-to-many relationships between files and groups
+4. `tags` table: Stores tag information
+5. `group_tags` table: Stores many-to-many relationships between groups and tags
+
+### Table Structure Details
 
 ```sql
 CREATE TABLE IF NOT EXISTS files (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,   -- 文件类型
-    path TEXT NOT NULL, -- 文件存储位置
-    reference_count INTEGER DEFAULT 0, -- 引用计数
-    group_id INTEGER, -- 默认的文件组ID
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,   -- File type
+    path TEXT NOT NULL, -- File storage location
+    reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
+    group_id INTEGER NOT NULL, -- Default file group ID
     FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
 CREATE TABLE IF NOT EXISTS groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE, -- 文件组名
-    is_primary BOOLEAN NOT NULL DEFAULT 0, -- 是否为本命文件组，0表示否，1表示是
-    click_count INTEGER DEFAULT 0, -- 点击次数
-    share_count INTEGER DEFAULT 0, -- 分享次数
-    create_time BigInt NOT NULL, -- 创建时间
-    modify_time BigInt NOT NULL  -- 修改时间
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE, -- Group name
+    reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
+    is_primary BOOLEAN NOT NULL DEFAULT 0, -- Whether it's a primary group, 0 for no, 1 for yes
+    click_count INTEGER NOT NULL DEFAULT 0, -- Click count
+    share_count INTEGER NOT NULL DEFAULT 0, -- Share count
+    create_time BigInt NOT NULL, -- Creation time
+    modify_time BigInt NOT NULL  -- Modification time
 );
 
 CREATE TABLE IF NOT EXISTS file_groups (
-    file_id INTEGER,
-    group_id INTEGER,
+    file_id INTEGER NOT NULL,
+    group_id INTEGER NOT NULL,
     PRIMARY KEY (file_id, group_id),
     FOREIGN KEY (file_id) REFERENCES files(id),
     FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
 CREATE TABLE IF NOT EXISTS tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    reference_count INTEGER DEFAULT 0, -- 引用计数
-    name TEXT NOT NULL UNIQUE -- 标签名称，唯一
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
+    name TEXT NOT NULL UNIQUE -- Tag name, unique
 );
 
 CREATE TABLE IF NOT EXISTS group_tags (
-    group_id INTEGER,
-    tag_id INTEGER,
+    group_id INTEGER NOT NULL,
+    tag_id INTEGER NOT NULL,
     PRIMARY KEY (group_id, tag_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
 );
 ```
 
-### Data Operations
 
-#### Inserting Data
+## Function Details
 
-Example of inserting files, groups, and tags:
+### File Management
 
-```sql
--- Insert a file
-INSERT INTO files (id, type, path)
-VALUES (1, 'sticker', 'path/to/sticker');
+- Files are stored with unique identifiers (ID)
+- Records file type (`type`) and storage path (`path`)
+- Automatically maintains reference count (`reference_count`)
+- Establishes association relationships with groups
 
--- Insert a group
-INSERT INTO groups (id, name, is_primary, create_time, modify_time)
-VALUES (1, 'Primary Group', TRUE, 1726384526489, 1726384566175);
+### Group System
 
--- Insert tags
-INSERT INTO tags (id, name) VALUES (1, 'Honkai Impact'), (2, 'Songbird');
+- Supports creating file groups with unique names
+- Distinguishes between primary groups (`is_primary`) and ordinary groups
+- Each file has a primary file group that records detailed information
+- Tracks group usage statistics (click count, share count)
+- Automatically maintains reference count
+- Records creation and modification times
+
+### Tag System
+
+- Supports creating tags with unique names
+- Organizes and classifies file groups through tags
+- Automatically maintains reference count
+
+### Query Functionality
+
+#### Basic Queries
+
+Supports precise queries based on various fields:
+- Files: ID, type, path, reference count, group ID
+- Groups: ID, name, reference count, whether it's a primary group, click count, share count, creation time, modification time
+- Tags: ID, name, reference count
+
+#### Advanced Queries
+
+Supports complex conditional queries:
+- Range queries: greater than, less than
+- Pattern matching: LIKE queries
+- Combined conditions: AND, OR, NOT logical combinations
+- Batch queries: IN conditions
+
+#### Association Queries
+
+- Query related file groups by tag
+- Query groups that files belong to
+- Query associated tags by group
+
+### Update Functionality
+
+Supports batch updates based on conditions:
+- Files: path, type, reference count, group ID
+- Groups: name, reference count, whether it's a primary group, click count, share count, timestamps
+- Tags: name, reference count
+
+### Delete Functionality
+
+Supports safe data deletion:
+- Automatically handles reduction of reference counts
+- Cascading deletion of associated data
+- Automatic cleanup of associated files when deleting primary groups
+
+## Usage
+
+### Command Line Interface
+
+Provides multiple independent command-line tools:
+
+```bash
+# File operations
+list_files                           # List files
+list_files_by_conditions            # Query files by conditions
+create_file                         # Create file
+delete_file                         # Delete file
+update_files_by_conditions          # Update files by conditions
+
+# Group operations
+list_groups                         # List groups
+list_groups_by_conditions           # Query groups by conditions
+create_group                        # Create group
+delete_group                        # Delete group
+update_groups_by_conditions         # Update groups by conditions
+
+# Tag operations
+list_tags                           # List tags
+list_tags_by_conditions             # Query tags by conditions
+create_tag                          # Create tag
+delete_tag                          # Delete tag
+update_tags_by_conditions           # Update tags by conditions
+
+# Association operations
+list_file_groups_by_conditions      # Query file-group associations by conditions
+create_file_group                   # Create file-group association
+delete_file_group                   # Delete file-group association
+list_group_tags_by_conditions       # Query group-tag associations by conditions
+create_group_tag                    # Create group-tag association
+delete_group_tag                    # Delete group-tag association
 ```
 
-```sql
--- Insert the relationship between files and groups
-INSERT INTO file_groups (file_id, group_id)
-VALUES (1, 1);
+
+### Web API
+
+Provides RESTful API interfaces:
+
+```
+# File related
+GET    /api/files                  # Query files
+POST   /api/files/search           # Query files by conditions
+PUT    /api/files                  # Update files by conditions
+DELETE /api/files/{id}             # Delete file
+
+# Group related
+GET    /api/groups                 # Query groups
+POST   /api/groups/search          # Query groups by conditions
+POST   /api/groups                 # Create group
+PUT    /api/groups                 # Update groups by conditions
+DELETE /api/groups/{id}            # Delete group
+
+# Tag related
+GET    /api/tags                   # Query tags
+POST   /api/tags/search            # Query tags by conditions
+POST   /api/tags                   # Create tag
+PUT    /api/tags                   # Update tags by conditions
+DELETE /api/tags/{id}              # Delete tag
+
+# File-group association related
+GET    /api/file-groups            # Query file-group associations by conditions
+POST   /api/file-groups            # Create file-group association
+DELETE /api/file-groups            # Delete file-group association
+
+# Group-tag association related
+GET    /api/group-tags             # Query group-tag associations by conditions
+POST   /api/group-tags             # Create group-tag association
+DELETE /api/group-tags             # Delete group-tag association
 ```
 
-```sql
--- Insert the relationship between groups and tags
-INSERT INTO group_tags (group_id, tag_id)
-VALUES (1, 1), (1, 2);
-```
 
-#### Querying Data
+## Technical Features
 
-##### Query Files by Tag
+### Architectural Advantages
 
-```sql
-SELECT f.id AS file_id, f.type, f.path
-FROM files f
-JOIN file_groups fg ON f.id = fg.file_id
-JOIN group_tags gt ON fg.group_id = gt.group_id
-JOIN tags t ON gt.tag_id = t.id
-WHERE t.name = 'specified_tag_name';
-```
+1. **Layered Architecture**: Clear separation of data access layer, business logic layer, and presentation layer
+2. **Modular Design**: Different functional modules organized in independent crates
+3. **Strong Type Safety**: Utilizes Rust's type system to ensure code safety
+4. **Error Handling**: Unified error handling mechanism
+5. **Database Abstraction**: Uses Diesel ORM for database operations
+6. **Scalability**: Easy to add new functional modules and access interfaces
 
-##### Query Groups by File
+### Data Consistency
 
-```sql
-SELECT g.id AS group_id, g.name
-FROM groups g
-JOIN file_groups fg ON g.id = fg.group_id
-WHERE fg.file_id = 'specified_file_id';
-```
+1. **Transaction Processing**: Critical operations use database transactions to ensure consistency
+2. **Reference Counting**: Automatically maintains references between entities
+3. **Cascading Operations**: Automatically cleans up associated data during deletion operations
 
-### Future Considerations
+### Performance Optimization
 
-1. **Support for Multiple File Types**: The design allows for support of various file types through the `type` field.
-2. **Data Indexing**: Consider creating indexes on the `tags.name` and `groups.name` fields to improve query performance.
-3. **Data Backup and Recovery**: Consider implementing data backup and recovery mechanisms to ensure data safety.
-4. **User Permission Management**: If the system is open to multiple users, consider user permission management to ensure users can only access and operate on their files.
-5. **File Version Control**: Consider adding version control features to track the modification history of files.
-6. **File Search Optimization**: In addition to tag searches, implement full-text search capabilities based on file content to improve search accuracy.
+1. **Query Optimization**: Supports complex conditional queries and sorting
+2. **Batch Operations**: Supports batch updates and deletions
+3. **Connection Pooling**: Web API uses database connection pooling to improve performance
+
+## Future Plans
+
+1. **Multiple File Type Support**: Extend support for more file types
+2. **Data Index Optimization**: Create indexes on frequently queried fields
+3. **Data Backup and Recovery**: Implement data backup and recovery mechanisms
+4. **User Permission Management**: Support multi-user and permission control
+5. **File Version Control**: Add file version management functionality
+6. **Full-text Search**: Implement full-text search based on file content
+7. **Multiple Database Compatibility**: Support more database types
+8. **Enhanced Batch Operations**: Provide richer batch operation functionality
+
+## Application Scenarios
+
+- Meme management
+- Document classification storage
+- Image asset management
+- Code snippet organization
+- General file management systems
+
+This system is not only suitable for specific types of file management but can also be extended as a general file management and search solution.
