@@ -62,11 +62,11 @@ enum FileActions {
     ListByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         conditions: Vec<String>,
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
         order_by: Vec<String>,
-        #[clap(short, long)]
+        #[clap(long)]
         limit: Option<i64>,
-        #[clap(short, long)]
+        #[clap(long)]
         offset: Option<i64>,
     },
     /// 根据组ID查询文件
@@ -80,11 +80,11 @@ enum FileActions {
         conditions: Vec<String>,
         #[clap(short, long)]
         path: Option<String>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         type_: Option<String>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         reference_count: Option<i32>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         group_id: Option<i32>,
     },
     /// 删除文件（按条件）
@@ -112,11 +112,11 @@ enum GroupActions {
     ListByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         conditions: Vec<String>,
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
         order_by: Vec<String>,
-        #[clap(short, long)]
+        #[clap(long)]
         limit: Option<i64>,
-        #[clap(short, long)]
+        #[clap(long)]
         offset: Option<i64>,
     },
     /// 根据文件ID查询组
@@ -135,13 +135,13 @@ enum GroupActions {
         conditions: Vec<String>,
         #[clap(short, long)]
         name: Option<String>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         reference_count: Option<i32>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         is_primary: Option<bool>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         click_count: Option<i32>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         share_count: Option<i32>,
     },
     /// 删除组（按条件）
@@ -169,11 +169,11 @@ enum TagActions {
     ListByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         conditions: Vec<String>,
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
         order_by: Vec<String>,
-        #[clap(short, long)]
+        #[clap(long)]
         limit: Option<i64>,
-        #[clap(short, long)]
+        #[clap(long)]
         offset: Option<i64>,
     },
     /// 根据组ID查询标签
@@ -187,7 +187,7 @@ enum TagActions {
         conditions: Vec<String>,
         #[clap(short, long)]
         name: Option<String>,
-        #[clap(short, long)]
+        #[clap(long)] // 改为只使用长选项
         reference_count: Option<i32>,
     },
     /// 删除标签（按条件）
@@ -219,11 +219,11 @@ enum FileGroupActions {
     ListByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         conditions: Vec<String>,
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
         order_by: Vec<String>,
-        #[clap(short, long)]
+        #[clap(long)]
         limit: Option<i64>,
-        #[clap(short, long)]
+        #[clap(long)]
         offset: Option<i64>,
     },
     /// 删除文件组关联（按条件）
@@ -255,11 +255,11 @@ enum GroupTagActions {
     ListByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         conditions: Vec<String>,
-        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
         order_by: Vec<String>,
-        #[clap(short, long)]
+        #[clap(long)]
         limit: Option<i64>,
-        #[clap(short, long)]
+        #[clap(long)]
         offset: Option<i64>,
     },
     /// 删除组标签关联（按条件）
