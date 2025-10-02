@@ -1,6 +1,6 @@
 use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
 use crate::internal::tags::{decrease_tag_reference_count, find_tag_by_id, increase_tag_reference_count};
-use crate::model::models::{GroupTagCondition, GroupTagDTO};
+use crate::model::models::{GroupTagCondition, GroupTagDTO, GroupTagQueryOptions};
 use crate::service::AppError;
 use diesel::result::Error;
 use diesel::Connection;
@@ -60,6 +60,13 @@ pub fn select_group_tags_by_conditions(
     limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
     crate::internal::group_tag::select_group_tags_by_conditions(conn, condition, limit)
+}
+pub fn select_group_tags_by_conditions_with_options(
+    conn: &mut AnyConnection,
+    conditions: Vec<GroupTagCondition>,
+    options: GroupTagQueryOptions,
+) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+    crate::internal::group_tag::select_group_tags_by_conditions_with_options(conn, conditions, options)
 }
 
 // NOTE: 这个方法在core里不应该有用法

@@ -1,6 +1,6 @@
 use crate::internal::file_group::select_file_groups_by_conditions;
 use crate::internal::groups::select_groups_by_conditions;
-use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, GroupCondition, GroupTagCondition, TagCondition, UpdateFileDTO, UpdateGroupDTO};
+use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, FileQueryOptions, GroupCondition, GroupTagCondition, TagCondition, UpdateFileDTO, UpdateGroupDTO};
 use crate::service::groups::update_groups_by_conditions;
 use crate::service::AppError;
 use crate::utils::errors::AppError::{FuturePrimaryGroupShouldBeEmpty};
@@ -164,6 +164,13 @@ pub fn select_files_by_conditions(
     limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
     internal::files::select_files_by_conditions(conn, condition, limit)
+}
+pub fn select_files_by_conditions_with_options(
+    conn: &mut AnyConnection,
+    conditions: Vec<FileCondition>,
+    options: FileQueryOptions,
+) -> Result<Vec<File>, diesel::result::Error> {
+    internal::files::select_files_by_conditions_with_options(conn, conditions, options)
 }
 
 pub fn update_files_by_conditions(

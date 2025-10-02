@@ -1,4 +1,4 @@
-use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupTagCondition, UpdateGroupDTO};
+use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
@@ -94,6 +94,14 @@ pub fn select_groups_by_conditions(
     limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
     groups::select_groups_by_conditions(conn, condition, limit)
+}
+
+pub fn select_groups_by_conditions_with_options(
+    conn: &mut AnyConnection,
+    conditions: Vec<GroupCondition>,
+    options: GroupQueryOptions,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    groups::select_groups_by_conditions_with_options(conn, conditions, options)
 }
 
 pub fn update_groups_by_conditions(

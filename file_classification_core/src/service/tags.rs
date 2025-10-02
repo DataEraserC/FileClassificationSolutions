@@ -1,4 +1,4 @@
-use crate::model::models::{GroupTagCondition, TagCondition, UpdateTagDTO};
+use crate::model::models::{GroupTagCondition, TagCondition, TagQueryOptions, UpdateTagDTO};
 use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
@@ -51,6 +51,13 @@ pub fn select_tags_by_conditions(
     limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     tags::select_tags_by_conditions(conn, condition, limit)
+}
+pub fn select_tags_by_conditions_with_options(
+    conn: &mut AnyConnection,
+    conditions: Vec<TagCondition>,
+    options: TagQueryOptions,
+) -> Result<Vec<Tag>, diesel::result::Error> {
+    tags::select_tags_by_conditions_with_options(conn, conditions, options)
 }
 
 pub fn update_tags_by_conditions(

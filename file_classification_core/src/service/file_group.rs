@@ -1,7 +1,7 @@
 use crate::internal::file_group as file_groups;
 use crate::internal::files::{decrease_file_reference_count, find_file_by_id, increase_file_reference_count};
 use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
-use crate::model::models::{FileGroupCondition, FileGroupDTO};
+use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupQueryOptions};
 use crate::service::AppError;
 use diesel::result::Error;
 use diesel::Connection;
@@ -69,6 +69,13 @@ pub fn select_file_groups_by_conditions(
     limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
     crate::internal::file_group::select_file_groups_by_conditions(conn, condition, limit)
+}
+pub fn select_file_groups_by_conditions_with_options(
+    conn: &mut AnyConnection,
+    conditions: Vec<FileGroupCondition>,
+    options: FileGroupQueryOptions,
+) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+    crate::internal::file_group::select_file_groups_by_conditions_with_options(conn, conditions, options)
 }
 
 // NOTE: 这个方法在core里不应该有用法
