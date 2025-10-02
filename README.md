@@ -57,11 +57,11 @@ CREATE TABLE IF NOT EXISTS groups (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE, -- Group name
     reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
-    is_primary BOOLEAN NOT NULL DEFAULT 0, -- Whether it's a primary group, 0 for no, 1 for yes
+    is_primary BOOLEAN NOT NULL DEFAULT false, -- Whether it's a primary group, false for no, true for yes
     click_count INTEGER NOT NULL DEFAULT 0, -- Click count
     share_count INTEGER NOT NULL DEFAULT 0, -- Share count
-    create_time BigInt NOT NULL, -- Creation time
-    modify_time BigInt NOT NULL  -- Modification time
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Creation time
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  -- Modification time
 );
 
 CREATE TABLE IF NOT EXISTS file_groups (

@@ -57,11 +57,11 @@ CREATE TABLE IF NOT EXISTS groups (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE, -- 文件组名
     reference_count INTEGER NOT NULL DEFAULT 0, -- 引用计数
-    is_primary BOOLEAN NOT NULL DEFAULT 0, -- 是否为本命文件组，0表示否，1表示是
+    is_primary BOOLEAN NOT NULL DEFAULT false, -- 是否为本命文件组，false表示否，true表示是
     click_count INTEGER NOT NULL DEFAULT 0, -- 点击次数
     share_count INTEGER NOT NULL DEFAULT 0, -- 分享次数
-    create_time BigInt NOT NULL, -- 创建时间
-    modify_time BigInt NOT NULL  -- 修改时间
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 创建时间
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  -- 修改时间
 );
 
 CREATE TABLE IF NOT EXISTS file_groups (

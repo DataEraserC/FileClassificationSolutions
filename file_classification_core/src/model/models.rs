@@ -266,6 +266,8 @@ pub enum TagCondition {
     And(Vec<TagCondition>),
     Or(Vec<TagCondition>),
     Not(Box<TagCondition>),
+
+    // GroupId(i32),
 }
 
 #[derive(Default)]
