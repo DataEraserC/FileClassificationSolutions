@@ -356,3 +356,29 @@ pub fn decrease_groups_reference_count_by_conditions(
     // 减少引用计数
     query.set(groups::reference_count.eq(groups::reference_count - 1)).execute(conn)
 }
+
+pub fn select_group_by_file_id(
+    conn: &mut AnyConnection,
+    other_file_id: i32,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    use crate::model::schema::file_groups;
+    
+    groups::table
+        .inner_join(file_groups::table.on(groups::id.eq(file_groups::group_id)))
+        .filter(file_groups::file_id.eq(other_file_id))
+        .select(Group::as_select())
+        .load(conn)
+}
+
+pub fn select_group_by_tag_id(
+    conn: &mut AnyConnection,
+    tag_id: i32,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    use crate::model::schema::group_tags;
+    
+    groups::table
+        .inner_join(group_tags::table.on(groups::id.eq(group_tags::group_id)))
+        .filter(group_tags::tag_id.eq(tag_id))
+        .select(Group::as_select())
+        .load(conn)
+}

@@ -3,7 +3,7 @@ use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
 };
-use diesel::Connection;
+use diesel::{Connection, JoinOnDsl};
 use crate::utils::database::AnyConnection;
 
 pub fn create_tag(conn: &mut AnyConnection, name: &str) -> Result<Tag, diesel::result::Error> {
@@ -107,4 +107,11 @@ pub fn delete_tags_by_conditions(
 
         Ok(total_deleted)
     })
+}
+
+pub fn select_tag_by_group_id(
+    conn: &mut AnyConnection,
+    group_id: i64,
+) -> Result<Vec<Tag>, diesel::result::Error> {
+    crate::internal::tags::select_tag_by_group_id(conn, group_id)
 }

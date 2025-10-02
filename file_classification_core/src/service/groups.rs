@@ -2,7 +2,7 @@ use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, Gr
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
-use diesel::Connection;
+use diesel::{Connection, JoinOnDsl};
 use crate::utils::database::AnyConnection;
 
 pub fn create_group(conn: &mut AnyConnection, name: &str) -> Result<usize, Error> {
@@ -184,3 +184,16 @@ pub fn delete_groups_by_conditions(
     })
 }
 
+pub fn select_group_by_file_id(
+    conn: &mut AnyConnection,
+    other_file_id: i32,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    crate::internal::groups::select_group_by_file_id(conn, other_file_id)
+}
+
+pub fn select_group_by_tag_id(
+    conn: &mut AnyConnection,
+    tag_id: i32,
+) -> Result<Vec<Group>, diesel::result::Error> {
+    crate::internal::groups::select_group_by_tag_id(conn, tag_id)
+}

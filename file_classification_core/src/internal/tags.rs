@@ -79,7 +79,7 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
 }
 
 use crate::model::schema::tags::dsl::*;
-use crate::model::schema::tags;
+use crate::model::schema::{groups, tags};
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 impl Debug for Tag {
@@ -93,9 +93,10 @@ impl Debug for Tag {
 }
 
 use super::models::TagCondition;
-use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
+use crate::model::models::{Group, OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
+use crate::model::schema::group_tags::dsl::group_tags;
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数
 fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
@@ -279,4 +280,17 @@ pub fn decrease_tags_reference_count_by_conditions(
 
     // 减少引用计数
     query.set(tags::reference_count.eq(tags::reference_count - 1)).execute(conn)
+}
+
+pub fn select_tag_by_group_id(
+    conn: &mut AnyConnection,
+    group_id: i64,
+) -> Result<Vec<Tag>, diesel::result::Error> {
+    use crate::model::schema::group_tags;
+
+    tags::table
+        .inner_join(group_tags::table.on(tags::id.eq(group_tags::tag_id)))
+        .filter(group_tags::group_id.eq(group_id as i32))
+        .select(Tag::as_select())
+        .load(conn)
 }

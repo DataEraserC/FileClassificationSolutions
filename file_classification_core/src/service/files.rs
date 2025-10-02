@@ -242,3 +242,9 @@ pub fn delete_files_by_conditions(
     })
 }
 
+pub fn select_file_by_group_id(
+    conn: &mut AnyConnection,
+    other_group_id: i64,
+) -> Result<Vec<File>, diesel::result::Error> {
+    internal::files::select_file_by_group_id(conn, other_group_id)
+}

@@ -288,3 +288,16 @@ pub fn decrease_files_reference_count_by_conditions(
     // 减少引用计数
     query.set(files::reference_count.eq(files::reference_count - 1)).execute(conn)
 }
+
+pub fn select_file_by_group_id(
+    conn: &mut AnyConnection,
+    other_group_id: i64,
+) -> Result<Vec<File>, diesel::result::Error> {
+    use crate::model::schema::file_groups;
+
+    files::table
+        .inner_join(file_groups::table.on(files::id.eq(file_groups::file_id)))
+        .filter(file_groups::group_id.eq(other_group_id as i32))
+        .select(File::as_select())
+        .load(conn)
+}
