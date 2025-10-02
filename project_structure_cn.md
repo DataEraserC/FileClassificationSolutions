@@ -63,6 +63,20 @@ file_classification_core/
 ```
 
 
+#### 核心概念
+- **Files（文件）**: 代表系统中的具体文件，包含类型、路径、引用计数等属性
+- **Groups（组）**: 用于对文件进行分类和组织，具有名称、引用计数、主组标识等属性
+- **Tags（标签）**: 为组提供额外的元数据描述，增强分类能力
+- **FileGroups（文件组关联）**: 建立文件与组之间的多对多关系
+- **GroupTags（组标签关联）**: 建立组与标签之间的多对多关系
+
+#### 设计原则
+1. 使用引用计数来追踪实体之间的关联关系
+2. 支持复杂的条件查询，包括等于、大于、小于、LIKE模式匹配等
+3. 实现了完整的CRUD操作，包括通过条件批量操作
+4. 采用事务确保数据一致性，特别是在处理引用计数时
+5. 区分主组和普通组，主组与文件具有一对一关系
+
 ### file_classification_cli (命令行界面)
 
 提供命令行工具来操作文件分类系统。
@@ -95,13 +109,19 @@ file_classification_cli/
 ```
 
 
-### file_classification_webapi2 (Web API - 新版)
+#### 功能特点
+- 提供交互式命令行界面
+- 支持复杂的条件查询和批量操作
+- 包含完整的增删改查功能
+- 支持组合条件查询（AND、OR、NOT）
+
+### file_classification_webapi (Web API - 新版)
 
 基于 Actix-web 框架构建的 RESTful API 服务。
 
 #### 目录结构
 ```
-file_classification_webapi2/
+file_classification_webapi/
 ├── src/
 │   ├── handlers/              # API 请求处理函数
 │   │   ├── file_groups.rs     # 文件组关联 API 处理
@@ -118,6 +138,13 @@ file_classification_webapi2/
 └── Cargo.toml                 # 包配置文件
 ```
 
+
+#### API 端点
+- **文件管理**: `/api/files`
+- **组管理**: `/api/groups`
+- **标签管理**: `/api/tags`
+- **文件组关联**: `/api/file-groups`
+- **组标签关联**: `/api/group-tags`
 
 ### 数据库迁移
 
