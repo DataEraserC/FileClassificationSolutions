@@ -66,6 +66,15 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         ], None)?;
         let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
 
+        match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: group.id }) {
+            Ok(_) => {
+                count += 1;
+            }
+            Err(e) => {
+                return Err(e)
+            }
+        }
+
         update_groups_by_conditions(conn, vec![
             GroupCondition::Id(group.id)
         ], UpdateGroupDTO {
@@ -77,16 +86,7 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
             share_count: None,
             create_time: None,
             modify_time: None,
-        }).expect("Error when creating group");
-
-        match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: group.id }) {
-            Ok(_) => {
-                count += 1;
-            }
-            Err(e) => {
-                return Err(e)
-            }
-        }
+        }).expect("Error when updating group");
         Ok(count)
     })
 }
