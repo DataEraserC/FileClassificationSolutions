@@ -13,7 +13,7 @@ An innovative file classification storage technology designed to provide users w
 
 ### Database Table Structure Design
 
-Based on your requirements, here’s the specific database table structure:
+Here’s the specific database table structure:
 
 1. `files` table: Stores basic information about files.
 2. `groups` table: Stores information about file groups.
