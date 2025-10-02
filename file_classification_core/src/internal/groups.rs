@@ -124,7 +124,6 @@ use super::models::GroupCondition;
 use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
-use diesel::sqlite::Sqlite;
 use crate::utils::database::AnyConnection;
 
 // 将 GroupCondition 转换为 diesel 查询条件的辅助函数
@@ -324,4 +323,36 @@ pub fn delete_groups_by_conditions(
     }
 
     query.execute(conn)
+}
+
+pub fn increase_groups_reference_count_by_conditions(
+    conn: &mut AnyConnection,
+    conditions: Vec<GroupCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::update(groups::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 增加引用计数
+    query.set(groups::reference_count.eq(groups::reference_count + 1)).execute(conn)
+}
+
+pub fn decrease_groups_reference_count_by_conditions(
+    conn: &mut AnyConnection,
+    conditions: Vec<GroupCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::update(groups::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_group_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 减少引用计数
+    query.set(groups::reference_count.eq(groups::reference_count - 1)).execute(conn)
 }

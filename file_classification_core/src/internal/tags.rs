@@ -248,3 +248,35 @@ pub fn delete_tags_by_conditions(
 
     query.execute(conn)
 }
+
+pub fn increase_tags_reference_count_by_conditions(
+    conn: &mut AnyConnection,
+    conditions: Vec<TagCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::update(tags::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 增加引用计数
+    query.set(tags::reference_count.eq(tags::reference_count + 1)).execute(conn)
+}
+
+pub fn decrease_tags_reference_count_by_conditions(
+    conn: &mut AnyConnection,
+    conditions: Vec<TagCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::update(tags::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_tag_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 减少引用计数
+    query.set(tags::reference_count.eq(tags::reference_count - 1)).execute(conn)
+}

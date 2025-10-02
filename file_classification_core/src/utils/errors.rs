@@ -29,6 +29,7 @@ pub enum AppError {
     DeleteFileGroupFailed(String),
     CannotBindToPrimaryGroup,
     CannotUnbindPrimaryGroup,
+    FuturePrimaryGroupShouldBeEmpty,
 
     // Validation errors
     ValidationError(String),
@@ -61,6 +62,10 @@ impl Display for AppError {
             AppError::DeleteFileGroupFailed(msg) => write!(f, "Delete FileGroup failed: {}", msg),
             AppError::CannotBindToPrimaryGroup => write!(f, "Cannot associate with primary group"),
             AppError::CannotUnbindPrimaryGroup => write!(f, "Cannot unbind from primary group"),
+            AppError::FuturePrimaryGroupShouldBeEmpty => write!(
+                f,
+                "Future primary group should be empty"
+            ),
 
             AppError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
 

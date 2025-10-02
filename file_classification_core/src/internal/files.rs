@@ -257,3 +257,34 @@ pub fn delete_files_by_conditions(
 
     query.execute(conn)
 }
+pub fn increase_files_reference_count_by_conditions(
+    conn: &mut AnyConnection,
+    conditions: Vec<FileCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_file_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 增加引用计数
+    query.set(files::reference_count.eq(files::reference_count + 1)).execute(conn)
+}
+
+pub fn decrease_files_reference_count_by_conditions(
+    conn: &mut AnyConnection,
+    conditions: Vec<FileCondition>,
+) -> Result<usize, diesel::result::Error> {
+    let mut query = diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+    // 应用所有条件
+    for condition in conditions {
+        let boxed_condition = build_file_condition(condition);
+        query = query.filter(boxed_condition);
+    }
+
+    // 减少引用计数
+    query.set(files::reference_count.eq(files::reference_count - 1)).execute(conn)
+}

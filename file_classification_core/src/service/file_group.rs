@@ -7,6 +7,7 @@ use diesel::result::Error;
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
 
+// 创建文件组关联(不允许使用于主组绑定)
 pub fn create_file_group(
     conn: &mut AnyConnection,
     file_group_dto: FileGroupDTO,

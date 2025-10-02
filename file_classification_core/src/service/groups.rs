@@ -22,25 +22,62 @@ pub fn delete_group(
     group_id: i32,
 ) -> Result<usize, Error> {
     // 1.判断是否是primary
-    // 若是primary 则直接删除对应的File，删除GroupTag
+    // 若是primary 则先删除对应的File，删除GroupTag，删除FileGroup
     // 若不是primary 则先删除GroupTag，再删除FileGroup
     conn.transaction::<usize, Error, _>(|conn| {
         let group = groups::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
+
         if group.is_primary {
+            // 删除主组时，先处理关联的文件
             crate::internal::files::delete_files_by_conditions(conn, vec![
                 FileCondition::GroupId(group_id)
             ])?;
+
+            // 显式删除文件组关系（作为额外保障）
+            crate::internal::file_group::delete_file_groups_by_conditions(conn, vec![
+                FileGroupCondition::GroupId(group_id)
+            ])?;
         } else {
+            // 对于非主组，需要先减少关联文件的引用计数
+            let file_groups = crate::internal::file_group::select_file_groups_by_conditions(
+                conn,
+                vec![FileGroupCondition::GroupId(group_id)],
+                None,
+            )?;
+
+            // 减少每个关联文件的引用计数
+            for file_group in &file_groups {
+                crate::internal::files::decrease_file_reference_count(conn, file_group.file_id)?;
+            }
+
+            // 删除文件组关系
             crate::internal::file_group::delete_file_groups_by_conditions(conn, vec![
                 FileGroupCondition::GroupId(group_id)
             ])?;
         }
+
+        // 减少组关联标签的引用计数
+        let group_tags = crate::internal::group_tag::select_group_tags_by_conditions(
+            conn,
+            vec![GroupTagCondition::GroupId(group_id)],
+            None,
+        )?;
+
+        // 减少每个关联标签的引用计数
+        for group_tag in &group_tags {
+            crate::internal::tags::decrease_tag_reference_count(conn, group_tag.tag_id)?;
+        }
+
+        // 删除组标签关系
         crate::internal::group_tag::delete_group_tags_by_conditions(conn, vec![
             GroupTagCondition::GroupId(group_id)
         ])?;
+
+        // 最后删除组本身
         groups::delete_group(conn, group_id)
     })
 }
+
 #[allow(deprecated)]
 #[deprecated]
 pub fn select_groups(
@@ -94,12 +131,42 @@ pub fn delete_groups_by_conditions(
                     conn,
                     vec![FileCondition::GroupId(group.id)]
                 )?;
-            } else {
-                // 如果不是主组，则删除文件组关联
+
+                // 显式删除文件组关系（作为额外保障）
                 crate::internal::file_group::delete_file_groups_by_conditions(
                     conn,
                     vec![FileGroupCondition::GroupId(group.id)]
                 )?;
+            } else {
+                // 如果不是主组，则先减少关联文件的引用计数
+                let file_groups = crate::internal::file_group::select_file_groups_by_conditions(
+                    conn,
+                    vec![FileGroupCondition::GroupId(group.id)],
+                    None,
+                )?;
+
+                // 减少每个关联文件的引用计数
+                for file_group in &file_groups {
+                    crate::internal::files::decrease_file_reference_count(conn, file_group.file_id)?;
+                }
+
+                // 删除文件组关联
+                crate::internal::file_group::delete_file_groups_by_conditions(
+                    conn,
+                    vec![FileGroupCondition::GroupId(group.id)]
+                )?;
+            }
+
+            // 减少组关联标签的引用计数
+            let group_tags = crate::internal::group_tag::select_group_tags_by_conditions(
+                conn,
+                vec![GroupTagCondition::GroupId(group.id)],
+                None,
+            )?;
+
+            // 减少每个关联标签的引用计数
+            for group_tag in &group_tags {
+                crate::internal::tags::decrease_tag_reference_count(conn, group_tag.tag_id)?;
             }
 
             // 删除组标签关联
@@ -109,7 +176,7 @@ pub fn delete_groups_by_conditions(
             )?;
 
             // 删除组本身
-            let deleted_count = groups::delete_group(conn, group.id)?;
+            let deleted_count = crate::internal::groups::delete_group(conn, group.id)?;
             total_deleted += deleted_count;
         }
 

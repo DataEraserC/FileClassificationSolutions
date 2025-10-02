@@ -1,9 +1,9 @@
 use crate::internal::file_group::select_file_groups_by_conditions;
 use crate::internal::groups::select_groups_by_conditions;
-use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, GroupCondition, GroupTagCondition, UpdateFileDTO, UpdateGroupDTO};
+use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, GroupCondition, GroupTagCondition, TagCondition, UpdateFileDTO, UpdateGroupDTO};
 use crate::service::groups::update_groups_by_conditions;
 use crate::service::AppError;
-use crate::utils::errors::AppError::CannotBindToPrimaryGroup;
+use crate::utils::errors::AppError::{FuturePrimaryGroupShouldBeEmpty};
 use crate::{internal, service};
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
@@ -57,7 +57,7 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         )?;
 
         if file_groups.len() != 0 {
-            return Err(CannotBindToPrimaryGroup);
+            return Err(FuturePrimaryGroupShouldBeEmpty);
         }
         let mut count = 0;
         count += internal::files::create_file(conn, &create_file_dto)?;
@@ -100,20 +100,46 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
         let file_required_to_delete = internal::files::find_file_by_id(conn, file_id)?
             .ok_or_else(|| diesel::result::Error::NotFound)?;
 
-        // 删除与文件关联的组标签
+        // 查找与该文件关联的所有文件组关系（包括主组和其他组）
+        let file_groups = select_file_groups_by_conditions(
+            conn,
+            vec![FileGroupCondition::FileId(file_required_to_delete.id)],
+            None,
+        )?;
+
+        // 对于每个文件组关系，减少对应组的引用计数
+        for file_group in &file_groups {
+            internal::groups::decrease_group_reference_count(conn, file_group.group_id)?;
+        }
+
+        // 仅对主组关联的标签减少引用计数
+        let tag_list = internal::group_tag::select_group_tags_by_conditions(
+            conn,
+            vec![GroupTagCondition::GroupId(file_required_to_delete.group_id)],
+            None,
+        )?;
+
+        if !tag_list.is_empty() {
+            internal::tags::decrease_tags_reference_count_by_conditions(
+                conn,
+                vec![TagCondition::IdIn(tag_list.iter().map(|tag| tag.tag_id).collect::<Vec<_>>())],
+            )?;
+        }
+
+        // 删除与文件主组关联的所有组标签关系
         internal::group_tag::delete_group_tags_by_conditions(
             conn,
             vec![GroupTagCondition::GroupId(file_required_to_delete.group_id)],
         )?;
 
-        // 删除与文件关联的文件组关系
+        // 删除与文件关联的所有文件组关系
         internal::file_group::delete_file_groups_by_conditions(
             conn,
             vec![FileGroupCondition::FileId(file_required_to_delete.id)],
         )?;
 
-        // 删除组和文件本身
-        service::groups::delete_group(conn, file_required_to_delete.group_id)?;
+        // 删除主组和文件本身
+        internal::groups::delete_group(conn, file_required_to_delete.group_id)?;
         internal::files::delete_file_by_id(conn, file_id)?;
 
         Ok(())
@@ -168,7 +194,7 @@ pub fn delete_files_by_conditions(
 
         // 对于每个要删除的文件，处理相关的引用关系
         for file in &files_to_delete {
-            // 查找与该文件关联的所有文件组关系
+            // 查找与该文件关联的所有文件组关系（包括主组和其他组）
             let file_groups = select_file_groups_by_conditions(
                 conn,
                 vec![FileGroupCondition::FileId(file.id)],
@@ -180,13 +206,34 @@ pub fn delete_files_by_conditions(
                 internal::groups::decrease_group_reference_count(conn, file_group.group_id)?;
             }
 
+            // 仅对主组关联的标签减少引用计数
+            let tag_list = internal::group_tag::select_group_tags_by_conditions(
+                conn,
+                vec![GroupTagCondition::GroupId(file.group_id)],
+                None,
+            )?;
+
+            if !tag_list.is_empty() {
+                internal::tags::decrease_tags_reference_count_by_conditions(
+                    conn,
+                    vec![TagCondition::IdIn(tag_list.iter().map(|tag| tag.tag_id).collect::<Vec<_>>())],
+                )?;
+            }
+
+            // 删除与文件主组关联的所有组标签关系
+            internal::group_tag::delete_group_tags_by_conditions(
+                conn,
+                vec![GroupTagCondition::GroupId(file.group_id)],
+            )?;
+
             // 删除与该文件关联的所有文件组关系
             internal::file_group::delete_file_groups_by_conditions(
                 conn,
                 vec![FileGroupCondition::FileId(file.id)],
             )?;
 
-            // 删除文件本身
+            // 删除主组和文件本身
+            internal::groups::delete_group(conn, file.group_id)?;
             let deleted_count = internal::files::delete_file_by_id(conn, file.id)?;
             total_deleted += deleted_count;
         }
