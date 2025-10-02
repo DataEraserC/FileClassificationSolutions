@@ -3,6 +3,8 @@ use file_classification_core::model::models::*;
 use file_classification_core::service::*;
 use file_classification_core::utils::database::{establish_connection, AnyConnection};
 use std::io::{self, Write};
+use rustyline::DefaultEditor;
+use shlex;
 
 #[derive(Parser)]
 #[clap(name = "文件分类系统", version = "1.0", author = "Developer")]
@@ -38,6 +40,8 @@ enum Commands {
         #[clap(subcommand)]
         action: GroupTagActions,
     },
+    /// 进入 REPL 模式
+    Repl,
 }
 
 #[derive(Subcommand)]
@@ -45,16 +49,16 @@ enum FileActions {
     /// 创建文件
     Create {
         #[clap(short, long)]
-        type_: String,
+        type_: Option<String>,
         #[clap(short, long)]
-        path: String,
+        path: Option<String>,
         #[clap(short, long)]
-        group_id: i32,
+        group_id: Option<i32>,
     },
     /// 删除文件
     Delete {
         #[clap(short, long)]
-        id: i32,
+        id: Option<i32>,
     },
     /// 查询文件（交互式）
     ListInteractive,
@@ -99,12 +103,12 @@ enum GroupActions {
     /// 创建组
     Create {
         #[clap(short, long)]
-        name: String,
+        name: Option<String>,
     },
     /// 删除组
     Delete {
         #[clap(short, long)]
-        id: i32,
+        id: Option<i32>,
     },
     /// 查询组（交互式）
     ListInteractive,
@@ -156,7 +160,7 @@ enum TagActions {
     /// 创建标签
     Create {
         #[clap(short, long)]
-        name: String,
+        name: Option<String>,
     },
     /// 删除标签
     Delete {
@@ -202,17 +206,17 @@ enum FileGroupActions {
     /// 创建文件组关联
     Create {
         #[clap(short, long)]
-        file_id: i32,
+        file_id: Option<i32>,
         #[clap(short, long)]
-        group_id: i32,
+        group_id: Option<i32>,
     },
     /// 删除文件组关联
     Delete {
-        #[clap(short, long)]
-        file_id: i32,
-        #[clap(short, long)]
-        group_id: i32,
-    },
+            #[clap(short, long)]
+            file_id: Option<i32>,
+            #[clap(short, long)]
+            group_id: Option<i32>,
+        },
     /// 查询文件组关联（交互式）
     ListInteractive,
     /// 根据条件查询文件组关联
@@ -238,17 +242,17 @@ enum GroupTagActions {
     /// 创建组标签关联
     Create {
         #[clap(short, long)]
-        group_id: i32,
+        group_id: Option<i32>,
         #[clap(short, long)]
-        tag_id: i32,
+        tag_id: Option<i32>,
     },
     /// 删除组标签关联
     Delete {
-        #[clap(short, long)]
-        group_id: i32,
-        #[clap(short, long)]
-        tag_id: i32,
-    },
+            #[clap(short, long)]
+            group_id: Option<i32>,
+            #[clap(short, long)]
+            tag_id: Option<i32>,
+        },
     /// 查询组标签关联（交互式）
     ListInteractive,
     /// 根据条件查询组标签关联
@@ -272,48 +276,233 @@ enum GroupTagActions {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     let mut conn = establish_connection();
+    let mut context = Context::new();
 
-    match &cli.command {
+    match cli.command {
+        Commands::Repl => {
+            if let Err(e) = run_repl(&mut conn, &mut context) {
+                eprintln!("REPL Error: {}", e);
+            }
+        }
+        command => {
+            if let Err(e) = handle_command(command, &mut conn, &mut context) {
+                eprintln!("Command Error: {}", e);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+
+struct Context {
+    selected_file_id: Option<i32>,
+    selected_group_id: Option<i32>,
+    selected_tag_id: Option<i32>,
+}
+
+impl Context {
+    fn new() -> Self {
+        Self { selected_file_id: None, selected_group_id: None, selected_tag_id: None }
+    }
+}
+
+fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
+    let mut rl = DefaultEditor::new()?;
+    println!("欢迎来到文件分类 REPL 环境！");
+    println!("输入 'help' 查看可用命令，输入 'exit' 或 'quit' 退出。");
+
+    loop {
+        let readline = rl.readline(">> ");
+        match readline {
+            Ok(line) => {
+                let line = line.trim();
+                if line.is_empty() {
+                    continue;
+                }
+                if line == "exit" || line == "quit" {
+                    break;
+                }
+                if line == "help" {
+                    print_help();
+                    continue;
+                }
+
+                let args = shlex::split(line).unwrap_or_default();
+                let cli_args = std::iter::once("file_classification_cli".to_string()).chain(args);
+
+                match Cli::try_parse_from(cli_args) {
+                    Ok(cli) => {
+                        let command = cli.command;
+
+                        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                            handle_command(command, conn, context)
+                        }));
+                        match result {
+                            Ok(Ok(_)) => {},
+                            Ok(Err(e)) => eprintln!("命令执行出错: {}", e),
+                            Err(_) => eprintln!("命令执行时发生严重错误 (panic)！"),
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("参数解析出错: {}", e);
+                    }
+                }
+            }
+            Err(_) => {
+                break;
+            }
+        }
+    }
+    Ok(())
+}
+
+fn print_help() {
+    println!("可用命令:");
+    println!("  file create --type <TYPE> --path <PATH> --group-id <GROUP_ID>  创建文件");
+    println!("  file delete --id <ID>                                      删除文件");
+    println!("  file list-interactive                                    交互式查询文件");
+    println!("  file list-by-conditions <CONDITIONS>...                  根据条件查询文件");
+    println!("  file list-by-group-id --group-id <GROUP_ID>              根据组ID查询文件");
+    println!("  file update-by-conditions <CONDITIONS>... [OPTIONS]...   更新文件");
+    println!("  file delete-by-conditions <CONDITIONS>...                  删除文件（按条件）");
+    println!();
+    println!("  group create --name <NAME>                                 创建组");
+    println!("  group delete --id <ID>                                     删除组");
+    println!("  group list-interactive                                   交互式查询组");
+    println!("  group list-by-conditions <CONDITIONS>...                 根据条件查询组");
+    println!("  group list-by-file-id --file-id <FILE_ID>                根据文件ID查询组");
+    println!("  group list-by-tag-id --tag-id <TAG_ID>                   根据标签ID查询组");
+    println!("  group update-by-conditions <CONDITIONS>... [OPTIONS]...  更新组");
+    println!("  group delete-by-conditions <CONDITIONS>...                 删除组（按条件）");
+    println!();
+    println!("  tag create --name <NAME>                                   创建标签");
+    println!("  tag delete --id <ID>                                       删除标签");
+    println!("  tag list-interactive                                     交互式查询标签");
+    println!("  tag list-by-conditions <CONDITIONS>...                   根据条件查询标签");
+    println!("  tag list-by-group-id --group-id <GROUP_ID>               根据组ID查询标签");
+    println!("  tag update-by-conditions <CONDITIONS>... [OPTIONS]...    更新标签");
+    println!("  tag delete-by-conditions <CONDITIONS>...                   删除标签（按条件）");
+    println!();
+    println!("  file-group create --file-id <FILE_ID> --group-id <GROUP_ID>  创建文件组关联");
+    println!("  file-group delete --file-id <FILE_ID> --group-id <GROUP_ID>  删除文件组关联");
+    println!("  file-group list-interactive                                交互式查询文件组关联");
+    println!("  file-group list-by-conditions <CONDITIONS>...              根据条件查询文件组关联");
+    println!("  file-group delete-by-conditions <CONDITIONS>...              删除文件组关联（按条件）");
+    println!();
+    println!("  group-tag create --group-id <GROUP_ID> --tag-id <TAG_ID>   创建组标签关联");
+    println!("  group-tag delete --group-id <GROUP_ID> --tag-id <TAG_ID>   删除组标签关联");
+    println!("  group-tag list-interactive                                 交互式查询组标签关联");
+    println!("  group-tag list-by-conditions <CONDITIONS>...               根据条件查询组标签关联");
+    println!("  group-tag delete-by-conditions <CONDITIONS>...               删除组标签关联（按条件）");
+    println!();
+    println!("  repl                                                       进入 REPL 模式");
+    println!("  help                                                       显示此帮助信息");
+    println!("  exit/quit                                                  退出 REPL 环境");
+}
+
+fn handle_command(command: Commands, conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
+    match command {
+        Commands::Repl => {
+            if let Err(e) = run_repl(conn, context) {
+                eprintln!("REPL Error: {}", e);
+            }
+        }
         Commands::File { action } => match action {
             FileActions::Create { type_, path, group_id } => {
+                let type_ = type_.clone().unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入文件类型: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().to_string()
+                });
+
+                let path = path.clone().unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入文件路径: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().to_string()
+                });
+
+                let group_id = group_id.unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入组 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的组 ID")
+                });
+
                 let dto = CreateFileDTO {
-                    type_: type_,
-                    path,
-                    group_id: *group_id,
+                    type_: &type_,
+                    path: &path,
+                    group_id,
                 };
-                match files::create_file(&mut conn, dto) {
+                match files::create_file(conn, dto) {
                     Ok(count) => println!("成功创建文件，影响 {} 行", count),
                     Err(e) => eprintln!("创建文件失败: {:?}", e),
                 }
             }
             FileActions::Delete { id } => {
-                match files::delete_file(&mut conn, *id) {
-                    Ok(()) => println!("成功删除文件"),
-                    Err(e) => eprintln!("删除文件失败: {:?}", e),
+                let file_id = if let Some(id) = id {
+                    id
+                } else if let Some(selected_id) = context.selected_file_id {
+                    selected_id
+                } else {
+                    eprintln!("错误：未提供文件 ID，也未在上下文中选中任何文件。");
+                    return Ok(());
+                };
+
+                let mut input = String::new();
+                print!("确定要删除 ID 为 {} 的文件吗? (y/n): ", file_id);
+                io::stdout().flush().unwrap();
+                io::stdin().read_line(&mut input).unwrap();
+                if input.trim().eq_ignore_ascii_case("y") {
+                    match files::delete_file(conn, file_id) {
+                        Ok(()) => {
+                            println!("成功删除文件");
+                            if context.selected_file_id == Some(file_id) {
+                                context.selected_file_id = None;
+                            }
+                        }
+                        Err(e) => eprintln!("删除文件失败: {:?}", e),
+                    }
+                } else {
+                    println!("操作已取消");
                 }
             }
             FileActions::ListInteractive => {
-                list_files_interactive(&mut conn);
+                list_files_interactive(conn, context);
             }
             FileActions::ListByConditions { conditions, order_by, limit, offset } => {
-                let conditions = parse_file_conditions(conditions);
+                let conditions = parse_file_conditions(&conditions);
                 let mut options = FileQueryOptions::default();
-                options.limit = *limit;
-                options.offset = *offset;
-                options.order_by = parse_file_order_by(order_by);
+                options.limit = limit;
+                options.offset = offset;
+                options.order_by = parse_file_order_by(&order_by);
 
-                match files::select_files_by_conditions_with_options(&mut conn, conditions, options) {
-                    Ok(files) => {
-                        println!("查询结果 (共 {} 条记录):", files.len());
-                        for file in files {
-                            println!("{:?}", file);
+                match files::select_files_by_conditions_with_options(conn, conditions, options) {
+                    Ok(results) => {
+                        if results.is_empty() {
+                            println!("未找到匹配的文件。");
+                        } else {
+                            println!("查询结果:");
+                            for file in &results {
+                                println!("  - ID: {}, Type: {}, Path: {}, Group ID: {}", file.id, file.type_, file.path, file.group_id);
+                            }
+                            // 将第一个结果的 ID 存储到上下文中
+                            if let Some(first_file) = results.first() {
+                                context.selected_file_id = Some(first_file.id);
+                                println!("\n提示：第一个文件的 ID ({}) 已被选中，可用于后续操作。", first_file.id);
+                            }
                         }
                     }
-                    Err(e) => eprintln!("查询失败: {:?}", e),
+                    Err(e) => eprintln!("查询文件失败: {:?}", e),
                 }
             }
             FileActions::ListByGroupId { group_id } => {
-                match files::select_file_by_group_id(&mut conn, *group_id) {
+                match files::select_file_by_group_id(conn, group_id) {
                     Ok(files) => {
                         println!("查询结果 (共 {} 条记录):", files.len());
                         for file in files {
@@ -330,21 +519,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 reference_count,
                 group_id,
             } => {
-                let conditions = parse_file_conditions(conditions);
-                let update_dto = UpdateFileDTO {
-                    path: path.clone(),
-                    type_: type_.clone(),
-                    reference_count: *reference_count,
-                    group_id: *group_id,
+                let update_conditions = if conditions.is_empty() {
+                    if let Some(selected_id) = context.selected_file_id {
+                        vec![format!("id={}", selected_id)]
+                    } else {
+                        eprintln!("错误：未提供更新条件，也未在上下文中选中任何文件。");
+                        return Ok(());
+                    }
+                } else {
+                    conditions
                 };
-                match files::update_files_by_conditions(&mut conn, conditions, update_dto) {
-                    Ok(count) => println!("成功更新 {} 条记录", count),
-                    Err(e) => eprintln!("更新失败: {:?}", e),
+
+                let mut changes = UpdateFileDTO::default();
+                if let Some(path) = path { changes.path = Some(path); }
+                if let Some(type_) = type_ { changes.type_ = Some(type_); }
+                if let Some(reference_count) = reference_count { changes.reference_count = Some(reference_count); }
+                if let Some(group_id) = group_id { changes.group_id = Some(group_id); }
+
+                match files::update_files_by_conditions(conn, parse_file_conditions(&update_conditions), changes) {
+                    Ok(count) => println!("成功更新 {} 个文件", count),
+                    Err(e) => eprintln!("更新文件失败: {:?}", e),
                 }
             }
             FileActions::DeleteByConditions { conditions } => {
-                let conditions = parse_file_conditions(conditions);
-                match files::delete_files_by_conditions(&mut conn, conditions) {
+                let conditions = parse_file_conditions(&conditions);
+                match files::delete_files_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -352,39 +551,78 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Commands::Group { action } => match action {
             GroupActions::Create { name } => {
-                match groups::create_group(&mut conn, name) {
+                let name = name.clone().unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入组名称: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().to_string()
+                });
+
+                match groups::create_group(conn, &name) {
                     Ok(count) => println!("成功创建组，影响 {} 行", count),
                     Err(e) => eprintln!("创建组失败: {:?}", e),
                 }
             }
             GroupActions::Delete { id } => {
-                match groups::delete_group(&mut conn, *id) {
-                    Ok(count) => println!("成功删除组，影响 {} 行", count),
-                    Err(e) => eprintln!("删除组失败: {:?}", e),
+                let group_id = if let Some(id) = id {
+                    id
+                } else if let Some(selected_id) = context.selected_group_id {
+                    selected_id
+                } else {
+                    eprintln!("错误：未提供组 ID，也未在上下文中选中任何组。");
+                    return Ok(());
+                };
+
+                let mut input = String::new();
+                print!("确定要删除 ID 为 {} 的组吗? (y/n): ", group_id);
+                io::stdout().flush().unwrap();
+                io::stdin().read_line(&mut input).unwrap();
+                if input.trim().eq_ignore_ascii_case("y") {
+                    match groups::delete_group(conn, group_id) {
+                        Ok(count) => {
+                            println!("成功删除组，影响 {} 行", count);
+                            if context.selected_group_id == Some(group_id) {
+                                context.selected_group_id = None;
+                            }
+                        }
+                        Err(e) => eprintln!("删除组失败: {:?}", e),
+                    }
+                } else {
+                    println!("操作已取消");
                 }
             }
             GroupActions::ListInteractive => {
-                list_groups_interactive(&mut conn);
+                list_groups_interactive(conn, context);
             }
             GroupActions::ListByConditions { conditions, order_by, limit, offset } => {
-                let conditions = parse_group_conditions(conditions);
+                let conditions = parse_group_conditions(&conditions);
                 let mut options = GroupQueryOptions::default();
-                options.limit = *limit;
-                options.offset = *offset;
-                options.order_by = parse_group_order_by(order_by);
+                options.limit = limit;
+                options.offset = offset;
+                options.order_by = parse_group_order_by(&order_by);
 
-                match groups::select_groups_by_conditions_with_options(&mut conn, conditions, options) {
-                    Ok(groups) => {
-                        println!("查询结果 (共 {} 条记录):", groups.len());
-                        for group in groups {
-                            println!("{:?}", group);
+                match groups::select_groups_by_conditions_with_options(conn, conditions, options) {
+                    Ok(results) => {
+                        if results.is_empty() {
+                            println!("未找到匹配的组。");
+                        } else {
+                            println!("查询结果:");
+                            for group in &results {
+                                println!("  - ID: {}, Name: {}", group.id, group.name);
+                            }
+                            // 将第一个结果的 ID 存储到上下文中
+                            if let Some(first_group) = results.first() {
+                                context.selected_group_id = Some(first_group.id);
+                                println!("\n提示：第一个组的 ID ({}) 已被选中，可用于后续操作。", first_group.id);
+                            }
                         }
                     }
-                    Err(e) => eprintln!("查询失败: {:?}", e),
+                    Err(e) => eprintln!("查询组失败: {:?}", e),
                 }
             }
             GroupActions::ListByFileId { file_id } => {
-                match groups::select_group_by_file_id(&mut conn, *file_id) {
+                match groups::select_group_by_file_id(conn, file_id) {
                     Ok(groups) => {
                         println!("查询结果 (共 {} 条记录):", groups.len());
                         for group in groups {
@@ -395,7 +633,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             GroupActions::ListByTagId { tag_id } => {
-                match groups::select_group_by_tag_id(&mut conn, *tag_id) {
+                match groups::select_group_by_tag_id(conn, tag_id) {
                     Ok(groups) => {
                         println!("查询结果 (共 {} 条记录):", groups.len());
                         for group in groups {
@@ -413,25 +651,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 click_count,
                 share_count,
             } => {
-                let conditions = parse_group_conditions(conditions);
-                let update_dto = UpdateGroupDTO {
-                    id: None,
-                    name: name.clone(),
-                    reference_count: *reference_count,
-                    is_primary: *is_primary,
-                    click_count: *click_count,
-                    share_count: *share_count,
-                    create_time: None,
-                    modify_time: None,
+                let update_conditions = if conditions.is_empty() {
+                    if let Some(selected_id) = context.selected_group_id {
+                        vec![format!("id={}", selected_id)]
+                    } else {
+                        eprintln!("错误：未提供更新条件，也未在上下文中选中任何组。");
+                        return Ok(());
+                    }
+                } else {
+                    conditions
                 };
-                match groups::update_groups_by_conditions(&mut conn, conditions, update_dto) {
-                    Ok(count) => println!("成功更新 {} 条记录", count),
-                    Err(e) => eprintln!("更新失败: {:?}", e),
+
+                let mut changes = UpdateGroupDTO::default();
+                if let Some(name) = name { changes.name = Some(name); }
+                if let Some(reference_count) = reference_count { changes.reference_count = Some(reference_count); }
+                if let Some(is_primary) = is_primary { changes.is_primary = Some(is_primary); }
+                if let Some(click_count) = click_count { changes.click_count = Some(click_count); }
+                if let Some(share_count) = share_count { changes.share_count = Some(share_count); }
+
+                match groups::update_groups_by_conditions(conn, parse_group_conditions(&update_conditions), changes) {
+                    Ok(count) => println!("成功更新 {} 个组", count),
+                    Err(e) => eprintln!("更新组失败: {:?}", e),
                 }
             }
             GroupActions::DeleteByConditions { conditions } => {
-                let conditions = parse_group_conditions(conditions);
-                match groups::delete_groups_by_conditions(&mut conn, conditions) {
+                let conditions = parse_group_conditions(&conditions);
+                match groups::delete_groups_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -439,28 +684,51 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Commands::Tag { action } => match action {
             TagActions::Create { name } => {
-                match tags::create_tag(&mut conn, name) {
+                let name = name.clone().unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入标签名称: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().to_string()
+                });
+
+                match tags::create_tag(conn, &name) {
                     Ok(tag) => println!("成功创建标签: {:?}", tag),
                     Err(e) => eprintln!("创建标签失败: {:?}", e),
                 }
             }
             TagActions::Delete { id } => {
-                match tags::delete_tag(&mut conn, *id) {
-                    Ok(count) => println!("成功删除标签，影响 {} 行", count),
-                    Err(e) => eprintln!("删除标签失败: {:?}", e),
+                let tag_id = id;
+
+                let mut input = String::new();
+                print!("确定要删除 ID 为 {} 的标签吗? (y/n): ", tag_id);
+                io::stdout().flush().unwrap();
+                io::stdin().read_line(&mut input).unwrap();
+                if input.trim().eq_ignore_ascii_case("y") {
+                    match tags::delete_tag(conn, tag_id) {
+                        Ok(count) => {
+                            println!("成功删除标签，影响 {} 行", count);
+                            if context.selected_tag_id == Some(tag_id) {
+                                context.selected_tag_id = None;
+                            }
+                        }
+                        Err(e) => eprintln!("删除标签失败: {:?}", e),
+                    }
+                } else {
+                    println!("操作已取消");
                 }
             }
             TagActions::ListInteractive => {
-                list_tags_interactive(&mut conn);
+                list_tags_interactive(conn, context);
             }
             TagActions::ListByConditions { conditions, order_by, limit, offset } => {
-                let conditions = parse_tag_conditions(conditions);
+                let conditions = parse_tag_conditions(&conditions);
                 let mut options = TagQueryOptions::default();
-                options.limit = *limit;
-                options.offset = *offset;
-                options.order_by = parse_tag_order_by(order_by);
+                options.limit = limit;
+                  options.offset = offset;
+                options.order_by = parse_tag_order_by(&order_by);
 
-                match tags::select_tags_by_conditions_with_options(&mut conn, conditions, options) {
+                match tags::select_tags_by_conditions_with_options(conn, conditions, options) {
                     Ok(tags) => {
                         println!("查询结果 (共 {} 条记录):", tags.len());
                         for tag in tags {
@@ -471,7 +739,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
             TagActions::ListByGroupId { group_id } => {
-                match tags::select_tag_by_group_id(&mut conn, *group_id) {
+                match tags::select_tag_by_group_id(conn, group_id) {
                     Ok(tags) => {
                         println!("查询结果 (共 {} 条记录):", tags.len());
                         for tag in tags {
@@ -486,19 +754,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 name,
                 reference_count,
             } => {
-                let conditions = parse_tag_conditions(conditions);
+                let mut conditions = parse_tag_conditions(&conditions);
+                if conditions.is_empty() {
+                    if let Some(group_id) = context.selected_group_id {
+                        conditions.push(TagCondition::Id(group_id));
+                    } else {
+                        eprintln!("没有活动的标签，请先运行 'tag list' 或 'tag list-by-conditions' 选择一个标签");
+                        return Ok(());
+                    }
+                }
+
+                let name = name.clone().unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入新的标签名称 (留空则不修改): ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().to_string()
+                });
+
                 let update_dto = UpdateTagDTO {
-                    name: name.clone(),
-                    reference_count: *reference_count,
+                    name: if name.is_empty() { None } else { Some(name) },
+                    reference_count: reference_count,
                 };
-                match tags::update_tags_by_conditions(&mut conn, conditions, update_dto) {
+                match tags::update_tags_by_conditions(conn, conditions, update_dto) {
                     Ok(count) => println!("成功更新 {} 条记录", count),
                     Err(e) => eprintln!("更新失败: {:?}", e),
                 }
             }
             TagActions::DeleteByConditions { conditions } => {
-                let conditions = parse_tag_conditions(conditions);
-                match tags::delete_tags_by_conditions(&mut conn, conditions) {
+                let conditions = parse_tag_conditions(&conditions);
+                match tags::delete_tags_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -506,48 +791,93 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Commands::FileGroup { action } => match action {
             FileGroupActions::Create { file_id, group_id } => {
+                let file_id = file_id.unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入文件 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的文件 ID")
+                });
+                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入组 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的组 ID")
+                });
+
                 let dto = FileGroupDTO {
-                    file_id: *file_id,
-                    group_id: *group_id,
+                    file_id,
+                    group_id,
                 };
-                match file_group::create_file_group(&mut conn, dto) {
+                match file_group::create_file_group(conn, dto) {
                     Ok(dto) => println!("成功创建文件组关联: {:?}", dto),
                     Err(e) => eprintln!("创建文件组关联失败: {:?}", e),
                 }
             }
             FileGroupActions::Delete { file_id, group_id } => {
-                let dto = FileGroupDTO {
-                    file_id: *file_id,
-                    group_id: *group_id,
-                };
-                match file_group::delete_file_group(&mut conn, dto) {
-                    Ok(count) => println!("成功删除 {} 个文件组关联", count),
-                    Err(e) => eprintln!("删除文件组关联失败: {:?}", e),
+                let file_id = file_id.or(context.selected_file_id).unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入文件 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的文件 ID")
+                });
+
+                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入组 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的组 ID")
+                });
+
+                let mut input = String::new();
+                print!("确定要删除文件 ID 为 {} 和组 ID 为 {} 的关联吗? (y/n): ", file_id, group_id);
+                io::stdout().flush().unwrap();
+                io::stdin().read_line(&mut input).unwrap();
+                if input.trim().eq_ignore_ascii_case("y") {
+                    let dto = FileGroupDTO {
+                        file_id,
+                        group_id,
+                    };
+                    match file_group::delete_file_group(conn, dto) {
+                        Ok(count) => println!("成功删除 {} 个文件组关联", count),
+                        Err(e) => eprintln!("删除文件组关联失败: {:?}", e),
+                    }
+                } else {
+                    println!("操作已取消");
                 }
             }
             FileGroupActions::ListInteractive => {
-                list_file_groups_interactive(&mut conn);
+                list_file_groups_interactive(conn, context);
             }
             FileGroupActions::ListByConditions { conditions, order_by, limit, offset } => {
-                let conditions = parse_file_group_conditions(conditions);
+                let conditions = parse_file_group_conditions(&conditions);
                 let mut options = FileGroupQueryOptions::default();
-                options.limit = *limit;
-                options.offset = *offset;
-                options.order_by = parse_file_group_order_by(order_by);
+                options.limit = limit;
+                  options.offset = offset;
+                options.order_by = parse_file_group_order_by(&order_by);
 
-                match file_group::select_file_groups_by_conditions_with_options(&mut conn, conditions, options) {
+                match file_group::select_file_groups_by_conditions_with_options(conn, conditions, options) {
                     Ok(file_groups) => {
                         println!("查询结果 (共 {} 条记录):", file_groups.len());
-                        for fg in file_groups {
+                        for fg in &file_groups {
                             println!("{:?}", fg);
+                        }
+
+                        if let Some(first_fg) = file_groups.first() {
+                            context.selected_file_id = Some(first_fg.file_id);
+                            context.selected_group_id = Some(first_fg.group_id);
+                            println!("\n提示：第一个文件组关联的文件 ID ({}) 和组 ID ({}) 已被选中，可用于后续操作。", first_fg.file_id, first_fg.group_id);
                         }
                     }
                     Err(e) => eprintln!("查询失败: {:?}", e),
                 }
             }
             FileGroupActions::DeleteByConditions { conditions } => {
-                let conditions = parse_file_group_conditions(conditions);
-                match file_group::delete_file_groups_by_conditions(&mut conn, conditions) {
+                let conditions = parse_file_group_conditions(&conditions);
+                match file_group::delete_file_groups_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -555,55 +885,102 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         Commands::GroupTag { action } => match action {
             GroupTagActions::Create { group_id, tag_id } => {
+                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入组 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的组 ID")
+                });
+
+                let tag_id = tag_id.unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入标签 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的标签 ID")
+                });
+
                 let dto = GroupTagDTO {
-                    group_id: *group_id,
-                    tag_id: *tag_id,
+                    group_id,
+                    tag_id,
                 };
-                match group_tag::create_group_tag(&mut conn, dto) {
+                match group_tag::create_group_tag(conn, dto) {
                     Ok(dto) => println!("成功创建组标签关联: {:?}", dto),
                     Err(e) => eprintln!("创建组标签关联失败: {:?}", e),
                 }
             }
             GroupTagActions::Delete { group_id, tag_id } => {
-                let dto = GroupTagDTO {
-                    group_id: *group_id,
-                    tag_id: *tag_id,
-                };
-                match group_tag::delete_group_tag_by_id(&mut conn, dto) {
-                    Ok(count) => println!("成功删除 {} 个组标签关联", count),
-                    Err(e) => eprintln!("删除组标签关联失败: {:?}", e),
+                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入组 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的组 ID")
+                });
+
+                let tag_id = tag_id.or(context.selected_group_id).unwrap_or_else(|| {
+                    let mut input = String::new();
+                    print!("请输入标签 ID: ");
+                    io::stdout().flush().unwrap();
+                    io::stdin().read_line(&mut input).unwrap();
+                    input.trim().parse().expect("无效的标签 ID")
+                });
+
+                let mut input = String::new();
+                print!("确定要删除组 ID 为 {} 和标签 ID 为 {} 的关联吗? (y/n): ", group_id, tag_id);
+                io::stdout().flush().unwrap();
+                io::stdin().read_line(&mut input).unwrap();
+                if input.trim().eq_ignore_ascii_case("y") {
+                    let dto = GroupTagDTO {
+                        group_id,
+                        tag_id,
+                    };
+                    match group_tag::delete_group_tag_by_id(conn, dto) {
+                        Ok(count) => println!("成功删除 {} 个组标签关联", count),
+                        Err(e) => eprintln!("删除组标签关联失败: {:?}", e),
+                    }
+                } else {
+                    println!("操作已取消");
                 }
             }
             GroupTagActions::ListInteractive => {
-                list_group_tags_interactive(&mut conn);
+                list_group_tags_interactive(conn, context);
             }
             GroupTagActions::ListByConditions { conditions, order_by, limit, offset } => {
-                let conditions = parse_group_tag_conditions(conditions);
+                let conditions = parse_group_tag_conditions(&conditions);
                 let mut options = GroupTagQueryOptions::default();
-                options.limit = *limit;
-                options.offset = *offset;
-                options.order_by = parse_group_tag_order_by(order_by);
+                options.limit = limit;
+                  options.offset = offset;
+                options.order_by = parse_group_tag_order_by(&order_by);
 
-                match group_tag::select_group_tags_by_conditions_with_options(&mut conn, conditions, options) {
+                match group_tag::select_group_tags_by_conditions_with_options(conn, conditions, options) {
                     Ok(group_tags) => {
                         println!("查询结果 (共 {} 条记录):", group_tags.len());
-                        for gt in group_tags {
+                        for gt in &group_tags {
                             println!("{:?}", gt);
+                        }
+
+                        if let Some(first_gt) = group_tags.first() {
+                            context.selected_group_id = Some(first_gt.group_id);
+                            // 我们将 tag_id 也存储在 selected_group_id 中，因为没有专用的字段
+                            // context.selected_tag_id = Some(first_gt.tag_id);
+                            println!("\n提示：第一个组标签关联的组 ID ({}) 和标签 ID ({}) 已被选中，可用于后续操作。", first_gt.group_id, first_gt.tag_id);
                         }
                     }
                     Err(e) => eprintln!("查询失败: {:?}", e),
                 }
             }
             GroupTagActions::DeleteByConditions { conditions } => {
-                let conditions = parse_group_tag_conditions(conditions);
-                match group_tag::delete_group_tags_by_conditions(&mut conn, conditions) {
+                let conditions = parse_group_tag_conditions(&conditions);
+                match group_tag::delete_group_tags_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
             }
-        },
-    }
+        }
 
+    }
     Ok(())
 }
 
@@ -1255,22 +1632,179 @@ fn parse_group_tag_order_by(args: &[String]) -> Vec<GroupTagOrderBy> {
 }
 
 // 交互式查询函数（示例）
-fn list_files_interactive(conn: &mut AnyConnection) {
-    println!("交互式文件查询功能待实现");
+fn list_files_interactive(conn: &mut AnyConnection, context: &mut Context) {
+    use file_classification_core::service::files as file_service;
+    use dialoguer::{Select, theme::ColorfulTheme};
+
+    let files = file_service::select_files_by_conditions(conn, vec![], None);
+
+    match files {
+        Ok(files) => {
+            if files.is_empty() {
+                println!("没有找到任何文件。");
+                return;
+            }
+
+            let items: Vec<String> = files.iter().map(|f| format!("[{}] {}", f.id, f.path)).collect();
+
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("请选择一个文件：")
+                .items(&items)
+                .default(0)
+                .interact_opt()
+                .unwrap();
+
+            if let Some(index) = selection {
+                context.selected_file_id = Some(files[index].id);
+                println!("已选择文件 ID: {}", files[index].id);
+            } else {
+                println!("没有选择文件。");
+            }
+        }
+        Err(e) => {
+            eprintln!("查询文件时出错: {}", e);
+        }
+    }
 }
 
-fn list_groups_interactive(conn: &mut AnyConnection) {
-    println!("交互式组查询功能待实现");
+fn list_groups_interactive(conn: &mut AnyConnection, context: &mut Context) {
+    use file_classification_core::service::groups as group_service;
+    use dialoguer::{Select, theme::ColorfulTheme};
+
+    let groups = group_service::select_groups_by_conditions(conn, vec![], None);
+
+    match groups {
+        Ok(groups) => {
+            if groups.is_empty() {
+                println!("没有找到任何组。");
+                return;
+            }
+
+            let items: Vec<String> = groups.iter().map(|g| format!("[{}] {}", g.id, g.name)).collect();
+
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("请选择一个组：")
+                .items(&items)
+                .default(0)
+                .interact_opt()
+                .unwrap();
+
+            if let Some(index) = selection {
+                context.selected_group_id = Some(groups[index].id);
+                println!("已选择组 ID: {}", groups[index].id);
+            } else {
+                println!("没有选择组。");
+            }
+        }
+        Err(e) => {
+            eprintln!("查询组时出错: {}", e);
+        }
+    }
 }
 
-fn list_tags_interactive(conn: &mut AnyConnection) {
-    println!("交互式标签查询功能待实现");
+fn list_tags_interactive(conn: &mut AnyConnection, context: &mut Context) {
+    use file_classification_core::service::tags as tag_service;
+    use dialoguer::{Select, theme::ColorfulTheme};
+
+    let tags = tag_service::select_tags_by_conditions(conn, vec![], None);
+
+    match tags {
+        Ok(tags) => {
+            if tags.is_empty() {
+                println!("没有找到任何标签。");
+                return;
+            }
+
+            let items: Vec<String> = tags.iter().map(|t| format!("[{}] {}", t.id, t.name)).collect();
+
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("请选择一个标签：")
+                .items(&items)
+                .default(0)
+                .interact_opt()
+                .unwrap();
+
+            if let Some(index) = selection {
+                context.selected_tag_id = Some(tags[index].id);
+                println!("已选择标签 ID: {}", tags[index].id);
+            } else {
+                println!("没有选择标签。");
+            }
+        }
+        Err(e) => {
+            eprintln!("查询标签时出错: {}", e);
+        }
+    }
 }
 
-fn list_file_groups_interactive(conn: &mut AnyConnection) {
-    println!("交互式文件组关联查询功能待实现");
+fn list_file_groups_interactive(conn: &mut AnyConnection, context: &mut Context) {
+    use file_classification_core::service::file_group as file_group_service;
+    use dialoguer::{Select, theme::ColorfulTheme};
+
+    let file_groups = file_group_service::select_file_groups_by_conditions(conn, vec![], None);
+
+    match file_groups {
+        Ok(file_groups) => {
+            if file_groups.is_empty() {
+                println!("没有找到任何文件组关联。");
+                return;
+            }
+
+            let items: Vec<String> = file_groups.iter().map(|fg| format!("文件 ID: {}, 组 ID: {}", fg.file_id, fg.group_id)).collect();
+
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("请选择一个文件组关联：")
+                .items(&items)
+                .default(0)
+                .interact_opt()
+                .unwrap();
+
+            if let Some(index) = selection {
+                context.selected_file_id = Some(file_groups[index].file_id);
+                context.selected_group_id = Some(file_groups[index].group_id);
+                println!("已选择文件 ID: {}, 组 ID: {}", file_groups[index].file_id, file_groups[index].group_id);
+            } else {
+                println!("没有选择文件组关联。");
+            }
+        }
+        Err(e) => {
+            eprintln!("查询文件组关联时出错: {}", e);
+        }
+    }
 }
 
-fn list_group_tags_interactive(conn: &mut AnyConnection) {
-    println!("交互式组标签关联查询功能待实现");
+fn list_group_tags_interactive(conn: &mut AnyConnection, context: &mut Context) {
+    use file_classification_core::service::group_tag as group_tag_service;
+    use dialoguer::{Select, theme::ColorfulTheme};
+
+    let group_tags = group_tag_service::select_group_tags_by_conditions(conn, vec![], None);
+
+    match group_tags {
+        Ok(group_tags) => {
+            if group_tags.is_empty() {
+                println!("没有找到任何组标签关联。");
+                return;
+            }
+
+            let items: Vec<String> = group_tags.iter().map(|gt| format!("组 ID: {}, 标签 ID: {}", gt.group_id, gt.tag_id)).collect();
+
+            let selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("请选择一个组标签关联：")
+                .items(&items)
+                .default(0)
+                .interact_opt()
+                .unwrap();
+
+            if let Some(index) = selection {
+                context.selected_group_id = Some(group_tags[index].group_id);
+                context.selected_tag_id = Some(group_tags[index].tag_id);
+                println!("已选择组 ID: {}, 标签 ID: {}", group_tags[index].group_id, group_tags[index].tag_id);
+            } else {
+                println!("没有选择组标签关联。");
+            }
+        }
+        Err(e) => {
+            eprintln!("查询组标签关联时出错: {}", e);
+        }
+    }
 }

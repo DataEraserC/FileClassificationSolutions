@@ -69,7 +69,7 @@ pub enum FileOrderBy {
     GroupId(OrderDirection),
 }
 
-#[derive(AsChangeset, serde::Deserialize)]
+#[derive(AsChangeset, serde::Deserialize, Default)]
 #[diesel(table_name = files)]
 pub struct UpdateFileDTO {
     pub path: Option<String>,
@@ -186,7 +186,7 @@ pub enum OrderDirection {
     Desc,
 }
 
-#[derive(AsChangeset, Deserialize)]
+#[derive(AsChangeset, Deserialize, Default, Debug)]
 #[diesel(table_name = groups)]
 pub struct UpdateGroupDTO {
     pub id: Option<i32>,
