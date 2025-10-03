@@ -551,7 +551,7 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
     let mut rl = DefaultEditor::new()?;
     println!("欢迎来到文件分类 REPL 环境！");
     println!("输入 'help' 查看可用命令，输入 'exit' 或 'quit' 退出。");
-    
+
     // 尝试加载历史记录
     let history_path = std::path::Path::new(".file_classification_history");
     if history_path.exists() {
@@ -569,7 +569,7 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                 },
             },
         };
-        
+
         let readline = rl.readline(&prompt);
         match readline {
             Ok(line) => {
@@ -577,10 +577,10 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                 if line.is_empty() {
                     continue;
                 }
-                
+
                 // 添加到历史记录
                 let _ = rl.add_history_entry(line);
-                
+
                 if line == "exit" || line == "quit" {
                     break;
                 }
@@ -616,25 +616,6 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                     }
                     continue;
                 }
-                if line == "context" {
-                    print_context(context);
-                    continue;
-                }
-                if line == "clear" {
-                    print!("\x1B[2J\x1B[1;1H"); // 清屏
-                    continue;
-                }
-                if line.starts_with("!") && line.len() > 1 {
-                    // 执行系统命令
-                    let cmd = &line[1..];
-                    match std::process::Command::new("cmd")
-                        .args(&["/C", cmd])
-                        .status() {
-                        Ok(_) => {},
-                        Err(e) => eprintln!("执行系统命令失败: {}", e),
-                    }
-                    continue;
-                }
 
                 let args = shlex::split(line).unwrap_or_default();
                 let cli_args = std::iter::once("file_classification_cli".to_string()).chain(args);
@@ -665,6 +646,9 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
             }
         }
     }
+
+    // 保存历史记录
+    let _ = rl.save_history(history_path);
     Ok(())
 }
 
@@ -856,7 +840,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().to_string()
                 });
 
-                match groups::create_group(conn, &name) {
+                match groups::create_group_by_name(conn, &name) {
                     Ok(count) => println!("成功创建组，影响 {} 行", count),
                     Err(e) => eprintln!("创建组失败: {:?}", e),
                 }
@@ -989,7 +973,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().to_string()
                 });
 
-                match tags::create_tag(conn, &name) {
+                match tags::create_tag_by_name(conn, &name) {
                     Ok(tag) => println!("成功创建标签: {:?}", tag),
                     Err(e) => eprintln!("创建标签失败: {:?}", e),
                 }
