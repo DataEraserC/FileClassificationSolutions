@@ -382,3 +382,13 @@ pub fn select_group_by_tag_id(
         .select(Group::as_select())
         .load(conn)
 }
+
+pub fn get_group_by_id(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<Group, diesel::result::Error> {
+    groups::table
+        .filter(groups::id.eq(group_id))
+        .select(Group::as_select())
+        .first(conn)
+}

@@ -122,3 +122,10 @@ pub fn select_tag_by_group_id(
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     crate::internal::tags::select_tag_by_group_id(conn, group_id)
 }
+
+pub fn get_tag_by_id(
+    conn: &mut AnyConnection,
+    tag_id: i32,
+) -> Result<Tag, diesel::result::Error> {
+    tags::get_tag_by_id(conn, tag_id)
+}

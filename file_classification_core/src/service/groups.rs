@@ -205,3 +205,10 @@ pub fn select_group_by_tag_id(
 ) -> Result<Vec<Group>, diesel::result::Error> {
     crate::internal::groups::select_group_by_tag_id(conn, tag_id)
 }
+
+pub fn get_group_by_id(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<Group, diesel::result::Error> {
+    groups::get_group_by_id(conn, group_id)
+}

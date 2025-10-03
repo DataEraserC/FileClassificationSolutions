@@ -255,3 +255,10 @@ pub fn select_file_by_group_id(
 ) -> Result<Vec<File>, diesel::result::Error> {
     internal::files::select_file_by_group_id(conn, other_group_id)
 }
+
+pub fn get_file_by_id(
+    conn: &mut AnyConnection,
+    file_id: i32,
+) -> Result<File, diesel::result::Error> {
+    internal::files::get_file_by_id(conn, file_id)
+}

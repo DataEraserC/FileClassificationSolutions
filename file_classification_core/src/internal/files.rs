@@ -301,3 +301,13 @@ pub fn select_file_by_group_id(
         .select(File::as_select())
         .load(conn)
 }
+
+pub fn get_file_by_id(
+    conn: &mut AnyConnection,
+    file_id: i32,
+) -> Result<File, diesel::result::Error> {
+    files::table
+        .filter(files::id.eq(file_id))
+        .select(File::as_select())
+        .first(conn)
+}

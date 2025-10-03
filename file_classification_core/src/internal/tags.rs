@@ -294,3 +294,13 @@ pub fn select_tag_by_group_id(
         .select(Tag::as_select())
         .load(conn)
 }
+
+pub fn get_tag_by_id(
+    conn: &mut AnyConnection,
+    tag_id: i32,
+) -> Result<Tag, diesel::result::Error> {
+    tags::table
+        .filter(tags::id.eq(tag_id))
+        .select(Tag::as_select())
+        .first(conn)
+}
