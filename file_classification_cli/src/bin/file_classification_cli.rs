@@ -5,6 +5,9 @@ use file_classification_core::utils::database::{establish_connection, AnyConnect
 use std::io::{self, Write};
 use rustyline::DefaultEditor;
 use shlex;
+use std::fs::File;
+use std::io::Read;
+// 移除未使用的导入
 
 #[derive(Parser)]
 #[clap(name = "文件分类系统", version = "1.0", author = "Developer")]
@@ -42,6 +45,11 @@ enum Commands {
     },
     /// 进入 REPL 模式
     Repl,
+    /// 执行脚本文件
+    Script {
+        #[clap(short, long)]
+        file: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -285,7 +293,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         command => {
-            if let Err(e) = handle_command(command, &mut conn, &mut context) {
+            if let Err(e) = handle_command(Cli { command }, &mut conn, &mut context) {
                 eprintln!("Command Error: {}", e);
             }
         }
@@ -307,24 +315,324 @@ impl Context {
     }
 }
 
+fn print_context(context: &Context) {
+    println!("当前上下文:");
+    println!("  选中的文件ID: {:?}", context.selected_file_id);
+    println!("  选中的组ID: {:?}", context.selected_group_id);
+    println!("  选中的标签ID: {:?}", context.selected_tag_id);
+}
+
+fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut Context) -> bool {
+    let parts: Vec<&str> = line.trim().split_whitespace().collect();
+    if parts.is_empty() {
+        return true;
+    }
+
+    match parts[0] {
+        "ls" => {
+            // 根据当前上下文列出相关项目
+            if let Some(file_id) = context.selected_file_id {
+                println!("列出文件ID {} 相关的组:", file_id);
+                let condition = format!("file_id={}", file_id);
+                let args = vec!["file-group", "list-by-conditions", "-c", &condition];
+                if let Ok(cmd) = Cli::try_parse_from(args) {
+                    let _ = handle_command(cmd, conn, context);
+                }
+            } else if let Some(group_id) = context.selected_group_id {
+                println!("列出组ID {} 相关的文件:", group_id);
+                let group_id_str = group_id.to_string();
+                let args = vec!["file", "list-by-group-id", "--group_id", &group_id_str];
+                if let Ok(cmd) = Cli::try_parse_from(args) {
+                    let _ = handle_command(cmd, conn, context);
+                }
+                
+                println!("列出组ID {} 相关的标签:", group_id);
+                let group_id_str = group_id.to_string();
+                let args = vec!["tag", "list-by-group-id", "--group_id", &group_id_str];
+                if let Ok(cmd) = Cli::try_parse_from(args) {
+                    let _ = handle_command(cmd, conn, context);
+                }
+            } else if let Some(tag_id) = context.selected_tag_id {
+                println!("列出标签ID {} 相关的组:", tag_id);
+                let tag_id_str = tag_id.to_string();
+                let args = vec!["group", "list-by-tag-id", "--tag_id", &tag_id_str];
+                if let Ok(cmd) = Cli::try_parse_from(args) {
+                    let _ = handle_command(cmd, conn, context);
+                }
+            } else {
+                println!("没有选中任何项目，列出所有组:");
+                let args = vec!["group", "list-interactive"];
+                if let Ok(cmd) = Cli::try_parse_from(args) {
+                    let _ = handle_command(cmd, conn, context);
+                }
+            }
+            true
+        },
+        "cd" => {
+            if parts.len() < 2 {
+                println!("错误: 缺少ID参数");
+                return true;
+            }
+            let id = parts[1].parse::<i32>().unwrap_or(0);
+            if id <= 0 {
+                println!("错误: 无效的ID");
+                return true;
+            }
+            
+            // 尝试确定ID类型并设置上下文
+            // 简单实现: 假设是组ID
+            context.selected_file_id = None;
+            context.selected_tag_id = None;
+            context.selected_group_id = Some(id);
+            println!("已选择组ID: {}", id);
+            true
+        },
+        "select" => {
+            if parts.len() < 3 {
+                println!("错误: 用法 select <type> <id>");
+                return true;
+            }
+            
+            let id = parts[2].parse::<i32>().unwrap_or(0);
+            if id <= 0 {
+                println!("错误: 无效的ID");
+                return true;
+            }
+            
+            match parts[1] {
+                "file" => {
+                    context.selected_file_id = Some(id);
+                    context.selected_group_id = None;
+                    context.selected_tag_id = None;
+                    println!("已选择文件ID: {}", id);
+                },
+                "group" => {
+                    context.selected_file_id = None;
+                    context.selected_group_id = Some(id);
+                    context.selected_tag_id = None;
+                    println!("已选择组ID: {}", id);
+                },
+                "tag" => {
+                    context.selected_file_id = None;
+                    context.selected_group_id = None;
+                    context.selected_tag_id = Some(id);
+                    println!("已选择标签ID: {}", id);
+                },
+                _ => {
+                    println!("错误: 未知类型 {}", parts[1]);
+                }
+            }
+            true
+        },
+        "new" => {
+            if parts.len() < 3 {
+                println!("错误: 用法 new <type> <name/path>");
+                return true;
+            }
+            
+            match parts[1] {
+                "group" => {
+                    let args = vec!["group", "create", "--name", parts[2]];
+                    if let Ok(cmd) = Cli::try_parse_from(args) {
+                        let _ = handle_command(cmd, conn, context);
+                    }
+                },
+                "tag" => {
+                    let args = vec!["tag", "create", "--name", parts[2]];
+                    if let Ok(cmd) = Cli::try_parse_from(args) {
+                        let _ = handle_command(cmd, conn, context);
+                    }
+                },
+                "file" => {
+                    let mut args = vec!["file", "create", "--path", parts[2], "--type", "regular"];
+                    let group_id_str:String;
+                    if let Some(group_id) = context.selected_group_id {
+                        args.push("--group_id");
+                        group_id_str = group_id.to_string();
+                        args.push(&group_id_str);
+                    }
+                    if let Ok(cmd) = Cli::try_parse_from(args) {
+                        let _ = handle_command(cmd, conn, context);
+                    }
+                },
+                _ => {
+                    println!("错误: 未知类型 {}", parts[1]);
+                }
+            }
+            true
+        },
+        "rm" => {
+            if parts.len() < 3 {
+                println!("错误: 用法 rm <type> <id>");
+                return true;
+            }
+            
+            let id = parts[2].parse::<i32>().unwrap_or(0);
+            if id <= 0 {
+                println!("错误: 无效的ID");
+                return true;
+            }
+            
+            match parts[1] {
+                "file" => {
+                    let args = vec!["file", "delete", "--id", parts[2]];
+                    if let Ok(cmd) = Cli::try_parse_from(args) {
+                        let _ = handle_command(cmd, conn, context);
+                    }
+                },
+                "group" => {
+                    let args = vec!["group", "delete", "--id", parts[2]];
+                    if let Ok(cmd) = Cli::try_parse_from(args) {
+                        let _ = handle_command(cmd, conn, context);
+                    }
+                },
+                "tag" => {
+                    let args = vec!["tag", "delete", "--id", parts[2]];
+                    if let Ok(cmd) = Cli::try_parse_from(args) {
+                        let _ = handle_command(cmd, conn, context);
+                    }
+                },
+                _ => {
+                    println!("错误: 未知类型 {}", parts[1]);
+                }
+            }
+            true
+        },
+        _ => false,
+    }
+}
+
+fn print_help() {
+    println!("可用命令:");
+    println!("  file create --type <type> --path <path> --group_id <id>     创建文件");
+    println!("  file delete --id <id>                                       删除文件");
+    println!("  file list-interactive                                       交互式查询文件");
+    println!("  file list-by-conditions -c <conditions...>                  按条件查询文件");
+    println!("  file list-by-group-id --group_id <id>                       按组ID查询文件");
+    println!("  file update-by-conditions -c <conditions...>                按条件更新文件");
+    println!("  file delete-by-conditions -c <conditions...>                按条件删除文件");
+    println!("  group create --name <name>                                  创建组");
+    println!("  group delete --id <id>                                      删除组");
+    println!("  group list-interactive                                      交互式查询组");
+    println!("  group list-by-conditions -c <conditions...>                 按条件查询组");
+    println!("  group list-by-file-id --file_id <id>                        按文件ID查询组");
+    println!("  group list-by-tag-id --tag_id <id>                          按标签ID查询组");
+    println!("  group update-by-conditions -c <conditions...>               按条件更新组");
+    println!("  group delete-by-conditions -c <conditions...>               按条件删除组");
+    println!("  tag create --name <name>                                    创建标签");
+    println!("  tag delete --id <id>                                        删除标签");
+    println!("  tag list-interactive                                        交互式查询标签");
+    println!("  tag list-by-conditions -c <conditions...>                   按条件查询标签");
+    println!("  tag list-by-group-id --group_id <id>                        按组ID查询标签");
+    println!("  tag update-by-conditions -c <conditions...>                 按条件更新标签");
+    println!("  tag delete-by-conditions -c <conditions...>                 按条件删除标签");
+    println!("  file-group create --file_id <id> --group_id <id>            创建文件-组关联");
+    println!("  file-group delete --id <id>                                 删除文件-组关联");
+    println!("  file-group list-by-conditions -c <conditions...>            按条件查询文件-组关联");
+    println!("  group-tag create --group_id <id> --tag_id <id>              创建组-标签关联");
+    println!("  group-tag delete --id <id>                                  删除组-标签关联");
+    println!("  group-tag list-by-conditions -c <conditions...>             按条件查询组-标签关联");
+    println!("");
+    println!("简化命令:");
+    println!("  ls                                                         列出当前上下文相关的项目");
+    println!("  cd <id>                                                    切换当前上下文");
+    println!("  select <type> <id>                                         选择特定类型和ID");
+    println!("  new <type> <name/path>                                     快速创建新项目");
+    println!("  rm <type> <id>                                             快速删除项目");
+    println!("  context                                                    显示当前上下文");
+    println!("  clear                                                      清屏");
+    println!("  !<command>                                                 执行系统命令");
+    println!("  run <script_file>                                          执行脚本文件");
+    println!("  help                                                       显示此帮助信息");
+    println!("  exit/quit                                                  退出 REPL 环境");
+}
+
 fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
     let mut rl = DefaultEditor::new()?;
     println!("欢迎来到文件分类 REPL 环境！");
     println!("输入 'help' 查看可用命令，输入 'exit' 或 'quit' 退出。");
+    
+    // 尝试加载历史记录
+    let history_path = std::path::Path::new(".file_classification_history");
+    if history_path.exists() {
+        let _ = rl.load_history(history_path);
+    }
 
     loop {
-        let readline = rl.readline(">> ");
+        let prompt = match context.selected_file_id {
+            Some(id) => format!("file[{}]>> ", id),
+            None => match context.selected_group_id {
+                Some(id) => format!("group[{}]>> ", id),
+                None => match context.selected_tag_id {
+                    Some(id) => format!("tag[{}]>> ", id),
+                    None => ">> ".to_string(),
+                },
+            },
+        };
+        
+        let readline = rl.readline(&prompt);
         match readline {
             Ok(line) => {
                 let line = line.trim();
                 if line.is_empty() {
                     continue;
                 }
+                
+                // 添加到历史记录
+                let _ = rl.add_history_entry(line);
+                
                 if line == "exit" || line == "quit" {
                     break;
                 }
                 if line == "help" {
                     print_help();
+                    continue;
+                }
+                if line == "context" {
+                    print_context(context);
+                    continue;
+                }
+                if line == "clear" {
+                    print!("\x1B[2J\x1B[1;1H"); // 清屏
+                    continue;
+                }
+                if line.starts_with("!") && line.len() > 1 {
+                    // 执行系统命令
+                    let cmd = &line[1..];
+                    match std::process::Command::new("cmd")
+                        .args(&["/C", cmd])
+                        .status() {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("执行系统命令失败: {}", e),
+                    }
+                    continue;
+                }
+                if line.starts_with("run ") && line.len() > 4 {
+                    // 执行脚本文件
+                    let script_file = &line[4..].trim();
+                    let script_cmd = Cli { command: Commands::Script { file: script_file.to_string() } };
+                    if let Err(e) = handle_command(script_cmd, conn, context) {
+                        eprintln!("执行脚本失败: {}", e);
+                    }
+                    continue;
+                }
+                if line == "context" {
+                    print_context(context);
+                    continue;
+                }
+                if line == "clear" {
+                    print!("\x1B[2J\x1B[1;1H"); // 清屏
+                    continue;
+                }
+                if line.starts_with("!") && line.len() > 1 {
+                    // 执行系统命令
+                    let cmd = &line[1..];
+                    match std::process::Command::new("cmd")
+                        .args(&["/C", cmd])
+                        .status() {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("执行系统命令失败: {}", e),
+                    }
                     continue;
                 }
 
@@ -336,7 +644,7 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                         let command = cli.command;
 
                         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            handle_command(command, conn, context)
+                            handle_command(Cli { command }, conn, context)
                         }));
                         match result {
                             Ok(Ok(_)) => {},
@@ -345,7 +653,10 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                         }
                     }
                     Err(e) => {
-                        eprintln!("参数解析出错: {}", e);
+                        // 尝试解析为简化命令
+                        if !handle_simplified_command(line, conn, context) {
+                            eprintln!("参数解析出错: {}", e);
+                        }
                     }
                 }
             }
@@ -357,52 +668,38 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
     Ok(())
 }
 
-fn print_help() {
-    println!("可用命令:");
-    println!("  file create --type <TYPE> --path <PATH> --group-id <GROUP_ID>  创建文件");
-    println!("  file delete --id <ID>                                      删除文件");
-    println!("  file list-interactive                                    交互式查询文件");
-    println!("  file list-by-conditions <CONDITIONS>...                  根据条件查询文件");
-    println!("  file list-by-group-id --group-id <GROUP_ID>              根据组ID查询文件");
-    println!("  file update-by-conditions <CONDITIONS>... [OPTIONS]...   更新文件");
-    println!("  file delete-by-conditions <CONDITIONS>...                  删除文件（按条件）");
-    println!();
-    println!("  group create --name <NAME>                                 创建组");
-    println!("  group delete --id <ID>                                     删除组");
-    println!("  group list-interactive                                   交互式查询组");
-    println!("  group list-by-conditions <CONDITIONS>...                 根据条件查询组");
-    println!("  group list-by-file-id --file-id <FILE_ID>                根据文件ID查询组");
-    println!("  group list-by-tag-id --tag-id <TAG_ID>                   根据标签ID查询组");
-    println!("  group update-by-conditions <CONDITIONS>... [OPTIONS]...  更新组");
-    println!("  group delete-by-conditions <CONDITIONS>...                 删除组（按条件）");
-    println!();
-    println!("  tag create --name <NAME>                                   创建标签");
-    println!("  tag delete --id <ID>                                       删除标签");
-    println!("  tag list-interactive                                     交互式查询标签");
-    println!("  tag list-by-conditions <CONDITIONS>...                   根据条件查询标签");
-    println!("  tag list-by-group-id --group-id <GROUP_ID>               根据组ID查询标签");
-    println!("  tag update-by-conditions <CONDITIONS>... [OPTIONS]...    更新标签");
-    println!("  tag delete-by-conditions <CONDITIONS>...                   删除标签（按条件）");
-    println!();
-    println!("  file-group create --file-id <FILE_ID> --group-id <GROUP_ID>  创建文件组关联");
-    println!("  file-group delete --file-id <FILE_ID> --group-id <GROUP_ID>  删除文件组关联");
-    println!("  file-group list-interactive                                交互式查询文件组关联");
-    println!("  file-group list-by-conditions <CONDITIONS>...              根据条件查询文件组关联");
-    println!("  file-group delete-by-conditions <CONDITIONS>...              删除文件组关联（按条件）");
-    println!();
-    println!("  group-tag create --group-id <GROUP_ID> --tag-id <TAG_ID>   创建组标签关联");
-    println!("  group-tag delete --group-id <GROUP_ID> --tag-id <TAG_ID>   删除组标签关联");
-    println!("  group-tag list-interactive                                 交互式查询组标签关联");
-    println!("  group-tag list-by-conditions <CONDITIONS>...               根据条件查询组标签关联");
-    println!("  group-tag delete-by-conditions <CONDITIONS>...               删除组标签关联（按条件）");
-    println!();
-    println!("  repl                                                       进入 REPL 模式");
-    println!("  help                                                       显示此帮助信息");
-    println!("  exit/quit                                                  退出 REPL 环境");
-}
-
-fn handle_command(command: Commands, conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
+fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
+    let command = command.command;
     match command {
+        Commands::Script { file } => {
+            let mut script_file = File::open(&file)?;
+            let mut content = String::new();
+            script_file.read_to_string(&mut content)?;
+            
+            println!("执行脚本: {}", file);
+            for line in content.lines() {
+                let line = line.trim();
+                if line.is_empty() || line.starts_with('#') {
+                    continue; // 跳过空行和注释
+                }
+                
+                println!("执行命令: {}", line);
+                
+                // 尝试解析为标准命令
+                let args: Vec<&str> = line.split_whitespace().collect();
+                if let Ok(cmd) = Cli::try_parse_from(args) {
+                    if let Err(e) = handle_command(cmd, conn, context) {
+                        println!("命令执行错误: {}", e);
+                    }
+                } else {
+                    // 尝试作为简化命令处理
+                    if !handle_simplified_command(line, conn, context) {
+                        println!("无法解析命令: {}", line);
+                    }
+                }
+            }
+            println!("脚本执行完成");
+        },
         Commands::Repl => {
             if let Err(e) = run_repl(conn, context) {
                 eprintln!("REPL Error: {}", e);
