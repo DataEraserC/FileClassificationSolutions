@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /** File Related
 */
 
-#[derive(Queryable, Selectable, AsChangeset, Serialize, Deserialize)]
+#[derive(Queryable, Selectable, AsChangeset, Serialize, Deserialize, Clone)]
 #[diesel(table_name = files)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 #[diesel(treat_none_as_null = true)]
@@ -105,7 +105,7 @@ pub struct FileSet {
 /** Group Related
 */
 
-#[derive(Queryable, Selectable, Serialize)]
+#[derive(Queryable, Selectable, Serialize, Clone)]
 #[diesel(table_name = groups)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Group {
@@ -232,7 +232,7 @@ pub struct UpdateGroup {
 /** Tag Related
 */
 
-#[derive(Queryable, Selectable, Serialize)]
+#[derive(Queryable, Selectable, Serialize, Clone)]
 #[diesel(table_name = tags)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Tag {
@@ -283,7 +283,7 @@ pub enum TagOrderBy {
     ReferenceCount(OrderDirection),
 }
 
-#[derive(AsChangeset, Deserialize)]
+#[derive(AsChangeset, Deserialize, Default, Debug)]
 #[diesel(table_name = tags)]
 pub struct UpdateTagDTO {
     pub name: Option<String>,

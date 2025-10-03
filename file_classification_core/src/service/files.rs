@@ -262,3 +262,11 @@ pub fn get_file_by_id(
 ) -> Result<File, diesel::result::Error> {
     internal::files::get_file_by_id(conn, file_id)
 }
+
+pub fn update_file_by_id(
+    conn: &mut AnyConnection,
+    file_id: i32,
+    update_set: UpdateFileDTO,
+) -> Result<usize, diesel::result::Error> {
+    internal::files::update_file_by_id(conn, file_id, update_set)
+}

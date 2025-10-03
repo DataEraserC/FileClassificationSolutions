@@ -311,3 +311,13 @@ pub fn get_file_by_id(
         .select(File::as_select())
         .first(conn)
 }
+
+pub fn update_file_by_id(
+    conn: &mut AnyConnection,
+    file_id: i32,
+    update_set: UpdateFileDTO,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(files::table.filter(files::id.eq(file_id)))
+        .set(update_set)
+        .execute(conn)
+}

@@ -5,9 +5,12 @@ use diesel::result::Error;
 use diesel::{Connection, JoinOnDsl};
 use crate::utils::database::AnyConnection;
 
-pub fn create_group(conn: &mut AnyConnection, name: &str) -> Result<usize, Error> {
+pub fn create_group_by_name(conn: &mut AnyConnection, name: &str) -> Result<usize, Error> {
     let new_group = CreateGroupDTO { name };
     groups::create_group(conn, &new_group)
+}
+pub fn create_group(conn: &mut AnyConnection, create_group_dTO: &CreateGroupDTO) -> Result<usize, Error> {
+    groups::create_group(conn, create_group_dTO)
 }
 
 pub fn find_group_by_name(
@@ -211,4 +214,12 @@ pub fn get_group_by_id(
     group_id: i32,
 ) -> Result<Group, diesel::result::Error> {
     groups::get_group_by_id(conn, group_id)
+}
+
+pub fn update_group_by_id(
+    conn: &mut AnyConnection,
+    group_id: i32,
+    update_set: UpdateGroupDTO,
+) -> Result<usize, diesel::result::Error> {
+    groups::update_group_by_id(conn, group_id, update_set)
 }

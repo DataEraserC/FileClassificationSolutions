@@ -392,3 +392,13 @@ pub fn get_group_by_id(
         .select(Group::as_select())
         .first(conn)
 }
+
+pub fn update_group_by_id(
+    conn: &mut AnyConnection,
+    group_id: i32,
+    update_set: UpdateGroupDTO,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(groups::table.filter(groups::id.eq(group_id)))
+        .set(update_set)
+        .execute(conn)
+}

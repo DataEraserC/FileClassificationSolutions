@@ -6,9 +6,13 @@ use crate::{
 use diesel::{Connection, JoinOnDsl};
 use crate::utils::database::AnyConnection;
 
-pub fn create_tag(conn: &mut AnyConnection, name: &str) -> Result<Tag, diesel::result::Error> {
+pub fn create_tag_by_name(conn: &mut AnyConnection, name: &str) -> Result<Tag, diesel::result::Error> {
     let new_tag = CreateTagDTO { name };
-    tags::create_tag(conn, new_tag)
+    tags::create_tag(conn, &new_tag)
+}
+
+pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<Tag, diesel::result::Error> {
+    tags::create_tag(conn, create_tag_dto)
 }
 
 pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
@@ -128,4 +132,12 @@ pub fn get_tag_by_id(
     tag_id: i32,
 ) -> Result<Tag, diesel::result::Error> {
     tags::get_tag_by_id(conn, tag_id)
+}
+
+pub fn update_tag_by_id(
+    conn: &mut AnyConnection,
+    tag_id: i32,
+    update_set: UpdateTagDTO,
+) -> Result<usize, diesel::result::Error> {
+    tags::update_tag_by_id(conn, tag_id, update_set)
 }

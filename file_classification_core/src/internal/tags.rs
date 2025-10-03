@@ -4,10 +4,10 @@ use crate::utils::database::AnyConnection;
 
 pub fn create_tag(
     conn: &mut AnyConnection,
-    new_tag: CreateTagDTO,
+    new_tag: &CreateTagDTO,
 ) -> Result<Tag, diesel::result::Error> {
     diesel::insert_into(tags::table)
-        .values(&new_tag)
+        .values(new_tag)
         .execute(conn)?;
 
     // 手动获取最新插入的记录
@@ -303,4 +303,14 @@ pub fn get_tag_by_id(
         .filter(tags::id.eq(tag_id))
         .select(Tag::as_select())
         .first(conn)
+}
+
+pub fn update_tag_by_id(
+    conn: &mut AnyConnection,
+    tag_id: i32,
+    update_set: UpdateTagDTO,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(tags::table.filter(tags::id.eq(tag_id)))
+        .set(update_set)
+        .execute(conn)
 }
