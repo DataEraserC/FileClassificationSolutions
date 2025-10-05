@@ -1,9 +1,8 @@
 use actix_web::{get, post, put, delete, web, HttpResponse, Result};
 use serde_json::json;
 use file_classification_core::{model::models::{FileCondition, UpdateFileDTO, FileFilter}, service::files::{select_files, select_files_by_conditions, update_files_by_conditions, delete_file}, utils};
-use file_classification_core::service::files::create_file;
-use crate::utils::database::{DbPool, DbPooledConnection};
-use crate::utils::models::{ApiResponse, ApiError, CreateFileDTO};
+use crate::utils::database::{DbPool};
+use crate::utils::models::{ApiResponse, ApiError};
 
 #[get("/api/files")]
 async fn api_list_files(

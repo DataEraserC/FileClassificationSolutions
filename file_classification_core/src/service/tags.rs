@@ -6,8 +6,11 @@ use crate::{
 use diesel::{Connection, JoinOnDsl};
 use crate::utils::database::AnyConnection;
 
-pub fn create_tag_by_name(conn: &mut AnyConnection, name: &str) -> Result<Tag, diesel::result::Error> {
-    let new_tag = CreateTagDTO { name };
+pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<Tag, diesel::result::Error>
+where
+    S: Into<String>,
+{
+    let new_tag = CreateTagDTO { name: name.into() };
     tags::create_tag(conn, &new_tag)
 }
 

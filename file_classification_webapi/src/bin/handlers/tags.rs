@@ -1,8 +1,9 @@
 use actix_web::{get, post, put, delete, web, HttpResponse, Result};
 use serde_json::json;
 use file_classification_core::{model::models::{TagCondition, UpdateTagDTO, TagFilter}, service::tags::{select_tags, select_tags_by_conditions, create_tag, update_tags_by_conditions, delete_tag}, utils};
+use file_classification_core::model::models::CreateTagDTO;
 use crate::utils::database::{DbPool, DbPooledConnection};
-use crate::utils::models::{CreateTagDTO, ApiResponse, ApiError};
+use crate::utils::models::{ApiResponse, ApiError};
 
 #[get("/api/tags")]
 async fn api_list_tags(
@@ -52,11 +53,12 @@ async fn api_list_tags_by_conditions(
 
 #[post("/api/tags")]
 async fn api_create_tag(
-    tag_dto: web::Json<CreateTagDTO>,
+    payload: web::Json<CreateTagDTO>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let mut conn = pool.get().expect("Failed to get connection from pool");
-    match create_tag(&mut conn, &tag_dto.name) {
+    let tag_dto = payload.into_inner();
+    match create_tag(&mut conn, &tag_dto) {
         Ok(tag) => Ok(HttpResponse::Created().json(ApiResponse::from(tag))),
         Err(e) => Ok(HttpResponse::InternalServerError().json(ApiError {
             success: false,

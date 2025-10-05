@@ -2,8 +2,8 @@ use actix_web::{get, post, delete, web, HttpResponse, Result};
 use serde_json::json;
 use file_classification_core::{model::models::GroupTagCondition, service::group_tag::{select_group_tags_by_conditions, create_group_tag, delete_group_tag_by_id}, utils};
 use file_classification_core::model::models::GroupTagDTO;
-use crate::utils::database::{DbPool, DbPooledConnection};
-use crate::utils::models::{CreateGroupTagDTO, ApiResponse, ApiError};
+use crate::utils::database::{DbPool};
+use crate::utils::models::{ ApiResponse, ApiError};
 
 #[get("/api/group-tags")]
 async fn api_list_group_tags_by_conditions(

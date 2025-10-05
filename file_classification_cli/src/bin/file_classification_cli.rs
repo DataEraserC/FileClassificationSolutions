@@ -716,8 +716,8 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 });
 
                 let dto = CreateFileDTO {
-                    type_: &type_,
-                    path: &path,
+                    type_,
+                    path,
                     group_id,
                 };
                 match files::create_file(conn, dto) {

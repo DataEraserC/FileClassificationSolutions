@@ -8,13 +8,21 @@ use crate::{internal, service};
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
 
-pub fn raw_create_file(
+pub fn raw_create_file<S1, S2>(
     conn: &mut AnyConnection,
-    type_: &str,
-    path_: &str,
+    type_: S1,
+    path_: S2,
     group_id: i32,
-) -> Result<usize, diesel::result::Error> {
-    let new_file = CreateFileDTO { type_, path: path_, group_id };
+) -> Result<usize, diesel::result::Error>
+where
+    S1: Into<String>,
+    S2: Into<String>,
+{
+    let new_file = CreateFileDTO {
+        type_: type_.into(),
+        path: path_.into(),
+        group_id
+    };
     internal::files::create_file(conn, &new_file)
 }
 // pub fn create_file(

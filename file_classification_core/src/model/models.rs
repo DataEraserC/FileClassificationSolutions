@@ -20,9 +20,9 @@ pub struct File {
 
 #[derive(Insertable)]
 #[diesel(table_name = files)]
-pub struct CreateFileDTO<'a, 'b> {
-    pub type_: &'a str,
-    pub path: &'b str,
+pub struct CreateFileDTO {
+    pub type_: String,
+    pub path: String,
     pub group_id: i32,
 }
 
@@ -119,11 +119,12 @@ pub struct Group {
     pub modify_time: chrono::NaiveDateTime,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Deserialize, Serialize)]
 #[diesel(table_name = groups)]
-pub struct CreateGroupDTO<'a> {
-    pub name: &'a str,
+pub struct CreateGroupDTO {
+    pub name: String,
 }
+
 
 #[derive(Deserialize,Clone)]
 pub enum GroupCondition {
@@ -241,10 +242,10 @@ pub struct Tag {
     pub reference_count: i32,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, Deserialize, Serialize)]
 #[diesel(table_name = tags)]
-pub struct CreateTagDTO<'a> {
-    pub name: &'a str,
+pub struct CreateTagDTO {
+    pub name: String,
 }
 
 #[derive(Deserialize, Clone)]

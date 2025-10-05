@@ -2,7 +2,7 @@ use actix_web::{get, post, put, delete, web, HttpResponse, Result};
 use serde_json::json;
 use file_classification_core::{model::models::{GroupCondition, UpdateGroupDTO, GroupFilter}, service::groups::{select_groups, select_groups_by_conditions, create_group, update_groups_by_conditions, delete_group}, utils};
 use crate::utils::database::{DbPool, DbPooledConnection};
-use crate::utils::models::{CreateGroupDTO, ApiResponse, ApiError};
+use crate::utils::models::{ApiResponse, ApiError};
 
 #[get("/api/groups")]
 async fn api_list_groups(
@@ -52,11 +52,12 @@ async fn api_list_groups_by_conditions(
 
 #[post("/api/groups")]
 async fn api_create_group(
-    group_dto: web::Json<CreateGroupDTO>,
+    payload: web::Json<file_classification_core::model::models::CreateGroupDTO>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     let mut conn = pool.get().expect("Failed to get connection from pool");
-    match create_group(&mut conn, &group_dto.name) {
+    let group_dto = payload.into_inner();
+    match create_group(&mut conn, &group_dto) {
         Ok(group) => Ok(HttpResponse::Created().json(ApiResponse::from(group))),
         Err(e) => Ok(HttpResponse::InternalServerError().json(ApiError {
             success: false,

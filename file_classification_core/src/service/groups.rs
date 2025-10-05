@@ -5,10 +5,14 @@ use diesel::result::Error;
 use diesel::{Connection, JoinOnDsl};
 use crate::utils::database::AnyConnection;
 
-pub fn create_group_by_name(conn: &mut AnyConnection, name: &str) -> Result<usize, Error> {
-    let new_group = CreateGroupDTO { name };
+pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<usize, Error>
+where
+    S: Into<String>,
+{
+    let new_group = CreateGroupDTO { name: name.into() };
     groups::create_group(conn, &new_group)
 }
+
 pub fn create_group(conn: &mut AnyConnection, create_group_dTO: &CreateGroupDTO) -> Result<usize, Error> {
     groups::create_group(conn, create_group_dTO)
 }
