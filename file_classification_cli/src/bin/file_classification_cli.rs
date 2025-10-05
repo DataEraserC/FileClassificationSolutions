@@ -345,7 +345,7 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                 if let Ok(cmd) = Cli::try_parse_from(args) {
                     let _ = handle_command(cmd, conn, context);
                 }
-                
+
                 println!("列出组ID {} 相关的标签:", group_id);
                 let group_id_str = group_id.to_string();
                 let args = vec!["tag", "list-by-group-id", "--group_id", &group_id_str];
@@ -378,7 +378,7 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                 println!("错误: 无效的ID");
                 return true;
             }
-            
+
             // 尝试确定ID类型并设置上下文
             // 简单实现: 假设是组ID
             context.selected_file_id = None;
@@ -392,13 +392,13 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                 println!("错误: 用法 select <type> <id>");
                 return true;
             }
-            
+
             let id = parts[2].parse::<i32>().unwrap_or(0);
             if id <= 0 {
                 println!("错误: 无效的ID");
                 return true;
             }
-            
+
             match parts[1] {
                 "file" => {
                     context.selected_file_id = Some(id);
@@ -429,7 +429,7 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                 println!("错误: 用法 new <type> <name/path>");
                 return true;
             }
-            
+
             match parts[1] {
                 "group" => {
                     let args = vec!["group", "create", "--name", parts[2]];
@@ -466,13 +466,13 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                 println!("错误: 用法 rm <type> <id>");
                 return true;
             }
-            
+
             let id = parts[2].parse::<i32>().unwrap_or(0);
             if id <= 0 {
                 println!("错误: 无效的ID");
                 return true;
             }
-            
+
             match parts[1] {
                 "file" => {
                     let args = vec!["file", "delete", "--id", parts[2]];
@@ -659,16 +659,16 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             let mut script_file = File::open(&file)?;
             let mut content = String::new();
             script_file.read_to_string(&mut content)?;
-            
+
             println!("执行脚本: {}", file);
             for line in content.lines() {
                 let line = line.trim();
                 if line.is_empty() || line.starts_with('#') {
                     continue; // 跳过空行和注释
                 }
-                
+
                 println!("执行命令: {}", line);
-                
+
                 // 尝试解析为标准命令
                 let args: Vec<&str> = line.split_whitespace().collect();
                 if let Ok(cmd) = Cli::try_parse_from(args) {
