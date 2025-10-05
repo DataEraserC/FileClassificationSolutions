@@ -3,6 +3,10 @@ use crate::model::schema::group_tags;
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 use crate::utils::database::AnyConnection;
+use super::models::GroupTagCondition;
+use crate::model::models::{GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
 
 // 在 group_tag.rs 中添加数据访问层函数
 pub fn insert_group_tag(
@@ -31,11 +35,6 @@ impl Debug for GroupTagDTO {
         write!(f, "GroupTag {{ group_id: {}, tag_id: {} }}", self.group_id, self.tag_id)
     }
 }
-
-use super::models::GroupTagCondition;
-use crate::model::models::{GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
-use diesel::dsl::not;
-use diesel::sql_types::Bool;
 
 // 将 GroupTagCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_tag_condition(condition: GroupTagCondition) -> Box<dyn BoxableExpression<group_tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {

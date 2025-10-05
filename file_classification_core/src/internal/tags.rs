@@ -1,6 +1,14 @@
 use super::models::{CreateTagDTO, Tag, TagFilter};
 use diesel::prelude::*;
 use crate::utils::database::AnyConnection;
+use crate::model::schema::tags::dsl::*;
+use crate::model::schema::{groups, tags};
+use std::fmt::{Debug, Formatter, Result as fmtResult};
+use super::models::TagCondition;
+use crate::model::models::{Group, OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
+use crate::model::schema::group_tags::dsl::group_tags;
 
 pub fn create_tag(
     conn: &mut AnyConnection,
@@ -78,9 +86,6 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
     diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
 }
 
-use crate::model::schema::tags::dsl::*;
-use crate::model::schema::{groups, tags};
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 impl Debug for Tag {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
@@ -91,12 +96,6 @@ impl Debug for Tag {
         )
     }
 }
-
-use super::models::TagCondition;
-use crate::model::models::{Group, OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
-use diesel::dsl::not;
-use diesel::sql_types::Bool;
-use crate::model::schema::group_tags::dsl::group_tags;
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数
 fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {

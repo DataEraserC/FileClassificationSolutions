@@ -1,5 +1,14 @@
 use super::models::{CreateGroupDTO, Group, GroupFilter};
 use diesel::prelude::*;
+use crate::model::schema::groups::dsl::*;
+use crate::model::schema::groups;
+use std::fmt::{Debug, Formatter, Result as fmtResult};
+use super::models::GroupCondition;
+use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
+use crate::utils::database::AnyConnection;
+
 pub fn create_group(conn: &mut AnyConnection, new_group: &CreateGroupDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(groups::table)
         .values(new_group).execute(conn)
@@ -83,9 +92,6 @@ pub fn delete_group(
 ) -> Result<usize, diesel::result::Error> {
     diesel::delete(groups.filter(groups::id.eq(group_id))).execute(conn)
 }
-use crate::model::schema::groups::dsl::*;
-use crate::model::schema::groups;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn increase_group_reference_count(
     conn: &mut AnyConnection,
@@ -119,12 +125,6 @@ impl Debug for Group {
         )
     }
 }
-
-use super::models::GroupCondition;
-use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
-use diesel::dsl::not;
-use diesel::sql_types::Bool;
-use crate::utils::database::AnyConnection;
 
 // 将 GroupCondition 转换为 diesel 查询条件的辅助函数
 fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {

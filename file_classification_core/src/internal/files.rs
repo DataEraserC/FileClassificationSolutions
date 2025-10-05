@@ -1,6 +1,11 @@
 use super::models::{CreateFileDTO, File, FileCondition, FileFilter, UpdateFileDTO};
 use diesel::prelude::*;
 use crate::utils::database::AnyConnection;
+use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
+use crate::model::schema::files;
+use crate::model::schema::files::dsl::*;
+use diesel::sql_types::Bool;
+use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn create_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(files::table)
@@ -68,12 +73,6 @@ pub fn select_files(
 pub fn delete_file_by_id(conn: &mut AnyConnection, file_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
-
-use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
-use crate::model::schema::files;
-use crate::model::schema::files::dsl::*;
-use diesel::sql_types::Bool;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 impl Debug for File {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {

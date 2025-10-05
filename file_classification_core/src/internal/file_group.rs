@@ -3,6 +3,7 @@ use crate::model::schema::file_groups;
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 use crate::utils::database::AnyConnection;
+use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
 
 pub fn insert_file_group(
     conn: &mut AnyConnection,
@@ -30,8 +31,6 @@ impl Debug for FileGroupDTO {
         write!(f, "FileGroup {{ file_id: {}, group_id: {} }}", self.file_id, self.group_id)
     }
 }
-
-use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
 
 // 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数
 fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
