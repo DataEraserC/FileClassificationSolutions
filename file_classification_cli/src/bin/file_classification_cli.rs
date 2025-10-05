@@ -1,13 +1,12 @@
 use clap::{Parser, Subcommand};
-use file_classification_core::model::models::*;
-use file_classification_core::service::*;
+use file_classification_core::model::models;
+use file_classification_core::service;
 use file_classification_core::utils::database::{establish_connection, AnyConnection};
 use std::io::{self, Write};
 use rustyline::DefaultEditor;
 use shlex;
-use std::fs::File;
+use std::fs::File as StdFile;
 use std::io::Read;
-// 移除未使用的导入
 
 #[derive(Parser)]
 #[clap(name = "文件分类系统", version = "1.0", author = "Developer")]
@@ -92,11 +91,11 @@ enum FileActions {
         conditions: Vec<String>,
         #[clap(short, long)]
         path: Option<String>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         type_: Option<String>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         reference_count: Option<i32>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         group_id: Option<i32>,
     },
     /// 删除文件（按条件）
@@ -147,13 +146,13 @@ enum GroupActions {
         conditions: Vec<String>,
         #[clap(short, long)]
         name: Option<String>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         reference_count: Option<i32>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         is_primary: Option<bool>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         click_count: Option<i32>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         share_count: Option<i32>,
     },
     /// 删除组（按条件）
@@ -199,7 +198,7 @@ enum TagActions {
         conditions: Vec<String>,
         #[clap(short, long)]
         name: Option<String>,
-        #[clap(long)] // 改为只使用长选项
+        #[clap(long)]
         reference_count: Option<i32>,
     },
     /// 删除标签（按条件）
@@ -220,11 +219,11 @@ enum FileGroupActions {
     },
     /// 删除文件组关联
     Delete {
-            #[clap(short, long)]
-            file_id: Option<i32>,
-            #[clap(short, long)]
-            group_id: Option<i32>,
-        },
+        #[clap(short, long)]
+        file_id: Option<i32>,
+        #[clap(short, long)]
+        group_id: Option<i32>,
+    },
     /// 查询文件组关联（交互式）
     ListInteractive,
     /// 根据条件查询文件组关联
@@ -256,11 +255,11 @@ enum GroupTagActions {
     },
     /// 删除组标签关联
     Delete {
-            #[clap(short, long)]
-            group_id: Option<i32>,
-            #[clap(short, long)]
-            tag_id: Option<i32>,
-        },
+        #[clap(short, long)]
+        group_id: Option<i32>,
+        #[clap(short, long)]
+        tag_id: Option<i32>,
+    },
     /// 查询组标签关联（交互式）
     ListInteractive,
     /// 根据条件查询组标签关联
@@ -302,7 +301,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-
 struct Context {
     selected_file_id: Option<i32>,
     selected_group_id: Option<i32>,
@@ -311,7 +309,11 @@ struct Context {
 
 impl Context {
     fn new() -> Self {
-        Self { selected_file_id: None, selected_group_id: None, selected_tag_id: None }
+        Self {
+            selected_file_id: None,
+            selected_group_id: None,
+            selected_tag_id: None,
+        }
     }
 }
 
@@ -322,7 +324,11 @@ fn print_context(context: &Context) {
     println!("  选中的标签ID: {:?}", context.selected_tag_id);
 }
 
-fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut Context) -> bool {
+fn handle_simplified_command(
+    line: &str,
+    conn: &mut AnyConnection,
+    context: &mut Context,
+) -> bool {
     let parts: Vec<&str> = line.trim().split_whitespace().collect();
     if parts.is_empty() {
         return true;
@@ -367,7 +373,7 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                 }
             }
             true
-        },
+        }
         "cd" => {
             if parts.len() < 2 {
                 println!("错误: 缺少ID参数");
@@ -386,7 +392,7 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
             context.selected_group_id = Some(id);
             println!("已选择组ID: {}", id);
             true
-        },
+        }
         "select" => {
             if parts.len() < 3 {
                 println!("错误: 用法 select <type> <id>");
@@ -405,25 +411,25 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                     context.selected_group_id = None;
                     context.selected_tag_id = None;
                     println!("已选择文件ID: {}", id);
-                },
+                }
                 "group" => {
                     context.selected_file_id = None;
                     context.selected_group_id = Some(id);
                     context.selected_tag_id = None;
                     println!("已选择组ID: {}", id);
-                },
+                }
                 "tag" => {
                     context.selected_file_id = None;
                     context.selected_group_id = None;
                     context.selected_tag_id = Some(id);
                     println!("已选择标签ID: {}", id);
-                },
+                }
                 _ => {
                     println!("错误: 未知类型 {}", parts[1]);
                 }
             }
             true
-        },
+        }
         "new" => {
             if parts.len() < 3 {
                 println!("错误: 用法 new <type> <name/path>");
@@ -436,16 +442,23 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                     if let Ok(cmd) = Cli::try_parse_from(args) {
                         let _ = handle_command(cmd, conn, context);
                     }
-                },
+                }
                 "tag" => {
                     let args = vec!["tag", "create", "--name", parts[2]];
                     if let Ok(cmd) = Cli::try_parse_from(args) {
                         let _ = handle_command(cmd, conn, context);
                     }
-                },
+                }
                 "file" => {
-                    let mut args = vec!["file", "create", "--path", parts[2], "--type", "regular"];
-                    let group_id_str:String;
+                    let mut args = vec![
+                        "file",
+                        "create",
+                        "--path",
+                        parts[2],
+                        "--type",
+                        "regular",
+                    ];
+                    let group_id_str: String;
                     if let Some(group_id) = context.selected_group_id {
                         args.push("--group_id");
                         group_id_str = group_id.to_string();
@@ -454,13 +467,13 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                     if let Ok(cmd) = Cli::try_parse_from(args) {
                         let _ = handle_command(cmd, conn, context);
                     }
-                },
+                }
                 _ => {
                     println!("错误: 未知类型 {}", parts[1]);
                 }
             }
             true
-        },
+        }
         "rm" => {
             if parts.len() < 3 {
                 println!("错误: 用法 rm <type> <id>");
@@ -479,25 +492,25 @@ fn handle_simplified_command(line: &str, conn: &mut AnyConnection, context: &mut
                     if let Ok(cmd) = Cli::try_parse_from(args) {
                         let _ = handle_command(cmd, conn, context);
                     }
-                },
+                }
                 "group" => {
                     let args = vec!["group", "delete", "--id", parts[2]];
                     if let Ok(cmd) = Cli::try_parse_from(args) {
                         let _ = handle_command(cmd, conn, context);
                     }
-                },
+                }
                 "tag" => {
                     let args = vec!["tag", "delete", "--id", parts[2]];
                     if let Ok(cmd) = Cli::try_parse_from(args) {
                         let _ = handle_command(cmd, conn, context);
                     }
-                },
+                }
                 _ => {
                     println!("错误: 未知类型 {}", parts[1]);
                 }
             }
             true
-        },
+        }
         _ => false,
     }
 }
@@ -547,7 +560,10 @@ fn print_help() {
     println!("  exit/quit                                                  退出 REPL 环境");
 }
 
-fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
+fn run_repl(
+    conn: &mut AnyConnection,
+    context: &mut Context,
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut rl = DefaultEditor::new()?;
     println!("欢迎来到文件分类 REPL 环境！");
     println!("输入 'help' 查看可用命令，输入 'exit' 或 'quit' 退出。");
@@ -599,10 +615,8 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                 if line.starts_with("!") && line.len() > 1 {
                     // 执行系统命令
                     let cmd = &line[1..];
-                    match std::process::Command::new("cmd")
-                        .args(&["/C", cmd])
-                        .status() {
-                        Ok(_) => {},
+                    match std::process::Command::new("cmd").args(&["/C", cmd]).status() {
+                        Ok(_) => {}
                         Err(e) => eprintln!("执行系统命令失败: {}", e),
                     }
                     continue;
@@ -610,7 +624,11 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
                 if line.starts_with("run ") && line.len() > 4 {
                     // 执行脚本文件
                     let script_file = &line[4..].trim();
-                    let script_cmd = Cli { command: Commands::Script { file: script_file.to_string() } };
+                    let script_cmd = Cli {
+                        command: Commands::Script {
+                            file: script_file.to_string(),
+                        },
+                    };
                     if let Err(e) = handle_command(script_cmd, conn, context) {
                         eprintln!("执行脚本失败: {}", e);
                     }
@@ -652,11 +670,15 @@ fn run_repl(conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<d
     Ok(())
 }
 
-fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context) -> Result<(), Box<dyn std::error::Error>> {
+fn handle_command(
+    command: Cli,
+    conn: &mut AnyConnection,
+    context: &mut Context,
+) -> Result<(), Box<dyn std::error::Error>> {
     let command = command.command;
     match command {
         Commands::Script { file } => {
-            let mut script_file = File::open(&file)?;
+            let mut script_file = StdFile::open(&file)?;
             let mut content = String::new();
             script_file.read_to_string(&mut content)?;
 
@@ -683,14 +705,18 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 }
             }
             println!("脚本执行完成");
-        },
+        }
         Commands::Repl => {
             if let Err(e) = run_repl(conn, context) {
                 eprintln!("REPL Error: {}", e);
             }
         }
         Commands::File { action } => match action {
-            FileActions::Create { type_, path, group_id } => {
+            FileActions::Create {
+                type_,
+                path,
+                group_id,
+            } => {
                 let type_ = type_.clone().unwrap_or_else(|| {
                     let mut input = String::new();
                     print!("请输入文件类型: ");
@@ -715,12 +741,12 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().parse().expect("无效的组 ID")
                 });
 
-                let dto = CreateFileDTO {
+                let dto = models::CreateFileDTO {
                     type_,
                     path,
                     group_id,
                 };
-                match files::create_file(conn, dto) {
+                match service::files::create_file(conn, dto) {
                     Ok(count) => println!("成功创建文件，影响 {} 行", count),
                     Err(e) => eprintln!("创建文件失败: {:?}", e),
                 }
@@ -740,7 +766,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
                 if input.trim().eq_ignore_ascii_case("y") {
-                    match files::delete_file(conn, file_id) {
+                    match service::files::delete_file(conn, file_id) {
                         Ok(()) => {
                             println!("成功删除文件");
                             if context.selected_file_id == Some(file_id) {
@@ -756,26 +782,37 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             FileActions::ListInteractive => {
                 list_files_interactive(conn, context);
             }
-            FileActions::ListByConditions { conditions, order_by, limit, offset } => {
+            FileActions::ListByConditions {
+                conditions,
+                order_by,
+                limit,
+                offset,
+            } => {
                 let conditions = parse_file_conditions(&conditions);
-                let mut options = FileQueryOptions::default();
+                let mut options = models::FileQueryOptions::default();
                 options.limit = limit;
                 options.offset = offset;
                 options.order_by = parse_file_order_by(&order_by);
 
-                match files::select_files_by_conditions_with_options(conn, conditions, options) {
+                match service::files::select_files_by_conditions_with_options(conn, conditions, options) {
                     Ok(results) => {
                         if results.is_empty() {
                             println!("未找到匹配的文件。");
                         } else {
                             println!("查询结果:");
                             for file in &results {
-                                println!("  - ID: {}, Type: {}, Path: {}, Group ID: {}", file.id, file.type_, file.path, file.group_id);
+                                println!(
+                                    "  - ID: {}, Type: {}, Path: {}, Group ID: {}",
+                                    file.id, file.type_, file.path, file.group_id
+                                );
                             }
                             // 将第一个结果的 ID 存储到上下文中
                             if let Some(first_file) = results.first() {
                                 context.selected_file_id = Some(first_file.id);
-                                println!("\n提示：第一个文件的 ID ({}) 已被选中，可用于后续操作。", first_file.id);
+                                println!(
+                                    "\n提示：第一个文件的 ID ({}) 已被选中，可用于后续操作。",
+                                    first_file.id
+                                );
                             }
                         }
                     }
@@ -783,7 +820,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 }
             }
             FileActions::ListByGroupId { group_id } => {
-                match files::select_file_by_group_id(conn, group_id) {
+                match service::files::select_file_by_group_id(conn, group_id) {
                     Ok(files) => {
                         println!("查询结果 (共 {} 条记录):", files.len());
                         for file in files {
@@ -811,20 +848,32 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     conditions
                 };
 
-                let mut changes = UpdateFileDTO::default();
-                if let Some(path) = path { changes.path = Some(path); }
-                if let Some(type_) = type_ { changes.type_ = Some(type_); }
-                if let Some(reference_count) = reference_count { changes.reference_count = Some(reference_count); }
-                if let Some(group_id) = group_id { changes.group_id = Some(group_id); }
+                let mut changes = models::UpdateFileDTO::default();
+                if let Some(path) = path {
+                    changes.path = Some(path);
+                }
+                if let Some(type_) = type_ {
+                    changes.type_ = Some(type_);
+                }
+                if let Some(reference_count) = reference_count {
+                    changes.reference_count = Some(reference_count);
+                }
+                if let Some(group_id) = group_id {
+                    changes.group_id = Some(group_id);
+                }
 
-                match files::update_files_by_conditions(conn, parse_file_conditions(&update_conditions), changes) {
+                match service::files::update_files_by_conditions(
+                    conn,
+                    parse_file_conditions(&update_conditions),
+                    changes,
+                ) {
                     Ok(count) => println!("成功更新 {} 个文件", count),
                     Err(e) => eprintln!("更新文件失败: {:?}", e),
                 }
             }
             FileActions::DeleteByConditions { conditions } => {
                 let conditions = parse_file_conditions(&conditions);
-                match files::delete_files_by_conditions(conn, conditions) {
+                match service::files::delete_files_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -840,7 +889,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().to_string()
                 });
 
-                match groups::create_group_by_name(conn, &name) {
+                match service::groups::create_group_by_name(conn, &name) {
                     Ok(count) => println!("成功创建组，影响 {} 行", count),
                     Err(e) => eprintln!("创建组失败: {:?}", e),
                 }
@@ -860,7 +909,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
                 if input.trim().eq_ignore_ascii_case("y") {
-                    match groups::delete_group(conn, group_id) {
+                    match service::groups::delete_group(conn, group_id) {
                         Ok(count) => {
                             println!("成功删除组，影响 {} 行", count);
                             if context.selected_group_id == Some(group_id) {
@@ -876,14 +925,23 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             GroupActions::ListInteractive => {
                 list_groups_interactive(conn, context);
             }
-            GroupActions::ListByConditions { conditions, order_by, limit, offset } => {
+            GroupActions::ListByConditions {
+                conditions,
+                order_by,
+                limit,
+                offset,
+            } => {
                 let conditions = parse_group_conditions(&conditions);
-                let mut options = GroupQueryOptions::default();
+                let mut options = models::GroupQueryOptions::default();
                 options.limit = limit;
                 options.offset = offset;
                 options.order_by = parse_group_order_by(&order_by);
 
-                match groups::select_groups_by_conditions_with_options(conn, conditions, options) {
+                match service::groups::select_groups_by_conditions_with_options(
+                    conn,
+                    conditions,
+                    options,
+                ) {
                     Ok(results) => {
                         if results.is_empty() {
                             println!("未找到匹配的组。");
@@ -895,7 +953,10 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                             // 将第一个结果的 ID 存储到上下文中
                             if let Some(first_group) = results.first() {
                                 context.selected_group_id = Some(first_group.id);
-                                println!("\n提示：第一个组的 ID ({}) 已被选中，可用于后续操作。", first_group.id);
+                                println!(
+                                    "\n提示：第一个组的 ID ({}) 已被选中，可用于后续操作。",
+                                    first_group.id
+                                );
                             }
                         }
                     }
@@ -903,7 +964,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 }
             }
             GroupActions::ListByFileId { file_id } => {
-                match groups::select_group_by_file_id(conn, file_id) {
+                match service::groups::select_group_by_file_id(conn, file_id) {
                     Ok(groups) => {
                         println!("查询结果 (共 {} 条记录):", groups.len());
                         for group in groups {
@@ -914,7 +975,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 }
             }
             GroupActions::ListByTagId { tag_id } => {
-                match groups::select_group_by_tag_id(conn, tag_id) {
+                match service::groups::select_group_by_tag_id(conn, tag_id) {
                     Ok(groups) => {
                         println!("查询结果 (共 {} 条记录):", groups.len());
                         for group in groups {
@@ -943,21 +1004,35 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     conditions
                 };
 
-                let mut changes = UpdateGroupDTO::default();
-                if let Some(name) = name { changes.name = Some(name); }
-                if let Some(reference_count) = reference_count { changes.reference_count = Some(reference_count); }
-                if let Some(is_primary) = is_primary { changes.is_primary = Some(is_primary); }
-                if let Some(click_count) = click_count { changes.click_count = Some(click_count); }
-                if let Some(share_count) = share_count { changes.share_count = Some(share_count); }
+                let mut changes = models::UpdateGroupDTO::default();
+                if let Some(name) = name {
+                    changes.name = Some(name);
+                }
+                if let Some(reference_count) = reference_count {
+                    changes.reference_count = Some(reference_count);
+                }
+                if let Some(is_primary) = is_primary {
+                    changes.is_primary = Some(is_primary);
+                }
+                if let Some(click_count) = click_count {
+                    changes.click_count = Some(click_count);
+                }
+                if let Some(share_count) = share_count {
+                    changes.share_count = Some(share_count);
+                }
 
-                match groups::update_groups_by_conditions(conn, parse_group_conditions(&update_conditions), changes) {
+                match service::groups::update_groups_by_conditions(
+                    conn,
+                    parse_group_conditions(&update_conditions),
+                    changes,
+                ) {
                     Ok(count) => println!("成功更新 {} 个组", count),
                     Err(e) => eprintln!("更新组失败: {:?}", e),
                 }
             }
             GroupActions::DeleteByConditions { conditions } => {
                 let conditions = parse_group_conditions(&conditions);
-                match groups::delete_groups_by_conditions(conn, conditions) {
+                match service::groups::delete_groups_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -973,7 +1048,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().to_string()
                 });
 
-                match tags::create_tag_by_name(conn, &name) {
+                match service::tags::create_tag_by_name(conn, &name) {
                     Ok(tag) => println!("成功创建标签: {:?}", tag),
                     Err(e) => eprintln!("创建标签失败: {:?}", e),
                 }
@@ -986,7 +1061,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
                 if input.trim().eq_ignore_ascii_case("y") {
-                    match tags::delete_tag(conn, tag_id) {
+                    match service::tags::delete_tag(conn, tag_id) {
                         Ok(count) => {
                             println!("成功删除标签，影响 {} 行", count);
                             if context.selected_tag_id == Some(tag_id) {
@@ -1002,14 +1077,23 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             TagActions::ListInteractive => {
                 list_tags_interactive(conn, context);
             }
-            TagActions::ListByConditions { conditions, order_by, limit, offset } => {
+            TagActions::ListByConditions {
+                conditions,
+                order_by,
+                limit,
+                offset,
+            } => {
                 let conditions = parse_tag_conditions(&conditions);
-                let mut options = TagQueryOptions::default();
+                let mut options = models::TagQueryOptions::default();
                 options.limit = limit;
-                  options.offset = offset;
+                options.offset = offset;
                 options.order_by = parse_tag_order_by(&order_by);
 
-                match tags::select_tags_by_conditions_with_options(conn, conditions, options) {
+                match service::tags::select_tags_by_conditions_with_options(
+                    conn,
+                    conditions,
+                    options,
+                ) {
                     Ok(tags) => {
                         println!("查询结果 (共 {} 条记录):", tags.len());
                         for tag in tags {
@@ -1020,7 +1104,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 }
             }
             TagActions::ListByGroupId { group_id } => {
-                match tags::select_tag_by_group_id(conn, group_id) {
+                match service::tags::select_tag_by_group_id(conn, group_id) {
                     Ok(tags) => {
                         println!("查询结果 (共 {} 条记录):", tags.len());
                         for tag in tags {
@@ -1038,7 +1122,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                 let mut conditions = parse_tag_conditions(&conditions);
                 if conditions.is_empty() {
                     if let Some(group_id) = context.selected_group_id {
-                        conditions.push(TagCondition::Id(group_id));
+                        conditions.push(models::TagCondition::Id(group_id));
                     } else {
                         eprintln!("没有活动的标签，请先运行 'tag list' 或 'tag list-by-conditions' 选择一个标签");
                         return Ok(());
@@ -1053,18 +1137,22 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().to_string()
                 });
 
-                let update_dto = UpdateTagDTO {
-                    name: if name.is_empty() { None } else { Some(name) },
+                let update_dto = models::UpdateTagDTO {
+                    name: if name.is_empty() {
+                        None
+                    } else {
+                        Some(name)
+                    },
                     reference_count: reference_count,
                 };
-                match tags::update_tags_by_conditions(conn, conditions, update_dto) {
+                match service::tags::update_tags_by_conditions(conn, conditions, update_dto) {
                     Ok(count) => println!("成功更新 {} 条记录", count),
                     Err(e) => eprintln!("更新失败: {:?}", e),
                 }
             }
             TagActions::DeleteByConditions { conditions } => {
                 let conditions = parse_tag_conditions(&conditions);
-                match tags::delete_tags_by_conditions(conn, conditions) {
+                match service::tags::delete_tags_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -1079,50 +1167,59 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     io::stdin().read_line(&mut input).unwrap();
                     input.trim().parse().expect("无效的文件 ID")
                 });
-                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
-                    let mut input = String::new();
-                    print!("请输入组 ID: ");
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    input.trim().parse().expect("无效的组 ID")
-                });
+                let group_id = group_id
+                    .or(context.selected_group_id)
+                    .unwrap_or_else(|| {
+                        let mut input = String::new();
+                        print!("请输入组 ID: ");
+                        io::stdout().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        input.trim().parse().expect("无效的组 ID")
+                    });
 
-                let dto = FileGroupDTO {
+                let dto = models::FileGroupDTO {
                     file_id,
                     group_id,
                 };
-                match file_group::create_file_group(conn, dto) {
+                match service::file_group::create_file_group(conn, dto) {
                     Ok(dto) => println!("成功创建文件组关联: {:?}", dto),
                     Err(e) => eprintln!("创建文件组关联失败: {:?}", e),
                 }
             }
             FileGroupActions::Delete { file_id, group_id } => {
-                let file_id = file_id.or(context.selected_file_id).unwrap_or_else(|| {
-                    let mut input = String::new();
-                    print!("请输入文件 ID: ");
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    input.trim().parse().expect("无效的文件 ID")
-                });
+                let file_id = file_id
+                    .or(context.selected_file_id)
+                    .unwrap_or_else(|| {
+                        let mut input = String::new();
+                        print!("请输入文件 ID: ");
+                        io::stdout().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        input.trim().parse().expect("无效的文件 ID")
+                    });
 
-                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
-                    let mut input = String::new();
-                    print!("请输入组 ID: ");
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    input.trim().parse().expect("无效的组 ID")
-                });
+                let group_id = group_id
+                    .or(context.selected_group_id)
+                    .unwrap_or_else(|| {
+                        let mut input = String::new();
+                        print!("请输入组 ID: ");
+                        io::stdout().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        input.trim().parse().expect("无效的组 ID")
+                    });
 
                 let mut input = String::new();
-                print!("确定要删除文件 ID 为 {} 和组 ID 为 {} 的关联吗? (y/n): ", file_id, group_id);
+                print!(
+                    "确定要删除文件 ID 为 {} 和组 ID 为 {} 的关联吗? (y/n): ",
+                    file_id, group_id
+                );
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
                 if input.trim().eq_ignore_ascii_case("y") {
-                    let dto = FileGroupDTO {
+                    let dto = models::FileGroupDTO {
                         file_id,
                         group_id,
                     };
-                    match file_group::delete_file_group(conn, dto) {
+                    match service::file_group::delete_file_group(conn, dto) {
                         Ok(count) => println!("成功删除 {} 个文件组关联", count),
                         Err(e) => eprintln!("删除文件组关联失败: {:?}", e),
                     }
@@ -1133,14 +1230,23 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             FileGroupActions::ListInteractive => {
                 list_file_groups_interactive(conn, context);
             }
-            FileGroupActions::ListByConditions { conditions, order_by, limit, offset } => {
+            FileGroupActions::ListByConditions {
+                conditions,
+                order_by,
+                limit,
+                offset,
+            } => {
                 let conditions = parse_file_group_conditions(&conditions);
-                let mut options = FileGroupQueryOptions::default();
+                let mut options = models::FileGroupQueryOptions::default();
                 options.limit = limit;
-                  options.offset = offset;
+                options.offset = offset;
                 options.order_by = parse_file_group_order_by(&order_by);
 
-                match file_group::select_file_groups_by_conditions_with_options(conn, conditions, options) {
+                match service::file_group::select_file_groups_by_conditions_with_options(
+                    conn,
+                    conditions,
+                    options,
+                ) {
                     Ok(file_groups) => {
                         println!("查询结果 (共 {} 条记录):", file_groups.len());
                         for fg in &file_groups {
@@ -1150,7 +1256,10 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                         if let Some(first_fg) = file_groups.first() {
                             context.selected_file_id = Some(first_fg.file_id);
                             context.selected_group_id = Some(first_fg.group_id);
-                            println!("\n提示：第一个文件组关联的文件 ID ({}) 和组 ID ({}) 已被选中，可用于后续操作。", first_fg.file_id, first_fg.group_id);
+                            println!(
+                                "\n提示：第一个文件组关联的文件 ID ({}) 和组 ID ({}) 已被选中，可用于后续操作。",
+                                first_fg.file_id, first_fg.group_id
+                            );
                         }
                     }
                     Err(e) => eprintln!("查询失败: {:?}", e),
@@ -1158,7 +1267,7 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             }
             FileGroupActions::DeleteByConditions { conditions } => {
                 let conditions = parse_file_group_conditions(&conditions);
-                match file_group::delete_file_groups_by_conditions(conn, conditions) {
+                match service::file_group::delete_file_groups_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
@@ -1166,13 +1275,15 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
         },
         Commands::GroupTag { action } => match action {
             GroupTagActions::Create { group_id, tag_id } => {
-                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
-                    let mut input = String::new();
-                    print!("请输入组 ID: ");
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    input.trim().parse().expect("无效的组 ID")
-                });
+                let group_id = group_id
+                    .or(context.selected_group_id)
+                    .unwrap_or_else(|| {
+                        let mut input = String::new();
+                        print!("请输入组 ID: ");
+                        io::stdout().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        input.trim().parse().expect("无效的组 ID")
+                    });
 
                 let tag_id = tag_id.unwrap_or_else(|| {
                     let mut input = String::new();
@@ -1182,42 +1293,49 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                     input.trim().parse().expect("无效的标签 ID")
                 });
 
-                let dto = GroupTagDTO {
+                let dto = models::GroupTagDTO {
                     group_id,
                     tag_id,
                 };
-                match group_tag::create_group_tag(conn, dto) {
+                match service::group_tag::create_group_tag(conn, dto) {
                     Ok(dto) => println!("成功创建组标签关联: {:?}", dto),
                     Err(e) => eprintln!("创建组标签关联失败: {:?}", e),
                 }
             }
             GroupTagActions::Delete { group_id, tag_id } => {
-                let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| {
-                    let mut input = String::new();
-                    print!("请输入组 ID: ");
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    input.trim().parse().expect("无效的组 ID")
-                });
+                let group_id = group_id
+                    .or(context.selected_group_id)
+                    .unwrap_or_else(|| {
+                        let mut input = String::new();
+                        print!("请输入组 ID: ");
+                        io::stdout().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        input.trim().parse().expect("无效的组 ID")
+                    });
 
-                let tag_id = tag_id.or(context.selected_group_id).unwrap_or_else(|| {
-                    let mut input = String::new();
-                    print!("请输入标签 ID: ");
-                    io::stdout().flush().unwrap();
-                    io::stdin().read_line(&mut input).unwrap();
-                    input.trim().parse().expect("无效的标签 ID")
-                });
+                let tag_id = tag_id
+                    .or(context.selected_group_id)
+                    .unwrap_or_else(|| {
+                        let mut input = String::new();
+                        print!("请输入标签 ID: ");
+                        io::stdout().flush().unwrap();
+                        io::stdin().read_line(&mut input).unwrap();
+                        input.trim().parse().expect("无效的标签 ID")
+                    });
 
                 let mut input = String::new();
-                print!("确定要删除组 ID 为 {} 和标签 ID 为 {} 的关联吗? (y/n): ", group_id, tag_id);
+                print!(
+                    "确定要删除组 ID 为 {} 和标签 ID 为 {} 的关联吗? (y/n): ",
+                    group_id, tag_id
+                );
                 io::stdout().flush().unwrap();
                 io::stdin().read_line(&mut input).unwrap();
                 if input.trim().eq_ignore_ascii_case("y") {
-                    let dto = GroupTagDTO {
+                    let dto = models::GroupTagDTO {
                         group_id,
                         tag_id,
                     };
-                    match group_tag::delete_group_tag_by_id(conn, dto) {
+                    match service::group_tag::delete_group_tag_by_id(conn, dto) {
                         Ok(count) => println!("成功删除 {} 个组标签关联", count),
                         Err(e) => eprintln!("删除组标签关联失败: {:?}", e),
                     }
@@ -1228,14 +1346,23 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             GroupTagActions::ListInteractive => {
                 list_group_tags_interactive(conn, context);
             }
-            GroupTagActions::ListByConditions { conditions, order_by, limit, offset } => {
+            GroupTagActions::ListByConditions {
+                conditions,
+                order_by,
+                limit,
+                offset,
+            } => {
                 let conditions = parse_group_tag_conditions(&conditions);
-                let mut options = GroupTagQueryOptions::default();
+                let mut options = models::GroupTagQueryOptions::default();
                 options.limit = limit;
-                  options.offset = offset;
+                options.offset = offset;
                 options.order_by = parse_group_tag_order_by(&order_by);
 
-                match group_tag::select_group_tags_by_conditions_with_options(conn, conditions, options) {
+                match service::group_tag::select_group_tags_by_conditions_with_options(
+                    conn,
+                    conditions,
+                    options,
+                ) {
                     Ok(group_tags) => {
                         println!("查询结果 (共 {} 条记录):", group_tags.len());
                         for gt in &group_tags {
@@ -1246,7 +1373,10 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
                             context.selected_group_id = Some(first_gt.group_id);
                             // 我们将 tag_id 也存储在 selected_group_id 中，因为没有专用的字段
                             // context.selected_tag_id = Some(first_gt.tag_id);
-                            println!("\n提示：第一个组标签关联的组 ID ({}) 和标签 ID ({}) 已被选中，可用于后续操作。", first_gt.group_id, first_gt.tag_id);
+                            println!(
+                                "\n提示：第一个组标签关联的组 ID ({}) 和标签 ID ({}) 已被选中，可用于后续操作。",
+                                first_gt.group_id, first_gt.tag_id
+                            );
                         }
                     }
                     Err(e) => eprintln!("查询失败: {:?}", e),
@@ -1254,19 +1384,18 @@ fn handle_command(command: Cli, conn: &mut AnyConnection, context: &mut Context)
             }
             GroupTagActions::DeleteByConditions { conditions } => {
                 let conditions = parse_group_tag_conditions(&conditions);
-                match group_tag::delete_group_tags_by_conditions(conn, conditions) {
+                match service::group_tag::delete_group_tags_by_conditions(conn, conditions) {
                     Ok(count) => println!("成功删除 {} 条记录", count),
                     Err(e) => eprintln!("删除失败: {:?}", e),
                 }
             }
         }
-
     }
     Ok(())
 }
 
 // 解析文件条件参数
-fn parse_file_conditions(args: &[String]) -> Vec<FileCondition> {
+fn parse_file_conditions(args: &[String]) -> Vec<models::FileCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
 
@@ -1274,73 +1403,76 @@ fn parse_file_conditions(args: &[String]) -> Vec<FileCondition> {
         match args[i].as_str() {
             "id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::Id(value));
+                    conditions.push(models::FileCondition::Id(value));
                 }
                 i += 2;
             }
             "id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::IdGreaterThan(value));
+                    conditions.push(models::FileCondition::IdGreaterThan(value));
                 }
                 i += 2;
             }
             "id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::IdLessThan(value));
+                    conditions.push(models::FileCondition::IdLessThan(value));
                 }
                 i += 2;
             }
             "id_in" if i + 1 < args.len() => {
-                let values: Result<Vec<i32>, _> = args[i + 1]
-                    .split(',')
-                    .map(|s| s.parse::<i32>())
-                    .collect();
+                let values: Result<Vec<i32>, _> = args[i + 1].split(',').map(|s| s.parse::<i32>()).collect();
                 if let Ok(values) = values {
-                    conditions.push(FileCondition::IdIn(values));
+                    conditions.push(models::FileCondition::IdIn(values));
                 }
                 i += 2;
             }
             "type" if i + 1 < args.len() => {
-                conditions.push(FileCondition::Type(args[i + 1].clone()));
+                conditions.push(models::FileCondition::Type(args[i + 1].clone()));
                 i += 2;
             }
             "type_like" if i + 1 < args.len() => {
-                conditions.push(FileCondition::TypeLike(args[i + 1].clone()));
+                conditions.push(models::FileCondition::TypeLike(args[i + 1].clone()));
                 i += 2;
             }
             "type_in" if i + 1 < args.len() => {
-                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
-                conditions.push(FileCondition::TypeIn(values));
+                let values: Vec<String> = args[i + 1]
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect();
+                conditions.push(models::FileCondition::TypeIn(values));
                 i += 2;
             }
             "path" if i + 1 < args.len() => {
-                conditions.push(FileCondition::Path(args[i + 1].clone()));
+                conditions.push(models::FileCondition::Path(args[i + 1].clone()));
                 i += 2;
             }
             "path_like" if i + 1 < args.len() => {
-                conditions.push(FileCondition::PathLike(args[i + 1].clone()));
+                conditions.push(models::FileCondition::PathLike(args[i + 1].clone()));
                 i += 2;
             }
             "path_in" if i + 1 < args.len() => {
-                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
-                conditions.push(FileCondition::PathIn(values));
+                let values: Vec<String> = args[i + 1]
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect();
+                conditions.push(models::FileCondition::PathIn(values));
                 i += 2;
             }
             "ref_count" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::ReferenceCount(value));
+                    conditions.push(models::FileCondition::ReferenceCount(value));
                 }
                 i += 2;
             }
             "ref_count_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::ReferenceCountGreaterThan(value));
+                    conditions.push(models::FileCondition::ReferenceCountGreaterThan(value));
                 }
                 i += 2;
             }
             "ref_count_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::ReferenceCountLessThan(value));
+                    conditions.push(models::FileCondition::ReferenceCountLessThan(value));
                 }
                 i += 2;
             }
@@ -1350,25 +1482,25 @@ fn parse_file_conditions(args: &[String]) -> Vec<FileCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(FileCondition::ReferenceCountIn(values));
+                    conditions.push(models::FileCondition::ReferenceCountIn(values));
                 }
                 i += 2;
             }
             "group_id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::GroupId(value));
+                    conditions.push(models::FileCondition::GroupId(value));
                 }
                 i += 2;
             }
             "group_id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::GroupIdGreaterThan(value));
+                    conditions.push(models::FileCondition::GroupIdGreaterThan(value));
                 }
                 i += 2;
             }
             "group_id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileCondition::GroupIdLessThan(value));
+                    conditions.push(models::FileCondition::GroupIdLessThan(value));
                 }
                 i += 2;
             }
@@ -1378,7 +1510,7 @@ fn parse_file_conditions(args: &[String]) -> Vec<FileCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(FileCondition::GroupIdIn(values));
+                    conditions.push(models::FileCondition::GroupIdIn(values));
                 }
                 i += 2;
             }
@@ -1390,7 +1522,7 @@ fn parse_file_conditions(args: &[String]) -> Vec<FileCondition> {
 }
 
 // 解析组条件参数
-fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
+fn parse_group_conditions(args: &[String]) -> Vec<models::GroupCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
 
@@ -1398,19 +1530,19 @@ fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
         match args[i].as_str() {
             "id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::Id(value));
+                    conditions.push(models::GroupCondition::Id(value));
                 }
                 i += 2;
             }
             "id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::IdGreaterThan(value));
+                    conditions.push(models::GroupCondition::IdGreaterThan(value));
                 }
                 i += 2;
             }
             "id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::IdLessThan(value));
+                    conditions.push(models::GroupCondition::IdLessThan(value));
                 }
                 i += 2;
             }
@@ -1420,38 +1552,41 @@ fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(GroupCondition::IdIn(values));
+                    conditions.push(models::GroupCondition::IdIn(values));
                 }
                 i += 2;
             }
             "name" if i + 1 < args.len() => {
-                conditions.push(GroupCondition::Name(args[i + 1].clone()));
+                conditions.push(models::GroupCondition::Name(args[i + 1].clone()));
                 i += 2;
             }
             "name_like" if i + 1 < args.len() => {
-                conditions.push(GroupCondition::NameLike(args[i + 1].clone()));
+                conditions.push(models::GroupCondition::NameLike(args[i + 1].clone()));
                 i += 2;
             }
             "name_in" if i + 1 < args.len() => {
-                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
-                conditions.push(GroupCondition::NameIn(values));
+                let values: Vec<String> = args[i + 1]
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect();
+                conditions.push(models::GroupCondition::NameIn(values));
                 i += 2;
             }
             "ref_count" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ReferenceCount(value));
+                    conditions.push(models::GroupCondition::ReferenceCount(value));
                 }
                 i += 2;
             }
             "ref_count_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ReferenceCountGreaterThan(value));
+                    conditions.push(models::GroupCondition::ReferenceCountGreaterThan(value));
                 }
                 i += 2;
             }
             "ref_count_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ReferenceCountLessThan(value));
+                    conditions.push(models::GroupCondition::ReferenceCountLessThan(value));
                 }
                 i += 2;
             }
@@ -1461,31 +1596,31 @@ fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(GroupCondition::ReferenceCountIn(values));
+                    conditions.push(models::GroupCondition::ReferenceCountIn(values));
                 }
                 i += 2;
             }
             "is_primary" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<bool>() {
-                    conditions.push(GroupCondition::IsPrimary(value));
+                    conditions.push(models::GroupCondition::IsPrimary(value));
                 }
                 i += 2;
             }
             "click_count" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ClickCount(value));
+                    conditions.push(models::GroupCondition::ClickCount(value));
                 }
                 i += 2;
             }
             "click_count_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ClickCountGreaterThan(value));
+                    conditions.push(models::GroupCondition::ClickCountGreaterThan(value));
                 }
                 i += 2;
             }
             "click_count_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ClickCountLessThan(value));
+                    conditions.push(models::GroupCondition::ClickCountLessThan(value));
                 }
                 i += 2;
             }
@@ -1495,25 +1630,25 @@ fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(GroupCondition::ClickCountIn(values));
+                    conditions.push(models::GroupCondition::ClickCountIn(values));
                 }
                 i += 2;
             }
             "share_count" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ShareCount(value));
+                    conditions.push(models::GroupCondition::ShareCount(value));
                 }
                 i += 2;
             }
             "share_count_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ShareCountGreaterThan(value));
+                    conditions.push(models::GroupCondition::ShareCountGreaterThan(value));
                 }
                 i += 2;
             }
             "share_count_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupCondition::ShareCountLessThan(value));
+                    conditions.push(models::GroupCondition::ShareCountLessThan(value));
                 }
                 i += 2;
             }
@@ -1523,7 +1658,7 @@ fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(GroupCondition::ShareCountIn(values));
+                    conditions.push(models::GroupCondition::ShareCountIn(values));
                 }
                 i += 2;
             }
@@ -1535,7 +1670,7 @@ fn parse_group_conditions(args: &[String]) -> Vec<GroupCondition> {
 }
 
 // 解析标签条件参数
-fn parse_tag_conditions(args: &[String]) -> Vec<TagCondition> {
+fn parse_tag_conditions(args: &[String]) -> Vec<models::TagCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
 
@@ -1543,19 +1678,19 @@ fn parse_tag_conditions(args: &[String]) -> Vec<TagCondition> {
         match args[i].as_str() {
             "id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(TagCondition::Id(value));
+                    conditions.push(models::TagCondition::Id(value));
                 }
                 i += 2;
             }
             "id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(TagCondition::IdGreaterThan(value));
+                    conditions.push(models::TagCondition::IdGreaterThan(value));
                 }
                 i += 2;
             }
             "id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(TagCondition::IdLessThan(value));
+                    conditions.push(models::TagCondition::IdLessThan(value));
                 }
                 i += 2;
             }
@@ -1565,38 +1700,41 @@ fn parse_tag_conditions(args: &[String]) -> Vec<TagCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(TagCondition::IdIn(values));
+                    conditions.push(models::TagCondition::IdIn(values));
                 }
                 i += 2;
             }
             "name" if i + 1 < args.len() => {
-                conditions.push(TagCondition::Name(args[i + 1].clone()));
+                conditions.push(models::TagCondition::Name(args[i + 1].clone()));
                 i += 2;
             }
             "name_like" if i + 1 < args.len() => {
-                conditions.push(TagCondition::NameLike(args[i + 1].clone()));
+                conditions.push(models::TagCondition::NameLike(args[i + 1].clone()));
                 i += 2;
             }
             "name_in" if i + 1 < args.len() => {
-                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
-                conditions.push(TagCondition::NameIn(values));
+                let values: Vec<String> = args[i + 1]
+                    .split(',')
+                    .map(|s| s.to_string())
+                    .collect();
+                conditions.push(models::TagCondition::NameIn(values));
                 i += 2;
             }
             "ref_count" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(TagCondition::ReferenceCount(value));
+                    conditions.push(models::TagCondition::ReferenceCount(value));
                 }
                 i += 2;
             }
             "ref_count_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(TagCondition::ReferenceCountGreaterThan(value));
+                    conditions.push(models::TagCondition::ReferenceCountGreaterThan(value));
                 }
                 i += 2;
             }
             "ref_count_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(TagCondition::ReferenceCountLessThan(value));
+                    conditions.push(models::TagCondition::ReferenceCountLessThan(value));
                 }
                 i += 2;
             }
@@ -1606,7 +1744,7 @@ fn parse_tag_conditions(args: &[String]) -> Vec<TagCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(TagCondition::ReferenceCountIn(values));
+                    conditions.push(models::TagCondition::ReferenceCountIn(values));
                 }
                 i += 2;
             }
@@ -1618,7 +1756,7 @@ fn parse_tag_conditions(args: &[String]) -> Vec<TagCondition> {
 }
 
 // 解析文件组关联条件参数
-fn parse_file_group_conditions(args: &[String]) -> Vec<FileGroupCondition> {
+fn parse_file_group_conditions(args: &[String]) -> Vec<models::FileGroupCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
 
@@ -1626,19 +1764,19 @@ fn parse_file_group_conditions(args: &[String]) -> Vec<FileGroupCondition> {
         match args[i].as_str() {
             "file_id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileGroupCondition::FileId(value));
+                    conditions.push(models::FileGroupCondition::FileId(value));
                 }
                 i += 2;
             }
             "file_id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileGroupCondition::FileIdGreaterThan(value));
+                    conditions.push(models::FileGroupCondition::FileIdGreaterThan(value));
                 }
                 i += 2;
             }
             "file_id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileGroupCondition::FileIdLessThan(value));
+                    conditions.push(models::FileGroupCondition::FileIdLessThan(value));
                 }
                 i += 2;
             }
@@ -1648,25 +1786,25 @@ fn parse_file_group_conditions(args: &[String]) -> Vec<FileGroupCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(FileGroupCondition::FileIdIn(values));
+                    conditions.push(models::FileGroupCondition::FileIdIn(values));
                 }
                 i += 2;
             }
             "group_id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileGroupCondition::GroupId(value));
+                    conditions.push(models::FileGroupCondition::GroupId(value));
                 }
                 i += 2;
             }
             "group_id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileGroupCondition::GroupIdGreaterThan(value));
+                    conditions.push(models::FileGroupCondition::GroupIdGreaterThan(value));
                 }
                 i += 2;
             }
             "group_id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(FileGroupCondition::GroupIdLessThan(value));
+                    conditions.push(models::FileGroupCondition::GroupIdLessThan(value));
                 }
                 i += 2;
             }
@@ -1676,7 +1814,7 @@ fn parse_file_group_conditions(args: &[String]) -> Vec<FileGroupCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(FileGroupCondition::GroupIdIn(values));
+                    conditions.push(models::FileGroupCondition::GroupIdIn(values));
                 }
                 i += 2;
             }
@@ -1688,7 +1826,7 @@ fn parse_file_group_conditions(args: &[String]) -> Vec<FileGroupCondition> {
 }
 
 // 解析组标签关联条件参数
-fn parse_group_tag_conditions(args: &[String]) -> Vec<GroupTagCondition> {
+fn parse_group_tag_conditions(args: &[String]) -> Vec<models::GroupTagCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
 
@@ -1696,19 +1834,19 @@ fn parse_group_tag_conditions(args: &[String]) -> Vec<GroupTagCondition> {
         match args[i].as_str() {
             "group_id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupTagCondition::GroupId(value));
+                    conditions.push(models::GroupTagCondition::GroupId(value));
                 }
                 i += 2;
             }
             "group_id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupTagCondition::GroupIdGreaterThan(value));
+                    conditions.push(models::GroupTagCondition::GroupIdGreaterThan(value));
                 }
                 i += 2;
             }
             "group_id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupTagCondition::GroupIdLessThan(value));
+                    conditions.push(models::GroupTagCondition::GroupIdLessThan(value));
                 }
                 i += 2;
             }
@@ -1718,25 +1856,25 @@ fn parse_group_tag_conditions(args: &[String]) -> Vec<GroupTagCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(GroupTagCondition::GroupIdIn(values));
+                    conditions.push(models::GroupTagCondition::GroupIdIn(values));
                 }
                 i += 2;
             }
             "tag_id" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupTagCondition::TagId(value));
+                    conditions.push(models::GroupTagCondition::TagId(value));
                 }
                 i += 2;
             }
             "tag_id_gt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupTagCondition::TagIdGreaterThan(value));
+                    conditions.push(models::GroupTagCondition::TagIdGreaterThan(value));
                 }
                 i += 2;
             }
             "tag_id_lt" if i + 1 < args.len() => {
                 if let Ok(value) = args[i + 1].parse::<i32>() {
-                    conditions.push(GroupTagCondition::TagIdLessThan(value));
+                    conditions.push(models::GroupTagCondition::TagIdLessThan(value));
                 }
                 i += 2;
             }
@@ -1746,7 +1884,7 @@ fn parse_group_tag_conditions(args: &[String]) -> Vec<GroupTagCondition> {
                     .map(|s| s.parse::<i32>())
                     .collect();
                 if let Ok(values) = values {
-                    conditions.push(GroupTagCondition::TagIdIn(values));
+                    conditions.push(models::GroupTagCondition::TagIdIn(values));
                 }
                 i += 2;
             }
@@ -1758,7 +1896,7 @@ fn parse_group_tag_conditions(args: &[String]) -> Vec<GroupTagCondition> {
 }
 
 // 解析文件排序参数
-fn parse_file_order_by(args: &[String]) -> Vec<FileOrderBy> {
+fn parse_file_order_by(args: &[String]) -> Vec<models::FileOrderBy> {
     let mut order_bys = Vec::new();
 
     for arg in args {
@@ -1769,17 +1907,17 @@ fn parse_file_order_by(args: &[String]) -> Vec<FileOrderBy> {
 
         let field = parts[0];
         let direction = match parts[1].to_lowercase().as_str() {
-            "asc" => OrderDirection::Asc,
-            "desc" => OrderDirection::Desc,
+            "asc" => models::OrderDirection::Asc,
+            "desc" => models::OrderDirection::Desc,
             _ => continue,
         };
 
         let order_by = match field {
-            "id" => FileOrderBy::Id(direction),
-            "type" => FileOrderBy::Type(direction),
-            "path" => FileOrderBy::Path(direction),
-            "ref_count" => FileOrderBy::ReferenceCount(direction),
-            "group_id" => FileOrderBy::GroupId(direction),
+            "id" => models::FileOrderBy::Id(direction),
+            "type" => models::FileOrderBy::Type(direction),
+            "path" => models::FileOrderBy::Path(direction),
+            "ref_count" => models::FileOrderBy::ReferenceCount(direction),
+            "group_id" => models::FileOrderBy::GroupId(direction),
             _ => continue,
         };
 
@@ -1790,7 +1928,7 @@ fn parse_file_order_by(args: &[String]) -> Vec<FileOrderBy> {
 }
 
 // 解析组排序参数
-fn parse_group_order_by(args: &[String]) -> Vec<GroupOrderBy> {
+fn parse_group_order_by(args: &[String]) -> Vec<models::GroupOrderBy> {
     let mut order_bys = Vec::new();
 
     for arg in args {
@@ -1801,20 +1939,20 @@ fn parse_group_order_by(args: &[String]) -> Vec<GroupOrderBy> {
 
         let field = parts[0];
         let direction = match parts[1].to_lowercase().as_str() {
-            "asc" => OrderDirection::Asc,
-            "desc" => OrderDirection::Desc,
+            "asc" => models::OrderDirection::Asc,
+            "desc" => models::OrderDirection::Desc,
             _ => continue,
         };
 
         let order_by = match field {
-            "id" => GroupOrderBy::Id(direction),
-            "name" => GroupOrderBy::Name(direction),
-            "ref_count" => GroupOrderBy::ReferenceCount(direction),
-            "is_primary" => GroupOrderBy::IsPrimary(direction),
-            "click_count" => GroupOrderBy::ClickCount(direction),
-            "share_count" => GroupOrderBy::ShareCount(direction),
-            "create_time" => GroupOrderBy::CreateTime(direction),
-            "modify_time" => GroupOrderBy::ModifyTime(direction),
+            "id" => models::GroupOrderBy::Id(direction),
+            "name" => models::GroupOrderBy::Name(direction),
+            "ref_count" => models::GroupOrderBy::ReferenceCount(direction),
+            "is_primary" => models::GroupOrderBy::IsPrimary(direction),
+            "click_count" => models::GroupOrderBy::ClickCount(direction),
+            "share_count" => models::GroupOrderBy::ShareCount(direction),
+            "create_time" => models::GroupOrderBy::CreateTime(direction),
+            "modify_time" => models::GroupOrderBy::ModifyTime(direction),
             _ => continue,
         };
 
@@ -1825,7 +1963,7 @@ fn parse_group_order_by(args: &[String]) -> Vec<GroupOrderBy> {
 }
 
 // 解析标签排序参数
-fn parse_tag_order_by(args: &[String]) -> Vec<TagOrderBy> {
+fn parse_tag_order_by(args: &[String]) -> Vec<models::TagOrderBy> {
     let mut order_bys = Vec::new();
 
     for arg in args {
@@ -1836,15 +1974,15 @@ fn parse_tag_order_by(args: &[String]) -> Vec<TagOrderBy> {
 
         let field = parts[0];
         let direction = match parts[1].to_lowercase().as_str() {
-            "asc" => OrderDirection::Asc,
-            "desc" => OrderDirection::Desc,
+            "asc" => models::OrderDirection::Asc,
+            "desc" => models::OrderDirection::Desc,
             _ => continue,
         };
 
         let order_by = match field {
-            "id" => TagOrderBy::Id(direction),
-            "name" => TagOrderBy::Name(direction),
-            "ref_count" => TagOrderBy::ReferenceCount(direction),
+            "id" => models::TagOrderBy::Id(direction),
+            "name" => models::TagOrderBy::Name(direction),
+            "ref_count" => models::TagOrderBy::ReferenceCount(direction),
             _ => continue,
         };
 
@@ -1855,7 +1993,7 @@ fn parse_tag_order_by(args: &[String]) -> Vec<TagOrderBy> {
 }
 
 // 解析文件组关联排序参数
-fn parse_file_group_order_by(args: &[String]) -> Vec<FileGroupOrderBy> {
+fn parse_file_group_order_by(args: &[String]) -> Vec<models::FileGroupOrderBy> {
     let mut order_bys = Vec::new();
 
     for arg in args {
@@ -1866,14 +2004,14 @@ fn parse_file_group_order_by(args: &[String]) -> Vec<FileGroupOrderBy> {
 
         let field = parts[0];
         let direction = match parts[1].to_lowercase().as_str() {
-            "asc" => OrderDirection::Asc,
-            "desc" => OrderDirection::Desc,
+            "asc" => models::OrderDirection::Asc,
+            "desc" => models::OrderDirection::Desc,
             _ => continue,
         };
 
         let order_by = match field {
-            "file_id" => FileGroupOrderBy::FileId(direction),
-            "group_id" => FileGroupOrderBy::GroupId(direction),
+            "file_id" => models::FileGroupOrderBy::FileId(direction),
+            "group_id" => models::FileGroupOrderBy::GroupId(direction),
             _ => continue,
         };
 
@@ -1884,7 +2022,7 @@ fn parse_file_group_order_by(args: &[String]) -> Vec<FileGroupOrderBy> {
 }
 
 // 解析组标签关联排序参数
-fn parse_group_tag_order_by(args: &[String]) -> Vec<GroupTagOrderBy> {
+fn parse_group_tag_order_by(args: &[String]) -> Vec<models::GroupTagOrderBy> {
     let mut order_bys = Vec::new();
 
     for arg in args {
@@ -1895,14 +2033,14 @@ fn parse_group_tag_order_by(args: &[String]) -> Vec<GroupTagOrderBy> {
 
         let field = parts[0];
         let direction = match parts[1].to_lowercase().as_str() {
-            "asc" => OrderDirection::Asc,
-            "desc" => OrderDirection::Desc,
+            "asc" => models::OrderDirection::Asc,
+            "desc" => models::OrderDirection::Desc,
             _ => continue,
         };
 
         let order_by = match field {
-            "group_id" => GroupTagOrderBy::GroupId(direction),
-            "tag_id" => GroupTagOrderBy::TagId(direction),
+            "group_id" => models::GroupTagOrderBy::GroupId(direction),
+            "tag_id" => models::GroupTagOrderBy::TagId(direction),
             _ => continue,
         };
 
@@ -1926,7 +2064,10 @@ fn list_files_interactive(conn: &mut AnyConnection, context: &mut Context) {
                 return;
             }
 
-            let items: Vec<String> = files.iter().map(|f| format!("[{}] {}", f.id, f.path)).collect();
+            let items: Vec<String> = files
+                .iter()
+                .map(|f| format!("[{}] {}", f.id, f.path))
+                .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("请选择一个文件：")
@@ -1961,7 +2102,10 @@ fn list_groups_interactive(conn: &mut AnyConnection, context: &mut Context) {
                 return;
             }
 
-            let items: Vec<String> = groups.iter().map(|g| format!("[{}] {}", g.id, g.name)).collect();
+            let items: Vec<String> = groups
+                .iter()
+                .map(|g| format!("[{}] {}", g.id, g.name))
+                .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("请选择一个组：")
@@ -1996,7 +2140,10 @@ fn list_tags_interactive(conn: &mut AnyConnection, context: &mut Context) {
                 return;
             }
 
-            let items: Vec<String> = tags.iter().map(|t| format!("[{}] {}", t.id, t.name)).collect();
+            let items: Vec<String> = tags
+                .iter()
+                .map(|t| format!("[{}] {}", t.id, t.name))
+                .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("请选择一个标签：")
@@ -2031,7 +2178,10 @@ fn list_file_groups_interactive(conn: &mut AnyConnection, context: &mut Context)
                 return;
             }
 
-            let items: Vec<String> = file_groups.iter().map(|fg| format!("文件 ID: {}, 组 ID: {}", fg.file_id, fg.group_id)).collect();
+            let items: Vec<String> = file_groups
+                .iter()
+                .map(|fg| format!("文件 ID: {}, 组 ID: {}", fg.file_id, fg.group_id))
+                .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("请选择一个文件组关联：")
@@ -2043,7 +2193,10 @@ fn list_file_groups_interactive(conn: &mut AnyConnection, context: &mut Context)
             if let Some(index) = selection {
                 context.selected_file_id = Some(file_groups[index].file_id);
                 context.selected_group_id = Some(file_groups[index].group_id);
-                println!("已选择文件 ID: {}, 组 ID: {}", file_groups[index].file_id, file_groups[index].group_id);
+                println!(
+                    "已选择文件 ID: {}, 组 ID: {}",
+                    file_groups[index].file_id, file_groups[index].group_id
+                );
             } else {
                 println!("没有选择文件组关联。");
             }
@@ -2067,7 +2220,10 @@ fn list_group_tags_interactive(conn: &mut AnyConnection, context: &mut Context) 
                 return;
             }
 
-            let items: Vec<String> = group_tags.iter().map(|gt| format!("组 ID: {}, 标签 ID: {}", gt.group_id, gt.tag_id)).collect();
+            let items: Vec<String> = group_tags
+                .iter()
+                .map(|gt| format!("组 ID: {}, 标签 ID: {}", gt.group_id, gt.tag_id))
+                .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("请选择一个组标签关联：")
@@ -2079,7 +2235,10 @@ fn list_group_tags_interactive(conn: &mut AnyConnection, context: &mut Context) 
             if let Some(index) = selection {
                 context.selected_group_id = Some(group_tags[index].group_id);
                 context.selected_tag_id = Some(group_tags[index].tag_id);
-                println!("已选择组 ID: {}, 标签 ID: {}", group_tags[index].group_id, group_tags[index].tag_id);
+                println!(
+                    "已选择组 ID: {}, 标签 ID: {}",
+                    group_tags[index].group_id, group_tags[index].tag_id
+                );
             } else {
                 println!("没有选择组标签关联。");
             }
