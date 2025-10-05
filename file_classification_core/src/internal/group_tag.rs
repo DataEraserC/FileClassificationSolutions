@@ -98,7 +98,7 @@ pub fn select_group_tags_by_conditions(
     }
 
     query
-        .select((group_tags::group_id, group_tags::tag_id))
+        .select(GroupTagDTO::as_select())
         .load(conn)
 }
 
@@ -144,7 +144,7 @@ pub fn select_group_tags_by_conditions_with_options(
     }
 
     query
-        .select((group_tags::group_id, group_tags::tag_id))
+        .select(GroupTagDTO::as_select())
         .load(conn)
 }
 

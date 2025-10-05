@@ -20,7 +20,7 @@ pub fn create_tag(
 
     // 手动获取最新插入的记录
     tags.order(tags::id.desc())
-        .select((tags::id, tags::name, tags::reference_count))
+        .select(Tag::as_select())
         .first(conn)
 }
 
@@ -30,14 +30,14 @@ pub fn find_tag_by_name(
     tag_name: &str,
 ) -> Result<Option<Tag>, diesel::result::Error> {
     tags.filter(tags::name.eq(tag_name))
-        .select((tags::id, tags::name, tags::reference_count))
+        .select(Tag::as_select())
         .first::<Tag>(conn)
         .optional()
 }
 
 pub fn find_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Option<Tag>, diesel::result::Error> {
     tags.filter(tags::id.eq(tag_id))
-        .select((tags::id, tags::name, tags::reference_count))
+        .select(Tag::as_select())
         .first::<Tag>(conn)
         .optional()
 }
@@ -78,7 +78,7 @@ pub fn select_tags(
 
     // 执行查询，手动指定选择的字段
     base_query
-        .select((tags::id, tags::name, tags::reference_count))
+        .select(Tag::as_select())
         .load(conn)
 }
 
@@ -162,7 +162,7 @@ pub fn select_tags_by_conditions(
     }
 
     query
-        .select((tags::id, tags::name, tags::reference_count))
+        .select(Tag::as_select())
         .load(conn)
 }
 
@@ -214,7 +214,7 @@ pub fn select_tags_by_conditions_with_options(
     }
 
     query
-        .select((tags::id, tags::name, tags::reference_count))
+        .select(Tag::as_select())
         .load(conn)
 }
 

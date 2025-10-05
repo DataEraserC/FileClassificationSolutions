@@ -1,9 +1,11 @@
 use super::models::{FileGroupCondition, FileGroupDTO};
-use crate::model::schema::file_groups;
+use crate::model::schema::{file_groups, files};
 use diesel::prelude::*;
 use std::fmt::{Debug, Formatter, Result as fmtResult};
 use crate::utils::database::AnyConnection;
-use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
+use crate::model::models::{File, FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
+use crate::utils::errors::AppError;
+use crate::utils::errors::AppError::CannotUnbindPrimaryGroup;
 
 pub fn insert_file_group(
     conn: &mut AnyConnection,
@@ -17,13 +19,25 @@ pub fn insert_file_group(
 pub fn delete_file_group_by_id(
     conn: &mut AnyConnection,
     file_group_dto: &FileGroupDTO,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
+    // 判断是否是文件-主组关系 若是则抛异常
+    let file = files::table
+        .select(File::as_select())
+        .filter(files::id.eq(file_group_dto.file_id))
+        .first(conn);
+
+    if file.is_ok() && file.unwrap().group_id == file_group_dto.group_id {
+        return Err(CannotUnbindPrimaryGroup);
+    }
+
     // 删除关联记录
     diesel::delete(
         file_groups::table
             .filter(file_groups::group_id.eq(file_group_dto.group_id))
-            .filter(file_groups::file_id.eq(file_group_dto.file_id))
-    ).execute(conn)
+            .filter(file_groups::file_id.eq(file_group_dto.file_id)),
+    )
+    .execute(conn)
+    .map_err(AppError::from) // 将 QueryResult 转换为 AppError
 }
 
 impl Debug for FileGroupDTO {
@@ -94,7 +108,7 @@ pub fn select_file_groups_by_conditions(
     }
 
     query
-        .select((file_groups::file_id, file_groups::group_id))
+        .select(FileGroupDTO::as_select())
         .load(conn)
 }
 
@@ -140,7 +154,7 @@ pub fn select_file_groups_by_conditions_with_options(
     }
 
     query
-        .select((file_groups::file_id, file_groups::group_id))
+        .select(FileGroupDTO::as_select())
         .load(conn)
 }
 

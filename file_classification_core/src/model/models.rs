@@ -311,8 +311,8 @@ pub struct UpdateTag {
 /** FileGroup Related
  */
 
-// NOTE: FileGroupDTO == CreateFileGroupDTO
-#[derive(Queryable, Insertable, Serialize, serde::Deserialize)]
+// NOTE: FileGroupDTO == CreateFileGroupDTO == FileGroup
+#[derive(Queryable, Selectable, Insertable, Serialize, serde::Deserialize)]
 #[diesel(table_name = file_groups)]
 pub struct FileGroupDTO {
     pub file_id: i32,
@@ -352,8 +352,8 @@ pub enum FileGroupOrderBy {
 /** GroupTag Related
 */
 
-// NOTE: GroupTagDTO == CreateGroupTagDTO
-#[derive(Queryable, Insertable, Serialize, Deserialize)]
+// NOTE: GroupTagDTO == CreateGroupTagDTO == GroupTag
+#[derive(Queryable, Selectable, Insertable, Serialize, Deserialize)]
 #[diesel(table_name = group_tags)]
 pub struct GroupTagDTO {
     pub group_id: i32,

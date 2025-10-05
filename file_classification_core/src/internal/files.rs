@@ -15,7 +15,7 @@ pub fn create_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result
 pub fn find_file_by_id(conn: &mut AnyConnection, _id: i32) -> Result<Option<File>, diesel::result::Error> {
     files::table
         .filter(files::id.eq(_id))
-        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
+        .select(File::as_select())
         .first(conn)
         .optional()
 }
@@ -66,7 +66,7 @@ pub fn select_files(
 
     // 执行查询
     base_query
-        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
+        .select(File::as_select())
         .load(conn)
 }
 
@@ -158,7 +158,7 @@ pub fn select_files_by_conditions(
     }
 
     query
-        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
+        .select(File::as_select())
         .load(conn)
 }
 
@@ -222,7 +222,7 @@ pub fn select_files_by_conditions_with_options(
     }
 
     query
-        .select((files::id, files::type_, files::path, files::reference_count, files::group_id))
+        .select(File::as_select())
         .load(conn)
 }
 
