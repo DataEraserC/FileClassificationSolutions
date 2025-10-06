@@ -2,13 +2,11 @@ use super::models::{CreateTagDTO, Tag, TagFilter};
 use diesel::prelude::*;
 use crate::utils::database::AnyConnection;
 use crate::model::schema::tags::dsl::*;
-use crate::model::schema::{groups, tags};
-use std::fmt::{Debug, Formatter, Result as fmtResult};
+use crate::model::schema::{tags};
 use super::models::TagCondition;
-use crate::model::models::{Group, OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
+use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTagDTO};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
-use crate::model::schema::group_tags::dsl::group_tags;
 
 pub fn create_tag(
     conn: &mut AnyConnection,
@@ -84,17 +82,6 @@ pub fn select_tags(
 
 pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
-}
-
-
-impl Debug for Tag {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
-        write!(
-            f,
-            "Tag {{ id: {}, name: {}, reference_count: {} }}",
-            self.id, self.name, self.reference_count
-        )
-    }
 }
 
 // 将 TagCondition 转换为 diesel 查询条件的辅助函数

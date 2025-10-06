@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter, Result as fmtResult};
 use super::schema::{file_groups, files, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
@@ -16,6 +17,16 @@ pub struct File {
     pub path: String,
     pub reference_count: i32,
     pub group_id: i32,
+}
+
+impl Debug for File {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
+        write!(
+            f,
+            "File {{ id: {}, type_: {}, path: {}, reference_count: {}, group_id: {} }}",
+            self.id, self.type_, self.path, self.reference_count, self.group_id
+        )
+    }
 }
 
 #[derive(Insertable)]
@@ -119,12 +130,28 @@ pub struct Group {
     pub modify_time: chrono::NaiveDateTime,
 }
 
+impl Debug for Group {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
+        write!(
+            f,
+            "Group {{ id: {}, name: {}, reference_count: {}, is_primary: {}, click_count: {}, share_count: {}, create_time: {}, modify_time: {} }}",
+            self.id,
+            self.name,
+            self.reference_count,
+            self.is_primary,
+            self.click_count,
+            self.share_count,
+            self.create_time,
+            self.modify_time
+        )
+    }
+}
+
 #[derive(Insertable, Deserialize, Serialize)]
 #[diesel(table_name = groups)]
 pub struct CreateGroupDTO {
     pub name: String,
 }
-
 
 #[derive(Deserialize,Clone)]
 pub enum GroupCondition {
@@ -242,6 +269,16 @@ pub struct Tag {
     pub reference_count: i32,
 }
 
+impl Debug for Tag {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
+        write!(
+            f,
+            "Tag {{ id: {}, name: {}, reference_count: {} }}",
+            self.id, self.name, self.reference_count
+        )
+    }
+}
+
 #[derive(Insertable, Deserialize, Serialize)]
 #[diesel(table_name = tags)]
 pub struct CreateTagDTO {
@@ -319,6 +356,12 @@ pub struct FileGroupDTO {
     pub group_id: i32,
 }
 
+impl Debug for FileGroupDTO {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
+        write!(f, "FileGroup {{ file_id: {}, group_id: {} }}", self.file_id, self.group_id)
+    }
+}
+
 #[derive(serde::Deserialize, Clone)]
 pub enum FileGroupCondition {
     FileId(i32),
@@ -358,6 +401,12 @@ pub enum FileGroupOrderBy {
 pub struct GroupTagDTO {
     pub group_id: i32,
     pub tag_id: i32,
+}
+
+impl Debug for GroupTagDTO {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
+        write!(f, "GroupTag {{ group_id: {}, tag_id: {} }}", self.group_id, self.tag_id)
+    }
 }
 
 #[derive(serde::Deserialize, Clone)]

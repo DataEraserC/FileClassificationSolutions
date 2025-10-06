@@ -2,7 +2,7 @@ use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, Gr
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
-use diesel::{Connection, JoinOnDsl};
+use diesel::{Connection};
 use crate::utils::database::AnyConnection;
 
 pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<usize, Error>

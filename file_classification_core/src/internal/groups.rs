@@ -2,7 +2,6 @@ use super::models::{CreateGroupDTO, Group, GroupFilter};
 use diesel::prelude::*;
 use crate::model::schema::groups::dsl::*;
 use crate::model::schema::groups;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 use super::models::GroupCondition;
 use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
 use diesel::dsl::not;
@@ -108,22 +107,6 @@ pub fn decrease_group_reference_count(
     diesel::update(groups::table.find(group_id))
         .set(groups::reference_count.eq(groups::reference_count - 1))
         .execute(conn)
-}
-impl Debug for Group {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
-        write!(
-            f,
-            "Group {{ id: {}, name: {}, reference_count: {}, is_primary: {}, click_count: {}, share_count: {}, create_time: {}, modify_time: {} }}",
-            self.id,
-            self.name,
-            self.reference_count,
-            self.is_primary,
-            self.click_count,
-            self.share_count,
-            self.create_time,
-            self.modify_time
-        )
-    }
 }
 
 // 将 GroupCondition 转换为 diesel 查询条件的辅助函数

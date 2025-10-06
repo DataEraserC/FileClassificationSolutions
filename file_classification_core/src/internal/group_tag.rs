@@ -1,7 +1,6 @@
 use super::models::GroupTagDTO;
 use crate::model::schema::group_tags;
 use diesel::prelude::*;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 use crate::utils::database::AnyConnection;
 use super::models::GroupTagCondition;
 use crate::model::models::{GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
@@ -28,12 +27,6 @@ pub fn delete_group_tag_by_id(
             .filter(group_tags::tag_id.eq(group_tag_dto.tag_id))
     )
         .execute(conn)
-}
-
-impl Debug for GroupTagDTO {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
-        write!(f, "GroupTag {{ group_id: {}, tag_id: {} }}", self.group_id, self.tag_id)
-    }
 }
 
 // 将 GroupTagCondition 转换为 diesel 查询条件的辅助函数

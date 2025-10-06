@@ -3,7 +3,7 @@ use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
 };
-use diesel::{Connection, JoinOnDsl};
+use diesel::{Connection};
 use crate::utils::database::AnyConnection;
 
 pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<Tag, diesel::result::Error>

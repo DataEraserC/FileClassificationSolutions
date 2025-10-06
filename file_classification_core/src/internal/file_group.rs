@@ -1,7 +1,6 @@
 use super::models::{FileGroupCondition, FileGroupDTO};
 use crate::model::schema::{file_groups, files};
 use diesel::prelude::*;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 use crate::utils::database::AnyConnection;
 use crate::model::models::{File, FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
 use crate::utils::errors::AppError;
@@ -26,7 +25,7 @@ pub fn delete_file_group_by_id(
         .filter(files::id.eq(file_group_dto.file_id))
         .first(conn);
 
-    if file.is_ok() && file.unwrap().group_id == file_group_dto.group_id {
+    if file.is_ok() && file?.group_id == file_group_dto.group_id {
         return Err(CannotUnbindPrimaryGroup);
     }
 
@@ -38,12 +37,6 @@ pub fn delete_file_group_by_id(
     )
     .execute(conn)
     .map_err(AppError::from) // 将 QueryResult 转换为 AppError
-}
-
-impl Debug for FileGroupDTO {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
-        write!(f, "FileGroup {{ file_id: {}, group_id: {} }}", self.file_id, self.group_id)
-    }
 }
 
 // 将 FileGroupCondition 转换为 diesel 查询条件的辅助函数

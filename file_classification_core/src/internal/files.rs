@@ -5,7 +5,6 @@ use crate::model::models::{FileOrderBy, FileQueryOptions, OrderDirection};
 use crate::model::schema::files;
 use crate::model::schema::files::dsl::*;
 use diesel::sql_types::Bool;
-use std::fmt::{Debug, Formatter, Result as fmtResult};
 
 pub fn create_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(files::table)
@@ -74,15 +73,6 @@ pub fn delete_file_by_id(conn: &mut AnyConnection, file_id: i32) -> Result<usize
     diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
 
-impl Debug for File {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
-        write!(
-            f,
-            "File {{ id: {}, type_: {}, path: {}, reference_count: {}, group_id: {} }}",
-            self.id, self.type_, self.path, self.reference_count, self.group_id
-        )
-    }
-}
 
 // 将 FileCondition 转换为 diesel 查询条件的辅助函数
 // 更新 build_condition 函数以处理新增的条件类型
