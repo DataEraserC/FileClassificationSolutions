@@ -13,8 +13,8 @@ where
     groups::create_group(conn, &new_group)
 }
 
-pub fn create_group(conn: &mut AnyConnection, create_group_dTO: &CreateGroupDTO) -> Result<usize, Error> {
-    groups::create_group(conn, create_group_dTO)
+pub fn create_group(conn: &mut AnyConnection, create_group_dto: &CreateGroupDTO) -> Result<usize, Error> {
+    groups::create_group(conn, create_group_dto)
 }
 
 pub fn find_group_by_name(
