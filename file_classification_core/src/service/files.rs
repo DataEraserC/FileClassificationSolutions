@@ -5,9 +5,8 @@
 //! 并处理文件与其关联分组、标签等资源的引用计数和级联删除。
 
 use crate::internal::file_group::select_file_groups_by_conditions;
-use crate::internal::groups::{mark_group_as_primary, select_groups_by_conditions};
-use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, FileQueryOptions, GroupCondition, GroupTagCondition, TagCondition, UpdateFileDTO, UpdateGroupDTO};
-use crate::service::groups::update_groups_by_conditions;
+use crate::internal::groups::{mark_group_as_primary};
+use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, FileQueryOptions, GroupTagCondition, UpdateFileDTO};
 use crate::service::AppError;
 use crate::utils::errors::AppError::{FuturePrimaryGroupShouldBeEmpty};
 use crate::{internal, service};
@@ -28,9 +27,9 @@ use crate::utils::database::AnyConnection;
 /// - `create_file_dto`: 包含文件信息的DTO对象
 ///
 /// 返回值:
-/// 成功时返回创建的记录数，失败时返回相应的错误
-pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> Result<usize, AppError> {
-    conn.transaction::<usize, AppError, _>(|conn| {
+/// 成功时返回插入记录的ID，失败则返回相应的错误
+pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> Result<i32, AppError> {
+    conn.transaction::<i32, AppError, _>(|conn| {
         // 验证目标分组是否存在
         let target_group = internal::groups::get_group_by_id(conn, create_file_dto.group_id)?;
 
@@ -43,21 +42,26 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         if internal::file_group::check_group_empty(conn, target_group.id)? == false {
             return Err(FuturePrimaryGroupShouldBeEmpty);
         }
-        
-        let mut count = 0;
+
+        // 记录影响条数
+        // let mut count = 0;
+
         // 创建文件记录
-        count += internal::files::insert_file(conn, &create_file_dto)?;
-        
-        // 获取刚创建的文件 主分组id可以区别文件
-        let file_list = internal::files::select_files_by_conditions(conn, vec![
-            FileCondition::GroupId(create_file_dto.group_id)
-        ], None)?;
-        let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
+        let mut file_id = internal::files::insert_file(conn, &create_file_dto)?;
+
+        // count += 1;
+
+        // // 获取刚创建的文件 主分组id可以区别文件
+        // let file_list = internal::files::select_files_by_conditions(conn, vec![
+        //     FileCondition::GroupId(create_file_dto.group_id)
+        // ], None)?;
+        // let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
+        // file_id = file.id;
 
         // 建立文件与主分组的关联关系
-        match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: target_group.id }) {
+        match service::file_group::create_file_group(conn, FileGroupDTO { file_id, group_id: target_group.id }) {
             Ok(_) => {
-                count += 1;
+                // count += 1;
             }
             Err(e) => {
                 return Err(e)
@@ -65,10 +69,11 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         }
 
         // 将目标分组标记为主分组
-        count += mark_group_as_primary(conn, target_group.id)?;
+        mark_group_as_primary(conn, target_group.id)?;
+        // count += mark_group_as_primary(conn, target_group.id)?;
 
-        // 返回修改条数
-        Ok(count)
+        // 返回文件id
+        Ok(file_id)
     })
 }
 

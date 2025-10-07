@@ -4,7 +4,7 @@
 //! 提供标签相关的业务逻辑处理，包括标签的创建、删除、查询和更新操作，
 //! 并处理标签与其关联分组等资源的引用计数和级联删除。
 
-use crate::model::models::{GroupTagCondition, GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO};
+use crate::model::models::{GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO};
 use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
@@ -19,8 +19,8 @@ use crate::utils::database::AnyConnection;
 /// - `name`: 标签名称
 ///
 /// 返回值:
-/// 成功时返回创建的标签记录，失败时返回数据库错误
-pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<usize, diesel::result::Error>
+/// 成功时返回插入记录的ID，失败则返回相应的错误
+pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<i32, diesel::result::Error>
 where
     S: Into<String>,
 {
@@ -35,8 +35,8 @@ where
 /// - `create_tag_dto`: 包含标签信息的DTO对象
 ///
 /// 返回值:
-/// 成功时返回创建的标签记录，失败时返回数据库错误
-pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<usize, diesel::result::Error> {
+/// 成功时返回插入记录的ID，失败则返回相应的错误
+pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<i32, diesel::result::Error> {
     tags::insert_tag(conn, create_tag_dto)
 }
 

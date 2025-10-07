@@ -20,14 +20,45 @@ use diesel::sql_types::Bool;
 /// - `new_tag`: 包含待插入标签数据的 DTO 对象
 ///
 /// 返回值:
-/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
+/// 成功时返回插入记录的ID，失败则返回数据库错误
 pub fn insert_tag(
     conn: &mut AnyConnection,
     new_tag: &CreateTagDTO,
-) -> Result<usize, diesel::result::Error> {
-    diesel::insert_into(tags::table)
-        .values(new_tag)
-        .execute(conn)
+) -> Result<i32, diesel::result::Error> {
+    // 使用 match 表达式根据连接类型选择实现方式
+    match conn {
+        // 对于 SQLite 连接，使用 returning 子句
+        AnyConnection::Sqlite(_) => {
+            diesel::insert_into(tags::table)
+                .values(new_tag)
+                .returning(tags::id)
+                .get_result(conn)
+        },
+        // 对于 MySQL 连接，使用事务方式（暂时注释掉，因为目前没有启用mysql）
+        /*
+        AnyConnection::Mysql(_) => {
+            conn.transaction(|conn| {
+                // 执行插入操作
+                diesel::insert_into(tags::table)
+                    .values(new_tag)
+                    .execute(conn)?;
+
+                // MySQL使用LAST_INSERT_ID()获取最后插入的ID
+                let last_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>("LAST_INSERT_ID()"))
+                    .get_result(conn)?;
+
+                Ok(last_id)
+            })
+        },
+        */
+        // 默认情况（如其他数据库类型）使用 returning 子句
+        _ => {
+            diesel::insert_into(tags::table)
+                .values(new_tag)
+                .returning(tags::id)
+                .get_result(conn)
+        }
+    }
 }
 
 /// 根据名称查找标签记录

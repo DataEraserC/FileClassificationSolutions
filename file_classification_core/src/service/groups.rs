@@ -4,7 +4,7 @@
 //! 提供分组相关的业务逻辑处理，包括分组的创建、删除、查询和更新操作，
 //! 并处理分组与其关联文件、标签等资源的引用计数和级联删除。
 
-use crate::model::models::{FileCondition, FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
+use crate::model::models::{FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
@@ -18,8 +18,8 @@ use crate::utils::database::AnyConnection;
 /// - `name`: 分组名称
 ///
 /// 返回值:
-/// 成功时返回影响的行数，失败时返回数据库错误
-pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<usize, Error>
+/// 成功时返回插入记录的ID，失败则返回相应的错误
+pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<i32, Error>
 where
     S: Into<String>,
 {
@@ -34,8 +34,8 @@ where
 /// - `create_group_dto`: 包含分组信息的DTO对象
 ///
 /// 返回值:
-/// 成功时返回影响的行数，失败时返回数据库错误
-pub fn create_group(conn: &mut AnyConnection, create_group_dto: &CreateGroupDTO) -> Result<usize, Error> {
+/// 成功时返回插入记录的ID，失败则返回相应的错误
+pub fn create_group(conn: &mut AnyConnection, create_group_dto: &CreateGroupDTO) -> Result<i32, Error> {
     groups::insert_group(conn, create_group_dto)
 }
 
