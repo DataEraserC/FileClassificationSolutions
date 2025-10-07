@@ -810,10 +810,8 @@ name = "file_classification_cli"
 version = "0.2.0"
 dependencies = [
  "assert_cmd",
- "chrono",
  "clap",
  "dialoguer",
- "diesel",
  "file_classification_core",
  "rustyline",
  "shlex",

@@ -4,9 +4,7 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
-diesel = { workspace = true }
 file_classification_core = { path = "../file_classification_core" }
-chrono = { workspace = true }
 clap = { version = "4.5", features = ["derive"] }
 dialoguer = "0.10.4"
 rustyline = "14.0.0"
