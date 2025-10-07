@@ -741,16 +741,27 @@ fn handle_command(
 
                 println!("执行命令: {}", line);
 
-                // 尝试解析为标准命令
-                let args: Vec<&str> = line.split_whitespace().collect();
-                if let Ok(cmd) = Cli::try_parse_from(args) {
-                    if let Err(e) = handle_command(cmd, conn, context) {
-                        println!("命令执行错误: {}", e);
+                // 支持分号分隔的多命令
+                let commands: Vec<&str> = line.split(';').collect();
+                for command in commands {
+                    let command = command.trim();
+                    if command.is_empty() {
+                        continue;
                     }
-                } else {
-                    // 尝试作为简化命令处理
-                    if !handle_simplified_command(line, conn, context) {
-                        println!("无法解析命令: {}", line);
+
+                    // 尝试解析为标准命令
+                    let args = shlex::split(command).unwrap_or_default();
+                    let cli_args = std::iter::once("file_classification_cli".to_string()).chain(args);
+
+                    if let Ok(cmd) = Cli::try_parse_from(cli_args) {
+                        if let Err(e) = handle_command(cmd, conn, context) {
+                            println!("命令执行错误: {}", e);
+                        }
+                    } else {
+                        // 尝试作为简化命令处理
+                        if !handle_simplified_command(command, conn, context) {
+                            println!("无法解析命令: {}", command);
+                        }
                     }
                 }
             }
