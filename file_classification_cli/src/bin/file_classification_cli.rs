@@ -517,41 +517,45 @@ fn handle_simplified_command(
 
 fn print_help() {
     println!("可用命令:");
-    println!("  file create --type <type> --path <path> --group_id <id>     创建文件");
+    println!("  file create --type <type> --path <path> --group-id <id>     创建文件");
     println!("  file delete --id <id>                                       删除文件");
     println!("  file list-interactive                                       交互式查询文件");
     println!("  file list-by-conditions -c <conditions...>                  按条件查询文件");
-    println!("  file list-by-group-id --group_id <id>                       按组ID查询文件");
+    println!("  file list-by-group-id --group-id <id>                       按组ID查询文件");
     println!("  file update-by-conditions -c <conditions...>                按条件更新文件");
     println!("  file delete-by-conditions -c <conditions...>                按条件删除文件");
     println!("  group create --name <name>                                  创建组");
     println!("  group delete --id <id>                                      删除组");
     println!("  group list-interactive                                      交互式查询组");
     println!("  group list-by-conditions -c <conditions...>                 按条件查询组");
-    println!("  group list-by-file-id --file_id <id>                        按文件ID查询组");
-    println!("  group list-by-tag-id --tag_id <id>                          按标签ID查询组");
+    println!("  group list-by-file-id --file-id <id>                        按文件ID查询组");
+    println!("  group list-by-tag-id --tag-id <id>                          按标签ID查询组");
     println!("  group update-by-conditions -c <conditions...>               按条件更新组");
     println!("  group delete-by-conditions -c <conditions...>               按条件删除组");
     println!("  tag create --name <name>                                    创建标签");
     println!("  tag delete --id <id>                                        删除标签");
     println!("  tag list-interactive                                        交互式查询标签");
     println!("  tag list-by-conditions -c <conditions...>                   按条件查询标签");
-    println!("  tag list-by-group-id --group_id <id>                        按组ID查询标签");
+    println!("  tag list-by-group-id --group-id <id>                        按组ID查询标签");
     println!("  tag update-by-conditions -c <conditions...>                 按条件更新标签");
     println!("  tag delete-by-conditions -c <conditions...>                 按条件删除标签");
-    println!("  file-group create --file_id <id> --group_id <id>            创建文件-组关联");
-    println!("  file-group delete --id <id>                                 删除文件-组关联");
+    println!("  file-group create --file-id <id> --group-id <id>            创建文件-组关联");
+    println!("  file-group delete --file-id <id> --group-id <id>            删除文件-组关联");
+    println!("  file-group list-interactive                                 交互式查询文件-组关联");
     println!("  file-group list-by-conditions -c <conditions...>            按条件查询文件-组关联");
-    println!("  group-tag create --group_id <id> --tag_id <id>              创建组-标签关联");
-    println!("  group-tag delete --id <id>                                  删除组-标签关联");
+    println!("  file-group delete-by-conditions -c <conditions...>          按条件删除文件-组关联");
+    println!("  group-tag create --group-id <id> --tag-id <id>              创建组-标签关联");
+    println!("  group-tag delete --group-id <id> --tag-id <id>              删除组-标签关联");
+    println!("  group-tag list-interactive                                  交互式查询组-标签关联");
     println!("  group-tag list-by-conditions -c <conditions...>             按条件查询组-标签关联");
+    println!("  group-tag delete-by-conditions -c <conditions...>           按条件删除组-标签关联");
     println!("");
     println!("简化命令:");
     println!("  ls                                                         列出当前上下文相关的项目");
-    println!("  cd <id>                                                    切换当前上下文");
-    println!("  select <type> <id>                                         选择特定类型和ID");
-    println!("  new <type> <name/path>                                     快速创建新项目");
-    println!("  rm <type> <id>                                             快速删除项目");
+    println!("  cd <id>                                                    切换当前上下文(假定为组)");
+    println!("  select <type> <id>                                         选择特定类型和ID (type: file/group/tag)");
+    println!("  new <type> <name/path>                                     快速创建新项目 (type: file/group/tag)");
+    println!("  rm <type> <id>                                             快速删除项目 (type: file/group/tag)");
     println!("  context                                                    显示当前上下文");
     println!("  clear                                                      清屏");
     println!("  !<command>                                                 执行系统命令");
@@ -2050,7 +2054,6 @@ fn parse_group_tag_order_by(args: &[String]) -> Vec<models::GroupTagOrderBy> {
     order_bys
 }
 
-// 交互式查询函数（示例）
 fn list_files_interactive(conn: &mut AnyConnection, context: &mut Context) {
     use file_classification_core::service::files as file_service;
     use dialoguer::{Select, theme::ColorfulTheme};
@@ -2064,9 +2067,10 @@ fn list_files_interactive(conn: &mut AnyConnection, context: &mut Context) {
                 return;
             }
 
+            // 修改这里：显示完整的文件信息
             let items: Vec<String> = files
                 .iter()
-                .map(|f| format!("[{}] {}", f.id, f.path))
+                .map(|f| format!("[{}] 类型: {}, 路径: {}, 组ID: {}", f.id, f.type_, f.path, f.group_id))
                 .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
@@ -2102,9 +2106,11 @@ fn list_groups_interactive(conn: &mut AnyConnection, context: &mut Context) {
                 return;
             }
 
+            // 修改这里：显示完整的组信息
             let items: Vec<String> = groups
                 .iter()
-                .map(|g| format!("[{}] {}", g.id, g.name))
+                .map(|g| format!("[{}] 名称: {}, 引用数: {}, 主要组: {}, 点击数: {}, 分享数: {}",
+                    g.id, g.name, g.reference_count, g.is_primary, g.click_count, g.share_count))
                 .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
@@ -2140,9 +2146,10 @@ fn list_tags_interactive(conn: &mut AnyConnection, context: &mut Context) {
                 return;
             }
 
+            // 修改这里：显示完整的标签信息
             let items: Vec<String> = tags
                 .iter()
-                .map(|t| format!("[{}] {}", t.id, t.name))
+                .map(|t| format!("[{}] 名称: {}, 引用数: {}", t.id, t.name, t.reference_count))
                 .collect();
 
             let selection = Select::with_theme(&ColorfulTheme::default())
@@ -2178,6 +2185,7 @@ fn list_file_groups_interactive(conn: &mut AnyConnection, context: &mut Context)
                 return;
             }
 
+            // 修改这里：显示完整的文件组关联信息
             let items: Vec<String> = file_groups
                 .iter()
                 .map(|fg| format!("文件 ID: {}, 组 ID: {}", fg.file_id, fg.group_id))
@@ -2220,6 +2228,7 @@ fn list_group_tags_interactive(conn: &mut AnyConnection, context: &mut Context) 
                 return;
             }
 
+            // 修改这里：显示完整的组标签关联信息
             let items: Vec<String> = group_tags
                 .iter()
                 .map(|gt| format!("组 ID: {}, 标签 ID: {}", gt.group_id, gt.tag_id))
