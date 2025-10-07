@@ -638,6 +638,7 @@ fn run_repl(
                 // 添加到历史记录
                 let _ = rl.add_history_entry(line);
 
+                // 处理特殊命令（不使用分号分隔）
                 if line == "exit" || line == "quit" {
                     break;
                 }
@@ -676,26 +677,34 @@ fn run_repl(
                     continue;
                 }
 
-                let args = shlex::split(line).unwrap_or_default();
-                let cli_args = std::iter::once("file_classification_cli".to_string()).chain(args);
-
-                match Cli::try_parse_from(cli_args) {
-                    Ok(cli) => {
-                        let command = cli.command;
-
-                        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                            handle_command(Cli { command }, conn, context)
-                        }));
-                        match result {
-                            Ok(Ok(_)) => {},
-                            Ok(Err(e)) => eprintln!("命令执行出错: {}", e),
-                            Err(_) => eprintln!("命令执行时发生严重错误 (panic)！"),
-                        }
+                // 支持分号分隔的多命令（仅对非特殊命令）
+                let commands: Vec<&str> = line.split(';').collect();
+                for command in commands {
+                    let command = command.trim();
+                    if command.is_empty() {
+                        continue;
                     }
-                    Err(e) => {
-                        // 尝试解析为简化命令
-                        if !handle_simplified_command(line, conn, context) {
-                            eprintln!("参数解析出错: {}", e);
+
+                    // 处理每个命令
+                    let args = shlex::split(command).unwrap_or_default();
+                    let cli_args = std::iter::once("file_classification_cli".to_string()).chain(args);
+
+                    match Cli::try_parse_from(cli_args) {
+                        Ok(cli) => {
+                            let command = cli.command;
+                            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                                handle_command(Cli { command }, conn, context)
+                            }));
+                            match result {
+                                Ok(Ok(_)) => {},
+                                Ok(Err(e)) => eprintln!("命令执行出错: {}", e),
+                                Err(_) => eprintln!("命令执行时发生严重错误 (panic)！"),
+                            }
+                        }
+                        Err(e) => {
+                            if !handle_simplified_command(command, conn, context) {
+                                eprintln!("参数解析出错: {}", e);
+                            }
                         }
                     }
                 }
