@@ -8,8 +8,6 @@ use crate::model::schema::{file_groups, files};
 use diesel::prelude::*;
 use crate::utils::database::AnyConnection;
 use crate::model::models::{File, FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
-use crate::utils::errors::AppError;
-use crate::utils::errors::AppError::CannotUnbindPrimaryGroup;
 
 /// 插入一个新的文件-分组关联记录
 ///
@@ -30,37 +28,47 @@ pub fn insert_file_group(
 
 /// 根据 DTO 中的信息删除一个文件-分组关联记录
 ///
-/// 注意：若尝试解除文件与其主分组的关系，则会抛出 `CannotUnbindPrimaryGroup` 错误。
-///
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `file_group_dto`: 包含要删除记录信息的 DTO 对象
 ///
 /// 返回值:
-/// 成功时返回影响的行数（通常应为1），失败则返回自定义错误或数据库错误
-pub fn delete_file_group_by_id(
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
+pub fn delete_file_group_by_dto(
     conn: &mut AnyConnection,
     file_group_dto: &FileGroupDTO,
-) -> Result<usize, AppError> {
-    // 检查是否试图解绑文件的主分组
-    let file = files::table
-        .select(File::as_select())
-        .filter(files::id.eq(file_group_dto.file_id))
-        .first(conn);
-
-    if file.is_ok() && file?.group_id == file_group_dto.group_id {
-        return Err(CannotUnbindPrimaryGroup);
-    }
-
-    // 执行实际的删除操作
+) -> Result<usize, diesel::result::Error> {
     diesel::delete(
         file_groups::table
             .filter(file_groups::group_id.eq(file_group_dto.group_id))
             .filter(file_groups::file_id.eq(file_group_dto.file_id)),
     )
     .execute(conn)
-    .map_err(AppError::from) // 将 QueryResult 转换为 AppError
 }
+
+/// 根据多个 DTO 对象批量删除文件-分组关联记录（带事务支持）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_group_dtos`: 包含要删除记录信息的 DTO 对象向量
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn delete_file_groups_by_dtos(
+    conn: &mut AnyConnection,
+    file_group_dtos: Vec<FileGroupDTO>,
+) -> Result<usize, diesel::result::Error> {
+    conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+        let mut total_deleted = 0;
+
+        for dto in file_group_dtos {
+            total_deleted += delete_file_group_by_dto(conn, &dto)?;
+        }
+
+        Ok(total_deleted)
+    })
+}
+
 
 /// 构建符合 Diesel 查询语法的条件表达式
 ///
@@ -199,60 +207,43 @@ pub fn select_file_groups_by_conditions_with_options(
         .select(FileGroupDTO::as_select())
         .load(conn)
 }
-/// 根据给定条件批量删除文件-分组关联记录
-///
-/// 注意：若尝试解除文件与其主分组的关系，则会抛出 `CannotUnbindPrimaryGroup` 错误。
-/// 该操作在事务中执行，任何一个删除失败都会导致整个操作回滚。
+
+/// 检查指定分组是否为空（没有关联的文件）
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
-/// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+/// - `group_id`: 要检查的分组ID
 ///
 /// 返回值:
-/// 成功删除的记录数目或数据库错误
-pub fn delete_file_groups_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileGroupCondition>,
-) -> Result<usize, AppError> {
-    // 开始事务
-    conn.transaction::<usize, AppError, _>(|conn| {
-        // 首先查询将要删除的所有记录
-        let mut select_query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+/// 成功时返回布尔值，true表示分组为空，false表示分组不为空；失败则返回数据库错误
+pub fn check_group_empty(conn: &mut AnyConnection, group_id: i32) -> Result<bool, diesel::result::Error> {
+    let count = file_groups::table
+        .filter(file_groups::group_id.eq(group_id))
+        .count()
+        .first::<i64>(conn)?;
 
-        // 应用所有条件到查询
-        for condition in &conditions {
-            let boxed_condition = build_file_group_condition(condition.clone());
-            select_query = select_query.filter(boxed_condition);
-        }
-
-        // 获取将要删除的记录
-        let records_to_delete: Vec<FileGroupDTO> = select_query
-            .select(FileGroupDTO::as_select())
-            .load(conn)?;
-
-        // 检查每条记录是否是文件的主分组关联
-        for record in &records_to_delete {
-            let file = files::table
-                .select(File::as_select())
-                .filter(files::id.eq(record.file_id))
-                .first(conn);
-
-            // 如果文件存在且该分组是其主分组，则不允许删除
-            if file.is_ok() && file?.group_id == record.group_id {
-                return Err(CannotUnbindPrimaryGroup);
-            }
-        }
-
-        // 执行实际的删除操作
-        let mut delete_query = diesel::delete(file_groups::table).into_boxed::<<AnyConnection as Connection>::Backend>();
-
-        // 应用所有删除条件
-        for condition in conditions {
-            let boxed_condition = build_file_group_condition(condition);
-            delete_query = delete_query.filter(boxed_condition);
-        }
-
-        let deleted_count = delete_query.execute(conn)?;
-        Ok(deleted_count)
-    })
+    Ok(count == 0)
 }
+
+// /// 根据给定条件批量删除文件-分组关联记录
+// ///
+// /// 参数:
+// /// - `conn`: 数据库连接对象
+// /// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+// ///
+// /// 返回值:
+// /// 成功删除的记录数目或数据库错误
+// pub fn delete_file_groups_by_conditions(
+//     conn: &mut AnyConnection,
+//     conditions: Vec<FileGroupCondition>,
+// ) -> Result<usize, diesel::result::Error> {
+//     let mut query = diesel::delete(file_groups::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+//
+//     // 应用所有删除条件
+//     for condition in conditions {
+//         let boxed_condition = build_file_group_condition(condition);
+//         query = query.filter(boxed_condition);
+//     }
+//
+//     query.execute(conn)
+// }

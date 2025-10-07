@@ -20,19 +20,14 @@ use diesel::sql_types::Bool;
 /// - `new_tag`: 包含待插入标签数据的 DTO 对象
 ///
 /// 返回值:
-/// 成功时返回新创建的标签记录，失败则返回数据库错误
-pub fn create_tag(
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
+pub fn insert_tag(
     conn: &mut AnyConnection,
     new_tag: &CreateTagDTO,
-) -> Result<Tag, diesel::result::Error> {
+) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(tags::table)
         .values(new_tag)
-        .execute(conn)?;
-
-    // 手动获取最新插入的记录
-    tags.order(tags::id.desc())
-        .select(Tag::as_select())
-        .first(conn)
+        .execute(conn)
 }
 
 /// 根据名称查找标签记录
@@ -77,7 +72,7 @@ pub fn find_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Option<Ta
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn increase_tag_reference_count(
+pub fn increase_tag_reference_count_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<usize, diesel::result::Error> {
@@ -94,7 +89,7 @@ pub fn increase_tag_reference_count(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn decrease_tag_reference_count(
+pub fn decrease_tag_reference_count_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<usize, diesel::result::Error> {
@@ -102,6 +97,43 @@ pub fn decrease_tag_reference_count(
         .set(tags::reference_count.eq(tags::reference_count - 1))
         .execute(conn)
 }
+
+/// 根据多个标签ID批量增加标签引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_ids`: 标签ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn increase_tag_reference_count_by_ids(
+    conn: &mut AnyConnection,
+    tag_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(tags::table)
+        .filter(tags::id.eq_any(tag_ids))
+        .set(tags::reference_count.eq(tags::reference_count + 1))
+        .execute(conn)
+}
+
+/// 根据多个标签ID批量减少标签引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_ids`: 标签ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn decrease_tag_reference_count_by_ids(
+    conn: &mut AnyConnection,
+    tag_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(tags::table)
+        .filter(tags::id.eq_any(tag_ids))
+        .set(tags::reference_count.eq(tags::reference_count - 1))
+        .execute(conn)
+}
+
 
 /// 根据过滤条件查询标签列表
 ///
@@ -112,7 +144,7 @@ pub fn decrease_tag_reference_count(
 ///
 /// 返回值:
 /// 查询成功的标签记录列表或数据库错误
-pub fn select_tags(
+pub fn select_tags_by_filter(
     conn: &mut AnyConnection,
     search_input: TagFilter,
     limit: i64,
@@ -142,8 +174,27 @@ pub fn select_tags(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
+pub fn delete_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
+}
+
+/// 根据多个标签ID批量删除标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_ids`: 要删除的标签ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn delete_tags_by_ids(
+    conn: &mut AnyConnection,
+    tag_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::delete(
+        tags::table
+            .filter(tags::id.eq_any(tag_ids))
+    )
+    .execute(conn)
 }
 
 /// 构建符合 Diesel 查询语法的条件表达式
@@ -398,13 +449,13 @@ pub fn decrease_tags_reference_count_by_conditions(
 /// 查询成功的标签记录列表或数据库错误
 pub fn select_tag_by_group_id(
     conn: &mut AnyConnection,
-    group_id: i64,
+    group_id: i32,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     use crate::model::schema::group_tags;
 
     tags::table
         .inner_join(group_tags::table.on(tags::id.eq(group_tags::tag_id)))
-        .filter(group_tags::group_id.eq(group_id as i32))
+        .filter(group_tags::group_id.eq(group_id))
         .select(Tag::as_select())
         .load(conn)
 }

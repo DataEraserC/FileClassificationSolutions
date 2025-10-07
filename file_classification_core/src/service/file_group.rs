@@ -5,8 +5,8 @@
 //! 并处理相关的引用计数管理和业务规则验证。
 
 use crate::internal::file_group as file_groups;
-use crate::internal::files::{decrease_file_reference_count, find_file_by_id, increase_file_reference_count};
-use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
+use crate::internal::files::{decrease_file_reference_count_by_id, find_file_by_id, increase_file_reference_count_by_id};
+use crate::internal::groups::{decrease_group_reference_count_by_id, find_group_by_id, increase_group_reference_count_by_id};
 use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupQueryOptions};
 use crate::service::AppError;
 use diesel::result::Error;
@@ -49,8 +49,8 @@ pub fn create_file_group(
 
     // 使用事务处理引用计数和数据插入
     let _result = conn.transaction::<_, AppError, _>(|conn| {
-        increase_file_reference_count(conn, file_group_dto.file_id)?;
-        increase_group_reference_count(conn, file_group_dto.group_id)?;
+        increase_file_reference_count_by_id(conn, file_group_dto.file_id)?;
+        increase_group_reference_count_by_id(conn, file_group_dto.group_id)?;
         // 错误类型转换，将 diesel::result::Error 转换为 AppError
         file_groups::insert_file_group(conn, &file_group_dto)?;
         Ok(())
@@ -94,11 +94,11 @@ pub fn delete_file_group(
 
     let result = conn.transaction::<_, AppError, _>(|conn| {
         // 减少组和标签的引用计数
-        decrease_group_reference_count(conn, file_group_dto.group_id)?;
-        decrease_file_reference_count(conn, file_group_dto.file_id)?;
+        decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
+        decrease_file_reference_count_by_id(conn, file_group_dto.file_id)?;
 
         // 调用数据访问层执行删除操作
-        let deleted_count = file_groups::delete_file_group_by_id(conn, &file_group_dto)?;
+        let deleted_count = file_groups::delete_file_group_by_dto(conn, &file_group_dto)?;
 
         Ok(deleted_count)
     });
@@ -154,9 +154,7 @@ pub fn select_file_groups_by_conditions_with_options(
 ///
 /// 操作流程:
 /// 1. 先查询将要删除的所有记录
-/// 2. 在事务中执行以下操作：
-///    - 对每条记录减少对应文件和分组的引用计数
-///    - 执行实际的批量删除操作
+/// 2. 在事务中对每条记录调用delete_file_group执行删除操作
 pub fn delete_file_groups_by_conditions(
     conn: &mut AnyConnection,
     condition: Vec<FileGroupCondition>,
@@ -170,18 +168,20 @@ pub fn delete_file_groups_by_conditions(
 
     // 使用事务确保数据一致性
     conn.transaction::<_, Error, _>(|conn| {
-        // 对于每个要删除的文件组关联，减少对应的文件和组的引用计数
-        for file_group in &file_groups_to_delete {
-            // 减少文件的引用计数
-            decrease_file_reference_count(conn, file_group.file_id)?;
+        let mut total_deleted = 0;
 
-            // 减少组的引用计数
-            decrease_group_reference_count(conn, file_group.group_id)?;
+        // 对于每个要删除的文件组关联，直接调用delete_file_group函数
+        for file_group in &file_groups_to_delete {
+            let file_group_dto = FileGroupDTO {
+                file_id: file_group.file_id,
+                group_id: file_group.group_id,
+            };
+
+            // 调用单个删除函数，复用其业务逻辑和验证规则
+            let deleted_count = delete_file_group(conn, file_group_dto)?;
+            total_deleted += deleted_count;
         }
 
-        // 执行实际的删除操作
-        let deleted_count = crate::internal::file_group::delete_file_groups_by_conditions(conn, condition)?;
-
-        Ok(deleted_count)
+        Ok(total_deleted)
     })
 }

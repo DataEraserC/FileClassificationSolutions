@@ -4,8 +4,8 @@
 //! 提供分组与标签之间关联关系的业务逻辑处理，包括创建、删除和查询分组-标签关联，
 //! 并处理相关的引用计数管理。
 
-use crate::internal::groups::{decrease_group_reference_count, find_group_by_id, increase_group_reference_count};
-use crate::internal::tags::{decrease_tag_reference_count, find_tag_by_id, increase_tag_reference_count};
+use crate::internal::groups::{decrease_group_reference_count_by_id, find_group_by_id, increase_group_reference_count_by_id};
+use crate::internal::tags::{decrease_tag_reference_count_by_id, find_tag_by_id, increase_tag_reference_count_by_id};
 use crate::model::models::{GroupTagCondition, GroupTagDTO, GroupTagQueryOptions};
 use crate::service::AppError;
 use diesel::result::Error;
@@ -41,8 +41,8 @@ pub fn create_group_tag(
 
     let _result = conn.transaction::<_, AppError, _>(|conn| {
         // 业务逻辑：增加引用计数
-        increase_group_reference_count(conn, group_tag_dto.group_id)?;
-        increase_tag_reference_count(conn, group_tag_dto.tag_id)?;
+        increase_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+        increase_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
 
         // 调用数据访问层执行插入操作
         crate::internal::group_tag::insert_group_tag(conn, &group_tag_dto)?;
@@ -81,11 +81,11 @@ pub fn delete_group_tag_by_id(
 
     let result = conn.transaction::<_, AppError, _>(|conn| {
         // 业务逻辑：减少引用计数
-        decrease_group_reference_count(conn, group_tag_dto.group_id)?;
-        decrease_tag_reference_count(conn, group_tag_dto.tag_id)?;
+        decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+        decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
 
         // 调用数据访问层执行删除操作
-        let deleted_count = crate::internal::group_tag::delete_group_tag_by_id(conn, &group_tag_dto)?;
+        let deleted_count = crate::internal::group_tag::delete_group_tag_by_dto(conn, &group_tag_dto)?;
 
         Ok(deleted_count)
     })?;
@@ -141,9 +141,7 @@ pub fn select_group_tags_by_conditions_with_options(
 ///
 /// 操作流程:
 /// 1. 先查询将要删除的所有记录
-/// 2. 在事务中执行以下操作：
-///    - 对每条记录减少对应分组和标签的引用计数
-///    - 执行实际的批量删除操作
+/// 2. 在事务中对每条记录调用delete_group_tag_by_id执行删除操作
 pub fn delete_group_tags_by_conditions(
     conn: &mut AnyConnection,
     condition: Vec<GroupTagCondition>,
@@ -157,18 +155,21 @@ pub fn delete_group_tags_by_conditions(
 
     // 使用事务确保数据一致性
     conn.transaction::<_, Error, _>(|conn| {
-        // 对于每个要删除的组标签关联，减少对应的组和标签的引用计数
+        let mut total_deleted = 0;
+        
+        // 对于每个要删除的组标签关联，直接调用delete_group_tag_by_id函数
         for group_tag in &group_tags_to_delete {
-            // 减少组的引用计数
-            decrease_group_reference_count(conn, group_tag.group_id)?;
-
-            // 减少标签的引用计数
-            decrease_tag_reference_count(conn, group_tag.tag_id)?;
+            let group_tag_dto = GroupTagDTO {
+                group_id: group_tag.group_id,
+                tag_id: group_tag.tag_id,
+            };
+            
+            // 调用单个删除函数，复用其业务逻辑
+            let deleted_count = delete_group_tag_by_id(conn, group_tag_dto)?;
+            total_deleted += deleted_count;
         }
 
-        // 执行实际的删除操作
-        let deleted_count = crate::internal::group_tag::delete_group_tags_by_conditions(conn, condition)?;
-
-        Ok(deleted_count)
+        Ok(total_deleted)
     })
 }
+

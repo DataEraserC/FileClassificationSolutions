@@ -83,7 +83,7 @@ enum FileActions {
     /// 根据组ID查询文件
     ListByGroupId {
         #[clap(short, long)]
-        group_id: i64,
+        group_id: i32,
     },
     /// 更新文件
     UpdateByConditions {
@@ -190,7 +190,7 @@ enum TagActions {
     /// 根据组ID查询标签
     ListByGroupId {
         #[clap(short, long)]
-        group_id: i64,
+        group_id: i32,
     },
     /// 更新标签
     UpdateByConditions {

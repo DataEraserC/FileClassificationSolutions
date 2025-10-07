@@ -37,7 +37,7 @@ pub fn insert_group_tag(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn delete_group_tag_by_id(
+pub fn delete_group_tag_by_dto(
     conn: &mut AnyConnection,
     group_tag_dto: &GroupTagDTO,
 ) -> Result<usize, diesel::result::Error> {
@@ -47,6 +47,29 @@ pub fn delete_group_tag_by_id(
             .filter(group_tags::tag_id.eq(group_tag_dto.tag_id))
     )
         .execute(conn)
+}
+
+/// 根据多个 DTO 对象批量删除组-标签关联记录（带事务支持）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_tag_dtos`: 包含要删除记录信息的 DTO 对象向量
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn delete_group_tags_by_dtos(
+    conn: &mut AnyConnection,
+    group_tag_dtos: Vec<GroupTagDTO>,
+) -> Result<usize, diesel::result::Error> {
+    conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+        let mut total_deleted = 0;
+
+        for dto in group_tag_dtos {
+            total_deleted += delete_group_tag_by_dto(conn, &dto)?;
+        }
+
+        Ok(total_deleted)
+    })
 }
 
 /// 构建符合 Diesel 查询语法的条件表达式

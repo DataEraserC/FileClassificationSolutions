@@ -4,7 +4,7 @@
 //! 提供分组相关的业务逻辑处理，包括分组的创建、删除、查询和更新操作，
 //! 并处理分组与其关联文件、标签等资源的引用计数和级联删除。
 
-use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
+use crate::model::models::{FileCondition, FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
@@ -24,7 +24,7 @@ where
     S: Into<String>,
 {
     let new_group = CreateGroupDTO { name: name.into() };
-    groups::create_group(conn, &new_group)
+    groups::insert_group(conn, &new_group)
 }
 
 /// 创建分组
@@ -36,7 +36,7 @@ where
 /// 返回值:
 /// 成功时返回影响的行数，失败时返回数据库错误
 pub fn create_group(conn: &mut AnyConnection, create_group_dto: &CreateGroupDTO) -> Result<usize, Error> {
-    groups::create_group(conn, create_group_dto)
+    groups::insert_group(conn, create_group_dto)
 }
 
 /// 根据名称查找分组
@@ -57,8 +57,8 @@ pub fn find_group_by_name(
 /// 删除分组（级联删除相关资源）
 ///
 /// 该函数负责删除分组并级联删除相关资源，根据分组是否为主分组采取不同策略：
-/// 1. 主分组：删除关联的文件、文件组关系和标签关系
-/// 2. 非主分组：减少关联文件的引用计数，删除文件组关系和标签关系
+/// 1. 主分组：减少组的关联文件的关联组、组的关联标签的引用计数，删除组关联的文件、关联文件的文件组关系、组标签关系
+/// 2. 非主分组：减少关联文件、关联标签的引用计数，删除文件组关系、组标签关系
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -70,39 +70,36 @@ pub fn delete_group(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<usize, Error> {
-    // 1.判断是否是primary
-    // 若是primary 则先删除对应的File，删除GroupTag，删除FileGroup
-    // 若不是primary 则先删除GroupTag，再删除FileGroup
     conn.transaction::<usize, Error, _>(|conn| {
         let group = groups::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
 
-        if group.is_primary {
-            // 删除主组时，先处理关联的文件
-            crate::internal::files::delete_files_by_conditions(conn, vec![
-                FileCondition::GroupId(group_id)
-            ])?;
+        // 获取关联的文件
+        let files_associated_with_group = crate::internal::files::select_files_by_group_id(conn, group_id)?;
 
-            // 显式删除文件组关系（作为额外保障）
-            crate::internal::file_group::delete_file_groups_by_conditions(conn, vec![
-                FileGroupCondition::GroupId(group_id)
-            ])?;
-        } else {
-            // 对于非主组，需要先减少关联文件的引用计数
-            let file_groups = crate::internal::file_group::select_file_groups_by_conditions(
+        if group.is_primary {
+            // 获取主组的（唯一）关联文件
+            let file_required_operation = files_associated_with_group.get(0).ok_or(AppError::FileNotFound)?;
+
+            // 删除主组时，先删除关联的文件 及 关联文件的文件组关系
+            crate::internal::files::delete_file_by_id(conn, file_required_operation.id)?;
+
+            // 搜索关联文件的文件组关系
+            let file_groups_required_operation = crate::internal::file_group::select_file_groups_by_conditions(
                 conn,
-                vec![FileGroupCondition::GroupId(group_id)],
+                vec![FileGroupCondition::FileId(file_required_operation.id)],
                 None,
             )?;
 
-            // 减少每个关联文件的引用计数
-            for file_group in &file_groups {
-                crate::internal::files::decrease_file_reference_count(conn, file_group.file_id)?;
-            }
+            // 删除关联文件的文件组关系
+            crate::internal::file_group::delete_file_groups_by_dtos(conn, file_groups_required_operation)?;
 
-            // 删除文件组关系
-            crate::internal::file_group::delete_file_groups_by_conditions(conn, vec![
-                FileGroupCondition::GroupId(group_id)
-            ])?;
+        } else {
+            for file in &files_associated_with_group {
+                // 对于非主组，需要先减少关联文件的引用计数
+                crate::internal::files::decrease_file_reference_count_by_id(conn, file.id)?;
+                // 删除文件组关系
+                crate::internal::file_group::delete_file_group_by_dto(conn, &FileGroupDTO { file_id: file.id, group_id })?;
+            }
         }
 
         // 减少组关联标签的引用计数
@@ -112,18 +109,16 @@ pub fn delete_group(
             None,
         )?;
 
-        // 减少每个关联标签的引用计数
         for group_tag in &group_tags {
-            crate::internal::tags::decrease_tag_reference_count(conn, group_tag.tag_id)?;
+            // 减少每个关联标签的引用计数
+            crate::internal::tags::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
+
+            // 删除组标签关系
+            crate::internal::group_tag::delete_group_tag_by_dto(conn, group_tag)?;
         }
 
-        // 删除组标签关系
-        crate::internal::group_tag::delete_group_tags_by_conditions(conn, vec![
-            GroupTagCondition::GroupId(group_id)
-        ])?;
-
         // 最后删除组本身
-        groups::delete_group(conn, group_id)
+        groups::delete_group_by_id(conn, group_id)
     })
 }
 
@@ -143,7 +138,7 @@ pub fn select_groups(
     search_input: GroupFilter,
     limit: i64,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    groups::select_groups(conn, search_input, limit)
+    groups::select_groups_by_filter(conn, search_input, limit)
 }
 
 /// 根据条件查询分组列表
@@ -232,60 +227,9 @@ pub fn delete_groups_by_conditions(
     conn.transaction::<_, Error, _>(|conn| {
         let mut total_deleted = 0;
 
-        // 对于每个要删除的组，处理相关的引用关系和关联数据
+        // 对于每个要删除的组，直接调用delete_group函数
         for group in &groups_to_delete {
-            // 如果是主组，则删除相关的文件
-            if group.is_primary {
-                crate::internal::files::delete_files_by_conditions(
-                    conn,
-                    vec![FileCondition::GroupId(group.id)]
-                )?;
-
-                // 显式删除文件组关系（作为额外保障）
-                crate::internal::file_group::delete_file_groups_by_conditions(
-                    conn,
-                    vec![FileGroupCondition::GroupId(group.id)]
-                )?;
-            } else {
-                // 如果不是主组，则先减少关联文件的引用计数
-                let file_groups = crate::internal::file_group::select_file_groups_by_conditions(
-                    conn,
-                    vec![FileGroupCondition::GroupId(group.id)],
-                    None,
-                )?;
-
-                // 减少每个关联文件的引用计数
-                for file_group in &file_groups {
-                    crate::internal::files::decrease_file_reference_count(conn, file_group.file_id)?;
-                }
-
-                // 删除文件组关联
-                crate::internal::file_group::delete_file_groups_by_conditions(
-                    conn,
-                    vec![FileGroupCondition::GroupId(group.id)]
-                )?;
-            }
-
-            // 减少组关联标签的引用计数
-            let group_tags = crate::internal::group_tag::select_group_tags_by_conditions(
-                conn,
-                vec![GroupTagCondition::GroupId(group.id)],
-                None,
-            )?;
-
-            // 减少每个关联标签的引用计数
-            for group_tag in &group_tags {
-                crate::internal::tags::decrease_tag_reference_count(conn, group_tag.tag_id)?;
-            }
-
-            // 删除组标签关联
-            crate::internal::group_tag::delete_group_tags_by_conditions(
-                conn,
-                vec![GroupTagCondition::GroupId(group.id)]
-            )?;
-
-            // 删除组本身
-            let deleted_count = crate::internal::groups::delete_group(conn, group.id)?;
+            let deleted_count = delete_group(conn, group.id)?;
             total_deleted += deleted_count;
         }
 
@@ -305,7 +249,7 @@ pub fn select_group_by_file_id(
     conn: &mut AnyConnection,
     other_file_id: i32,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    crate::internal::groups::select_group_by_file_id(conn, other_file_id)
+    crate::internal::groups::select_groups_by_file_id(conn, other_file_id)
 }
 
 /// 根据标签ID查询关联的分组列表
@@ -320,7 +264,7 @@ pub fn select_group_by_tag_id(
     conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    crate::internal::groups::select_group_by_tag_id(conn, tag_id)
+    crate::internal::groups::select_groups_by_tag_id(conn, tag_id)
 }
 
 /// 根据分组ID获取分组详情

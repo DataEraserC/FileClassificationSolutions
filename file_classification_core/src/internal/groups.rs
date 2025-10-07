@@ -21,7 +21,7 @@ use crate::utils::database::AnyConnection;
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn create_group(conn: &mut AnyConnection, new_group: &CreateGroupDTO) -> Result<usize, diesel::result::Error> {
+pub fn insert_group(conn: &mut AnyConnection, new_group: &CreateGroupDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(groups::table)
         .values(new_group).execute(conn)
 }
@@ -102,7 +102,7 @@ pub fn mark_group_as_non_primary(conn: &mut AnyConnection) -> Result<usize, dies
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
 #[deprecated]
-pub fn select_groups(
+pub fn select_groups_by_filter(
     conn: &mut AnyConnection,
     search_input: GroupFilter,
     limit: i64,
@@ -148,12 +148,32 @@ pub fn select_groups(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn delete_group(
+pub fn delete_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::delete(groups.filter(groups::id.eq(group_id))).execute(conn)
 }
+
+/// 根据多个分组ID批量删除分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_ids`: 要删除的分组ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn delete_groups_by_ids(
+    conn: &mut AnyConnection,
+    group_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::delete(
+        groups::table
+            .filter(groups::id.eq_any(group_ids))
+    )
+    .execute(conn)
+}
+
 
 /// 增加分组的引用计数
 ///
@@ -163,7 +183,7 @@ pub fn delete_group(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn increase_group_reference_count(
+pub fn increase_group_reference_count_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<usize, diesel::result::Error> {
@@ -180,11 +200,47 @@ pub fn increase_group_reference_count(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn decrease_group_reference_count(
+pub fn decrease_group_reference_count_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table.find(group_id))
+        .set(groups::reference_count.eq(groups::reference_count - 1))
+        .execute(conn)
+}
+
+/// 根据多个分组ID批量增加分组引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_ids`: 分组ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn increase_group_reference_count_by_ids(
+    conn: &mut AnyConnection,
+    group_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(groups::table)
+        .filter(groups::id.eq_any(group_ids))
+        .set(groups::reference_count.eq(groups::reference_count + 1))
+        .execute(conn)
+}
+
+/// 根据多个分组ID批量减少分组引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_ids`: 分组ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn decrease_group_reference_count_by_ids(
+    conn: &mut AnyConnection,
+    group_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(groups::table)
+        .filter(groups::id.eq_any(group_ids))
         .set(groups::reference_count.eq(groups::reference_count - 1))
         .execute(conn)
 }
@@ -405,28 +461,28 @@ pub fn update_groups_by_conditions(
     query.set(update_set).execute(conn)
 }
 
-/// 根据给定条件批量删除分组记录
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
-///
-/// 返回值:
-/// 成功删除的记录数目或数据库错误
-pub fn delete_groups_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<GroupCondition>,
-) -> Result<usize, diesel::result::Error> {
-    let mut query = groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
-
-    // 对每个条件应用 AND 逻辑
-    for condition in conditions {
-        let boxed_condition = build_group_condition(condition);
-        query = query.filter(boxed_condition);
-    }
-
-    query.execute(conn)
-}
+// /// 根据给定条件批量删除分组记录
+// ///
+// /// 参数:
+// /// - `conn`: 数据库连接对象
+// /// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+// ///
+// /// 返回值:
+// /// 成功删除的记录数目或数据库错误
+// pub fn delete_groups_by_conditions(
+//     conn: &mut AnyConnection,
+//     conditions: Vec<GroupCondition>,
+// ) -> Result<usize, diesel::result::Error> {
+//     let mut query = diesel::delete(groups::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+//
+//     // 对每个条件应用 AND 逻辑
+//     for condition in conditions {
+//         let boxed_condition = build_group_condition(condition);
+//         query = query.filter(boxed_condition);
+//     }
+//
+//     query.execute(conn)
+// }
 
 /// 根据给定条件批量增加分组引用计数
 ///
@@ -484,7 +540,7 @@ pub fn decrease_groups_reference_count_by_conditions(
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-pub fn select_group_by_file_id(
+pub fn select_groups_by_file_id(
     conn: &mut AnyConnection,
     other_file_id: i32,
 ) -> Result<Vec<Group>, diesel::result::Error> {
@@ -505,7 +561,7 @@ pub fn select_group_by_file_id(
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-pub fn select_group_by_tag_id(
+pub fn select_groups_by_tag_id(
     conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<Vec<Group>, diesel::result::Error> {

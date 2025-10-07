@@ -4,7 +4,7 @@
 //! 提供标签相关的业务逻辑处理，包括标签的创建、删除、查询和更新操作，
 //! 并处理标签与其关联分组等资源的引用计数和级联删除。
 
-use crate::model::models::{GroupTagCondition, TagCondition, TagQueryOptions, UpdateTagDTO};
+use crate::model::models::{GroupTagCondition, GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO};
 use crate::{
     internal::tags,
     model::models::{CreateTagDTO, Tag, TagFilter},
@@ -20,12 +20,12 @@ use crate::utils::database::AnyConnection;
 ///
 /// 返回值:
 /// 成功时返回创建的标签记录，失败时返回数据库错误
-pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<Tag, diesel::result::Error>
+pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<usize, diesel::result::Error>
 where
     S: Into<String>,
 {
     let new_tag = CreateTagDTO { name: name.into() };
-    tags::create_tag(conn, &new_tag)
+    tags::insert_tag(conn, &new_tag)
 }
 
 /// 创建标签
@@ -36,8 +36,8 @@ where
 ///
 /// 返回值:
 /// 成功时返回创建的标签记录，失败时返回数据库错误
-pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<Tag, diesel::result::Error> {
-    tags::create_tag(conn, create_tag_dto)
+pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<usize, diesel::result::Error> {
+    tags::insert_tag(conn, create_tag_dto)
 }
 
 /// 删除标签（级联删除相关资源）
@@ -56,26 +56,18 @@ pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Re
 pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     // 使用事务确保数据一致性
     conn.transaction::<usize, diesel::result::Error, _>(|conn| {
-        // 查找与该标签关联的所有组标签关系
-        let group_tags = crate::internal::group_tag::select_group_tags_by_conditions(
-            conn,
-            vec![GroupTagCondition::TagId(tag_id)],
-            None,
-        )?;
+        // 查找与该标签关联的所有组
+        let groups_associated_with_tag = crate::internal::groups::select_groups_by_tag_id(conn, tag_id)?;
 
-        // 对于每个关联的组，减少其引用计数
-        for group_tag in &group_tags {
-            crate::internal::groups::decrease_group_reference_count(conn, group_tag.group_id)?;
+        for group in &groups_associated_with_tag {
+            // 对于每个关联的组，减少其引用计数
+            crate::internal::groups::decrease_group_reference_count_by_id(conn, group.id)?;
+            // 删除与该标签关联的所有组标签关系
+            crate::internal::group_tag::delete_group_tag_by_dto(conn, &GroupTagDTO { tag_id: tag_id, group_id: group.id})?;
         }
 
-        // 删除与该标签关联的所有组标签关系
-        crate::internal::group_tag::delete_group_tags_by_conditions(
-            conn,
-            vec![GroupTagCondition::TagId(tag_id)]
-        )?;
-
         // 删除标签本身
-        tags::delete_tag(conn, tag_id)
+        tags::delete_tag_by_id(conn, tag_id)
     })
 }
 
@@ -93,7 +85,7 @@ pub fn select_tags(
     search_input: TagFilter,
     limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    tags::select_tags(conn, search_input, limit)
+    tags::select_tags_by_filter(conn, search_input, limit)
 }
 
 /// 根据条件查询标签列表
@@ -160,10 +152,7 @@ pub fn update_tags_by_conditions(
 /// 成功删除的记录数或数据库错误
 ///
 /// 操作流程:
-/// 对于每个要删除的标签，执行以下操作：
-/// 1. 减少所有关联分组的引用计数
-/// 2. 删除标签与分组的关联关系
-/// 3. 删除标签本身
+/// 对于每个要删除的标签，直接调用delete_tag函数执行删除操作
 pub fn delete_tags_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -179,28 +168,10 @@ pub fn delete_tags_by_conditions(
     conn.transaction::<_, diesel::result::Error, _>(|conn| {
         let mut total_deleted = 0;
 
-        // 对于每个要删除的标签，处理相关的引用关系和关联数据
+        // 对于每个要删除的标签，直接调用delete_tag函数
         for tag in &tags_to_delete {
-            // 查找与该标签关联的所有组标签关系
-            let group_tags = crate::internal::group_tag::select_group_tags_by_conditions(
-                conn,
-                vec![GroupTagCondition::TagId(tag.id)],
-                None,
-            )?;
-
-            // 对于每个关联的组，减少其引用计数
-            for group_tag in &group_tags {
-                crate::internal::groups::decrease_group_reference_count(conn, group_tag.group_id)?;
-            }
-
-            // 删除与该标签关联的所有组标签关系
-            crate::internal::group_tag::delete_group_tags_by_conditions(
-                conn,
-                vec![GroupTagCondition::TagId(tag.id)]
-            )?;
-
-            // 删除标签本身
-            let deleted_count = tags::delete_tag(conn, tag.id)?;
+            // 调用单个标签删除函数，复用其业务逻辑
+            let deleted_count = delete_tag(conn, tag.id)?;
             total_deleted += deleted_count;
         }
 
@@ -218,7 +189,7 @@ pub fn delete_tags_by_conditions(
 /// 查询成功的标签记录列表或数据库错误
 pub fn select_tag_by_group_id(
     conn: &mut AnyConnection,
-    group_id: i64,
+    group_id: i32,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     crate::internal::tags::select_tag_by_group_id(conn, group_id)
 }

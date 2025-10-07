@@ -19,7 +19,7 @@ use diesel::sql_types::Bool;
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn create_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
+pub fn insert_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(files::table)
         .values(new_file).execute(conn)
 }
@@ -48,7 +48,7 @@ pub fn find_file_by_id(conn: &mut AnyConnection, _id: i32) -> Result<Option<File
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn increase_file_reference_count(
+pub fn increase_file_reference_count_by_id(
     conn: &mut AnyConnection,
     file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
@@ -65,11 +65,47 @@ pub fn increase_file_reference_count(
 ///
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
-pub fn decrease_file_reference_count(
+pub fn decrease_file_reference_count_by_id(
     conn: &mut AnyConnection,
     file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(files::table.find(file_id))
+        .set(files::reference_count.eq(files::reference_count - 1))
+        .execute(conn)
+}
+
+/// 根据多个文件ID批量增加文件引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_ids`: 文件ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn increase_file_reference_count_by_ids(
+    conn: &mut AnyConnection,
+    file_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(files::table)
+        .filter(files::id.eq_any(file_ids))
+        .set(files::reference_count.eq(files::reference_count + 1))
+        .execute(conn)
+}
+
+/// 根据多个文件ID批量减少文件引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_ids`: 文件ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn decrease_file_reference_count_by_ids(
+    conn: &mut AnyConnection,
+    file_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(files::table)
+        .filter(files::id.eq_any(file_ids))
         .set(files::reference_count.eq(files::reference_count - 1))
         .execute(conn)
 }
@@ -84,7 +120,7 @@ pub fn decrease_file_reference_count(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 #[deprecated]
-pub fn select_files(
+pub fn select_files_by_filter(
     conn: &mut AnyConnection,
     search_input: FileFilter,
     limit: i64,
@@ -126,6 +162,26 @@ pub fn select_files(
 pub fn delete_file_by_id(conn: &mut AnyConnection, file_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
+
+/// 根据多个文件ID批量删除文件记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_ids`: 要删除的文件ID列表
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
+pub fn delete_files_by_ids(
+    conn: &mut AnyConnection,
+    file_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+    diesel::delete(
+        files::table
+            .filter(files::id.eq_any(file_ids))
+    )
+    .execute(conn)
+}
+
 
 /// 构建符合 Diesel 查询语法的条件表达式
 ///
@@ -318,28 +374,28 @@ pub fn update_files_by_conditions(
     query.set(update_set).execute(conn)
 }
 
-/// 根据给定条件批量删除文件记录
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
-///
-/// 返回值:
-/// 成功删除的记录数目或数据库错误
-pub fn delete_files_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-) -> Result<usize, diesel::result::Error> {
-    let mut query = diesel::delete(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
-
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_file_condition(condition);
-        query = query.filter(boxed_condition);
-    }
-
-    query.execute(conn)
-}
+// /// 根据给定条件批量删除文件记录
+// ///
+// /// 参数:
+// /// - `conn`: 数据库连接对象
+// /// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+// ///
+// /// 返回值:
+// /// 成功删除的记录数目或数据库错误
+// pub fn delete_files_by_conditions(
+//     conn: &mut AnyConnection,
+//     conditions: Vec<FileCondition>,
+// ) -> Result<usize, diesel::result::Error> {
+//     let mut query = diesel::delete(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+//
+//     // 应用所有条件
+//     for condition in conditions {
+//         let boxed_condition = build_file_condition(condition);
+//         query = query.filter(boxed_condition);
+//     }
+//
+//     query.execute(conn)
+// }
 
 /// 根据给定条件批量增加文件引用计数
 ///
@@ -397,15 +453,15 @@ pub fn decrease_files_reference_count_by_conditions(
 ///
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
-pub fn select_file_by_group_id(
+pub fn select_files_by_group_id(
     conn: &mut AnyConnection,
-    other_group_id: i64,
+    other_group_id: i32,
 ) -> Result<Vec<File>, diesel::result::Error> {
     use crate::model::schema::file_groups;
 
     files::table
         .inner_join(file_groups::table.on(files::id.eq(file_groups::file_id)))
-        .filter(file_groups::group_id.eq(other_group_id as i32))
+        .filter(file_groups::group_id.eq(other_group_id))
         .select(File::as_select())
         .load(conn)
 }
