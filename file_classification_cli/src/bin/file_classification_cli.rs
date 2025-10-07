@@ -85,6 +85,18 @@ enum FileActions {
         #[clap(short, long)]
         group_id: i32,
     },
+    UpdateById {
+        #[clap(short, long)]
+        id: i32,
+        #[clap(short, long)]
+        path: Option<String>,
+        #[clap(long)]
+        type_: Option<String>,
+        #[clap(long)]
+        reference_count: Option<i32>,
+        #[clap(long)]
+        group_id: Option<i32>,
+    },
     /// 更新文件
     UpdateByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
@@ -140,6 +152,20 @@ enum GroupActions {
         #[clap(short, long)]
         tag_id: i32,
     },
+    UpdateById {
+        #[clap(short, long)]
+        id: i32,
+        #[clap(short, long)]
+        name: Option<String>,
+        #[clap(long)]
+        reference_count: Option<i32>,
+        #[clap(long)]
+        is_primary: Option<bool>,
+        #[clap(long)]
+        click_count: Option<i32>,
+        #[clap(long)]
+        share_count: Option<i32>,
+    },
     /// 更新组
     UpdateByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
@@ -191,6 +217,14 @@ enum TagActions {
     ListByGroupId {
         #[clap(short, long)]
         group_id: i32,
+    },
+    UpdateById {
+        #[clap(short, long)]
+        id: i32,
+        #[clap(short, long)]
+        name: Option<String>,
+        #[clap(long)]
+        reference_count: Option<i32>,
     },
     /// 更新标签
     UpdateByConditions {
@@ -522,6 +556,7 @@ fn print_help() {
     println!("  file list-interactive                                       交互式查询文件");
     println!("  file list-by-conditions -c <conditions...>                  按条件查询文件");
     println!("  file list-by-group-id --group-id <id>                       按组ID查询文件");
+    println!("  file update --id <id> [--path <path>] [--type <type>] [--ref-count <count>] [--group-id <id>]  通过ID更新文件");
     println!("  file update-by-conditions -c <conditions...>                按条件更新文件");
     println!("  file delete-by-conditions -c <conditions...>                按条件删除文件");
     println!("  group create --name <name>                                  创建组");
@@ -530,6 +565,7 @@ fn print_help() {
     println!("  group list-by-conditions -c <conditions...>                 按条件查询组");
     println!("  group list-by-file-id --file-id <id>                        按文件ID查询组");
     println!("  group list-by-tag-id --tag-id <id>                          按标签ID查询组");
+    println!("  group update --id <id> [--name <name>] [--ref-count <count>] [--is-primary <bool>] [--click-count <count>] [--share-count <count>]  通过ID更新组");
     println!("  group update-by-conditions -c <conditions...>               按条件更新组");
     println!("  group delete-by-conditions -c <conditions...>               按条件删除组");
     println!("  tag create --name <name>                                    创建标签");
@@ -537,6 +573,7 @@ fn print_help() {
     println!("  tag list-interactive                                        交互式查询标签");
     println!("  tag list-by-conditions -c <conditions...>                   按条件查询标签");
     println!("  tag list-by-group-id --group-id <id>                        按组ID查询标签");
+    println!("  tag update --id <id> [--name <name>] [--ref-count <count>]  通过ID更新标签");
     println!("  tag update-by-conditions -c <conditions...>                 按条件更新标签");
     println!("  tag delete-by-conditions -c <conditions...>                 按条件删除标签");
     println!("  file-group create --file-id <id> --group-id <id>            创建文件-组关联");
@@ -834,6 +871,33 @@ fn handle_command(
                     Err(e) => eprintln!("查询失败: {:?}", e),
                 }
             }
+            FileActions::UpdateById {
+                id,
+                path,
+                type_,
+                reference_count,
+                group_id,
+            } => {
+                let mut changes = models::UpdateFileDTO::default();
+                if let Some(path) = path {
+                    changes.path = Some(path);
+                }
+                if let Some(type_) = type_ {
+                    changes.type_ = Some(type_);
+                }
+                if let Some(reference_count) = reference_count {
+                    changes.reference_count = Some(reference_count);
+                }
+                if let Some(group_id) = group_id {
+                    changes.group_id = Some(group_id);
+                }
+
+                let conditions = vec![models::FileCondition::Id(id)];
+                match service::files::update_files_by_conditions(conn, conditions, changes) {
+                    Ok(count) => println!("成功更新 {} 个文件", count),
+                    Err(e) => eprintln!("更新文件失败: {:?}", e),
+                }
+            }
             FileActions::UpdateByConditions {
                 conditions,
                 path,
@@ -989,6 +1053,38 @@ fn handle_command(
                     Err(e) => eprintln!("查询失败: {:?}", e),
                 }
             }
+            GroupActions::UpdateById {
+                id,
+                name,
+                reference_count,
+                is_primary,
+                click_count,
+                share_count,
+            } => {
+                let mut changes = models::UpdateGroupDTO::default();
+                if let Some(name) = name {
+                    changes.name = Some(name);
+                }
+                if let Some(reference_count) = reference_count {
+                    changes.reference_count = Some(reference_count);
+                }
+                if let Some(is_primary) = is_primary {
+                    changes.is_primary = Some(is_primary);
+                }
+                if let Some(click_count) = click_count {
+                    changes.click_count = Some(click_count);
+                }
+                if let Some(share_count) = share_count {
+                    changes.share_count = Some(share_count);
+                }
+
+                let conditions = vec![models::GroupCondition::Id(id)];
+                match service::groups::update_groups_by_conditions(conn, conditions, changes) {
+                    Ok(count) => println!("成功更新 {} 个组", count),
+                    Err(e) => eprintln!("更新组失败: {:?}", e),
+                }
+            }
+
             GroupActions::UpdateByConditions {
                 conditions,
                 name,
@@ -1118,6 +1214,23 @@ fn handle_command(
                     Err(e) => eprintln!("查询失败: {:?}", e),
                 }
             }
+            TagActions::UpdateById {
+                id,
+                name,
+                reference_count,
+            } => {
+                let update_dto = models::UpdateTagDTO {
+                    name,
+                    reference_count,
+                };
+
+                let conditions = vec![models::TagCondition::Id(id)];
+                match service::tags::update_tags_by_conditions(conn, conditions, update_dto) {
+                    Ok(count) => println!("成功更新 {} 条记录", count),
+                    Err(e) => eprintln!("更新失败: {:?}", e),
+                }
+            }
+
             TagActions::UpdateByConditions {
                 conditions,
                 name,
