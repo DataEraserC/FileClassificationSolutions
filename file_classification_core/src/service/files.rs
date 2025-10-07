@@ -1,3 +1,9 @@
+// files.rs
+//! 文件服务模块
+//!
+//! 提供文件相关的业务逻辑处理，包括文件的创建、删除、查询和更新操作，
+//! 并处理文件与其关联分组、标签等资源的引用计数和级联删除。
+
 use crate::internal::file_group::select_file_groups_by_conditions;
 use crate::internal::groups::select_groups_by_conditions;
 use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, FileQueryOptions, GroupCondition, GroupTagCondition, TagCondition, UpdateFileDTO, UpdateGroupDTO};
@@ -8,6 +14,16 @@ use crate::{internal, service};
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
 
+/// 创建文件的底层函数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `type_`: 文件类型
+/// - `path_`: 文件路径
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败时返回数据库错误
 pub fn raw_create_file<S1, S2>(
     conn: &mut AnyConnection,
     type_: S1,
@@ -25,38 +41,30 @@ where
     };
     internal::files::create_file(conn, &new_file)
 }
-// pub fn create_file(
-//     conn: &mut AnyConnection,
-//     name: &str,
-//     type_: &str,
-//     path_: &str,
-// ) -> Result<(File, Group), diesel::result::Error> {
-//     let mut is_primary = false;
-//     let group = match find_group_by_name(conn, name)? {
-//         Some(existing_group) => existing_group,
-//         _ => {
-//             let group = create_group(conn, name)?;
-//             is_primary = true;
-//             group
-//         }
-//     };
-//
-//     let file = raw_create_file(conn, type_, path_, group.id)?;
-//
-//     create_file_group(conn, FileGroupDTO{ file_id: file.id, group_id: group.id})?;
-//     if is_primary {
-//         mark_group_as_primary(conn, group.id)?;
-//     }
-//
-//     Ok((file, group))
-// }
 
+/// 创建文件（业务逻辑处理）
+///
+/// 该函数负责创建文件并处理相关业务逻辑，包括：
+/// 1. 验证目标分组是否存在且为空（作为主分组）
+/// 2. 创建文件记录
+/// 3. 建立文件与主分组的关联关系
+/// 4. 将目标分组标记为主分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `create_file_dto`: 包含文件信息的DTO对象
+///
+/// 返回值:
+/// 成功时返回创建的记录数，失败时返回相应的错误
 pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> Result<usize, AppError> {
     conn.transaction::<usize, AppError, _>(|conn| {
+        // 验证目标分组是否存在
         let group_list = select_groups_by_conditions(conn, vec![
             GroupCondition::Id(create_file_dto.group_id)
         ], None)?;
         let Some(group) = group_list.get(0) else { todo!() };
+        
+        // 检查目标分组是否为空（作为主分组必须为空）
         let file_groups = select_file_groups_by_conditions(
             conn,
             vec![
@@ -67,13 +75,18 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         if file_groups.len() != 0 {
             return Err(FuturePrimaryGroupShouldBeEmpty);
         }
+        
         let mut count = 0;
+        // 创建文件记录
         count += internal::files::create_file(conn, &create_file_dto)?;
+        
+        // 获取刚创建的文件
         let file_list = internal::files::select_files_by_conditions(conn, vec![
             FileCondition::GroupId(create_file_dto.group_id)
         ], None)?;
         let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
 
+        // 建立文件与主分组的关联关系
         match service::file_group::create_file_group(conn, FileGroupDTO { file_id: file.id, group_id: group.id }) {
             Ok(_) => {
                 count += 1;
@@ -83,6 +96,7 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
             }
         }
 
+        // 将目标分组标记为主分组
         update_groups_by_conditions(conn, vec![
             GroupCondition::Id(group.id)
         ], UpdateGroupDTO {
@@ -99,6 +113,20 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
     })
 }
 
+/// 删除文件（级联删除相关资源）
+///
+/// 该函数负责删除文件并级联删除相关资源，包括：
+/// 1. 删除文件主分组关联的所有标签关系
+/// 2. 删除文件关联的所有分组关系
+/// 3. 删除文件的主分组
+/// 4. 删除文件本身
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 要删除的文件ID
+///
+/// 返回值:
+/// 成功时返回空元组，失败时返回相应的错误
 pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppError> {
     // 开始事务
     conn.transaction::<(), diesel::result::Error, _>(|conn| {
@@ -155,7 +183,15 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
     Ok(())
 }
 
-
+/// [已弃用] 根据过滤条件查询文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 #[allow(deprecated)]
 #[deprecated]
 pub fn select_files(
@@ -166,6 +202,15 @@ pub fn select_files(
     internal::files::select_files(conn, search_input, limit)
 }
 
+/// 根据条件查询文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `condition`: 查询条件向量
+/// - `limit`: 返回记录数限制（可选）
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_conditions(
     conn: &mut AnyConnection,
     condition: Vec<FileCondition>,
@@ -173,6 +218,16 @@ pub fn select_files_by_conditions(
 ) -> Result<Vec<File>, diesel::result::Error> {
     internal::files::select_files_by_conditions(conn, condition, limit)
 }
+
+/// 根据条件和选项查询文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_conditions_with_options(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -181,6 +236,15 @@ pub fn select_files_by_conditions_with_options(
     internal::files::select_files_by_conditions_with_options(conn, conditions, options)
 }
 
+/// 根据条件批量更新文件
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 更新条件向量
+/// - `update_set`: 更新内容DTO
+///
+/// 返回值:
+/// 成功更新的记录数或数据库错误
 pub fn update_files_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -189,9 +253,26 @@ pub fn update_files_by_conditions(
     internal::files::update_files_by_conditions(conn, conditions, update_set)
 }
 
-// NOTE: 这个方法在core里不应该有用法
-// 要暴露给用户使用的话 应当改为先select再delete_by_id
-// 防止引用计算问题
+/// 根据条件批量删除文件（级联删除相关资源）
+///
+/// 注意：这个方法在core里不应该有直接用法
+/// 要暴露给用户使用的话应当改为先select再delete_by_id，防止引用计算问题
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 删除条件向量
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+///
+/// 操作流程:
+/// 对于每个要删除的文件，执行以下操作：
+/// 1. 减少所有关联分组的引用计数
+/// 2. 减少主分组关联标签的引用计数
+/// 3. 删除主分组的标签关联关系
+/// 4. 删除文件的所有分组关联关系
+/// 5. 删除文件的主分组
+/// 6. 删除文件本身
 pub fn delete_files_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -257,6 +338,14 @@ pub fn delete_files_by_conditions(
     })
 }
 
+/// 根据分组ID查询关联的文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `other_group_id`: 分组ID
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 pub fn select_file_by_group_id(
     conn: &mut AnyConnection,
     other_group_id: i64,
@@ -264,6 +353,14 @@ pub fn select_file_by_group_id(
     internal::files::select_file_by_group_id(conn, other_group_id)
 }
 
+/// 根据文件ID获取文件详情
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 文件ID
+///
+/// 返回值:
+/// 查询成功的文件记录或数据库错误
 pub fn get_file_by_id(
     conn: &mut AnyConnection,
     file_id: i32,
@@ -271,6 +368,15 @@ pub fn get_file_by_id(
     internal::files::get_file_by_id(conn, file_id)
 }
 
+/// 根据文件ID更新文件信息
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 文件ID
+/// - `update_set`: 更新内容DTO
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败时返回数据库错误
 pub fn update_file_by_id(
     conn: &mut AnyConnection,
     file_id: i32,

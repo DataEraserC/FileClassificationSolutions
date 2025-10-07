@@ -1,3 +1,9 @@
+// groups.rs
+//! 分组服务模块
+//!
+//! 提供分组相关的业务逻辑处理，包括分组的创建、删除、查询和更新操作，
+//! 并处理分组与其关联文件、标签等资源的引用计数和级联删除。
+
 use crate::model::models::{FileCondition, FileGroupCondition, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
@@ -5,6 +11,14 @@ use diesel::result::Error;
 use diesel::{Connection};
 use crate::utils::database::AnyConnection;
 
+/// 通过名称创建分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `name`: 分组名称
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败时返回数据库错误
 pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<usize, Error>
 where
     S: Into<String>,
@@ -13,10 +27,26 @@ where
     groups::create_group(conn, &new_group)
 }
 
+/// 创建分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `create_group_dto`: 包含分组信息的DTO对象
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败时返回数据库错误
 pub fn create_group(conn: &mut AnyConnection, create_group_dto: &CreateGroupDTO) -> Result<usize, Error> {
     groups::create_group(conn, create_group_dto)
 }
 
+/// 根据名称查找分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `name`: 要查找的分组名称
+///
+/// 返回值:
+/// 成功时返回匹配的分组记录（如果存在），失败时返回相应的错误
 pub fn find_group_by_name(
     conn: &mut AnyConnection,
     name: &str,
@@ -24,6 +54,18 @@ pub fn find_group_by_name(
     Ok(groups::find_group_by_name(conn, name)?)
 }
 
+/// 删除分组（级联删除相关资源）
+///
+/// 该函数负责删除分组并级联删除相关资源，根据分组是否为主分组采取不同策略：
+/// 1. 主分组：删除关联的文件、文件组关系和标签关系
+/// 2. 非主分组：减少关联文件的引用计数，删除文件组关系和标签关系
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 要删除的分组ID
+///
+/// 返回值:
+/// 成功时返回删除的记录数，失败时返回数据库错误
 pub fn delete_group(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -85,6 +127,15 @@ pub fn delete_group(
     })
 }
 
+/// [已弃用] 根据过滤条件查询分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 分组过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 #[allow(deprecated)]
 #[deprecated]
 pub fn select_groups(
@@ -95,6 +146,15 @@ pub fn select_groups(
     groups::select_groups(conn, search_input, limit)
 }
 
+/// 根据条件查询分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `condition`: 查询条件向量
+/// - `limit`: 返回记录数限制（可选）
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_groups_by_conditions(
     conn: &mut AnyConnection,
     condition: Vec<GroupCondition>,
@@ -103,6 +163,15 @@ pub fn select_groups_by_conditions(
     groups::select_groups_by_conditions(conn, condition, limit)
 }
 
+/// 根据条件和选项查询分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_groups_by_conditions_with_options(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -111,6 +180,15 @@ pub fn select_groups_by_conditions_with_options(
     groups::select_groups_by_conditions_with_options(conn, conditions, options)
 }
 
+/// 根据条件批量更新分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 更新条件向量
+/// - `update_set`: 更新内容DTO
+///
+/// 返回值:
+/// 成功更新的记录数或数据库错误
 pub fn update_groups_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -119,10 +197,26 @@ pub fn update_groups_by_conditions(
     groups::update_groups_by_conditions(conn, conditions, update_set)
 }
 
-
-// NOTE: 这个方法在core里不应该有用法
-// 要暴露给用户使用的话 应当改为先select再delete_by_id
-// 防止引用计算问题
+/// 根据条件批量删除分组（级联删除相关资源）
+///
+/// 注意：这个方法在core里不应该有直接用法
+/// 要暴露给用户使用的话应当改为先select再delete_by_id，防止引用计算问题
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 删除条件向量
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+///
+/// 操作流程:
+/// 对于每个要删除的分组，执行以下操作：
+/// 1. 如果是主分组，则删除关联的文件
+/// 2. 如果是非主分组，则减少关联文件的引用计数
+/// 3. 删除文件组关联关系
+/// 4. 减少关联标签的引用计数
+/// 5. 删除组标签关联关系
+/// 6. 删除分组本身
 pub fn delete_groups_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -199,6 +293,14 @@ pub fn delete_groups_by_conditions(
     })
 }
 
+/// 根据文件ID查询关联的分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `other_file_id`: 文件ID
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_group_by_file_id(
     conn: &mut AnyConnection,
     other_file_id: i32,
@@ -206,6 +308,14 @@ pub fn select_group_by_file_id(
     crate::internal::groups::select_group_by_file_id(conn, other_file_id)
 }
 
+/// 根据标签ID查询关联的分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_group_by_tag_id(
     conn: &mut AnyConnection,
     tag_id: i32,
@@ -213,6 +323,14 @@ pub fn select_group_by_tag_id(
     crate::internal::groups::select_group_by_tag_id(conn, tag_id)
 }
 
+/// 根据分组ID获取分组详情
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 查询成功的分组记录或数据库错误
 pub fn get_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -220,6 +338,15 @@ pub fn get_group_by_id(
     groups::get_group_by_id(conn, group_id)
 }
 
+/// 根据分组ID更新分组信息
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+/// - `update_set`: 更新内容DTO
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败时返回数据库错误
 pub fn update_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,

@@ -1,3 +1,8 @@
+// groups.rs
+//! 分组管理模块
+//!
+//! 提供对分组表 (`groups`) 的增删改查操作支持，包括基本的CRUD操作、条件查询、批量操作等。
+
 use super::models::{CreateGroupDTO, Group, GroupFilter};
 use diesel::prelude::*;
 use crate::model::schema::groups::dsl::*;
@@ -8,11 +13,27 @@ use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use crate::utils::database::AnyConnection;
 
+/// 创建一个新的分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `new_group`: 包含待插入分组数据的 DTO 对象
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn create_group(conn: &mut AnyConnection, new_group: &CreateGroupDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(groups::table)
         .values(new_group).execute(conn)
 }
 
+/// 根据名称查找分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_name`: 要查找的分组名称
+///
+/// 返回值:
+/// 成功时返回匹配的分组记录（如果存在），失败则返回数据库错误
 pub fn find_group_by_name(
     conn: &mut AnyConnection,
     group_name: &str,
@@ -23,6 +44,15 @@ pub fn find_group_by_name(
         .first::<Group>(conn)
         .optional()
 }
+
+/// 根据ID查找分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 要查找的分组ID
+///
+/// 返回值:
+/// 成功时返回匹配的分组记录（如果存在），失败则返回数据库错误
 pub fn find_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -34,6 +64,14 @@ pub fn find_group_by_id(
         .optional()
 }
 
+/// 将指定分组标记为主分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 要标记为主分组的分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 #[allow(dead_code)]
 pub fn mark_group_as_primary(conn: &mut AnyConnection, group_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table)
@@ -41,11 +79,28 @@ pub fn mark_group_as_primary(conn: &mut AnyConnection, group_id: i32) -> Result<
         .set(groups::is_primary.eq(true))
         .execute(conn)
 }
+
+/// 取消所有分组的主分组标记
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败则返回数据库错误
 #[allow(dead_code)]
 pub fn mark_group_as_non_primary(conn: &mut AnyConnection) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)
 }
 
+/// [已弃用] 根据过滤条件查询分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 分组过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 #[deprecated]
 pub fn select_groups(
     conn: &mut AnyConnection,
@@ -85,6 +140,14 @@ pub fn select_groups(
     base_query.load(conn)
 }
 
+/// 根据分组ID删除分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 要删除的分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn delete_group(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -92,6 +155,14 @@ pub fn delete_group(
     diesel::delete(groups.filter(groups::id.eq(group_id))).execute(conn)
 }
 
+/// 增加分组的引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn increase_group_reference_count(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -100,6 +171,15 @@ pub fn increase_group_reference_count(
         .set(groups::reference_count.eq(groups::reference_count + 1))
         .execute(conn)
 }
+
+/// 减少分组的引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn decrease_group_reference_count(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -109,7 +189,13 @@ pub fn decrease_group_reference_count(
         .execute(conn)
 }
 
-// 将 GroupCondition 转换为 diesel 查询条件的辅助函数
+/// 构建符合 Diesel 查询语法的条件表达式
+///
+/// 参数:
+/// - `condition`: 表达查询条件的数据结构
+///
+/// 返回值:
+/// 符合 Diesel 查询条件类型的动态表达式盒子
 fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression<groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         GroupCondition::Id(_id) => Box::new(groups::id.eq(_id)),
@@ -172,7 +258,15 @@ fn build_group_condition(condition: GroupCondition) -> Box<dyn BoxableExpression
     }
 }
 
-// 根据 GroupCondition 向量查询组
+/// 根据多个条件查询分组记录，并可设置最大返回数量
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `limit`: 最大返回记录数限制（可选）
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_groups_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -195,7 +289,17 @@ pub fn select_groups_by_conditions(
         .load(conn)
 }
 
-
+/// 根据多个条件和高级选项查询分组记录
+///
+/// 支持分页、排序等复杂查询需求
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `options`: 查询选项，包括分页和排序配置
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 #[allow(dead_code)]
 pub fn select_groups_by_conditions_with_options(
     conn: &mut AnyConnection,
@@ -276,7 +380,15 @@ pub fn select_groups_by_conditions_with_options(
     query.select(Group::as_select()).load(conn)
 }
 
-
+/// 根据给定条件批量更新分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 更新条件集合，各条件之间采用 AND 连接
+/// - `update_set`: 包含更新数据的 DTO 对象
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn update_groups_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -293,6 +405,14 @@ pub fn update_groups_by_conditions(
     query.set(update_set).execute(conn)
 }
 
+/// 根据给定条件批量删除分组记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功删除的记录数目或数据库错误
 pub fn delete_groups_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -308,6 +428,14 @@ pub fn delete_groups_by_conditions(
     query.execute(conn)
 }
 
+/// 根据给定条件批量增加分组引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn increase_groups_reference_count_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -324,6 +452,14 @@ pub fn increase_groups_reference_count_by_conditions(
     query.set(groups::reference_count.eq(groups::reference_count + 1)).execute(conn)
 }
 
+/// 根据给定条件批量减少分组引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn decrease_groups_reference_count_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<GroupCondition>,
@@ -340,6 +476,14 @@ pub fn decrease_groups_reference_count_by_conditions(
     query.set(groups::reference_count.eq(groups::reference_count - 1)).execute(conn)
 }
 
+/// 根据文件ID查询关联的分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `other_file_id`: 文件ID
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_group_by_file_id(
     conn: &mut AnyConnection,
     other_file_id: i32,
@@ -353,6 +497,14 @@ pub fn select_group_by_file_id(
         .load(conn)
 }
 
+/// 根据标签ID查询关联的分组列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+///
+/// 返回值:
+/// 查询成功的分组记录列表或数据库错误
 pub fn select_group_by_tag_id(
     conn: &mut AnyConnection,
     tag_id: i32,
@@ -366,6 +518,14 @@ pub fn select_group_by_tag_id(
         .load(conn)
 }
 
+/// 根据分组ID获取分组详情
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 查询成功的分组记录或数据库错误
 pub fn get_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
@@ -376,6 +536,15 @@ pub fn get_group_by_id(
         .first(conn)
 }
 
+/// 根据分组ID更新分组信息
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+/// - `update_set`: 包含更新数据的 DTO 对象
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn update_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,

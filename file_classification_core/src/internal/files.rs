@@ -1,3 +1,8 @@
+// files.rs
+//! 文件管理模块
+//!
+//! 提供对文件表 (`files`) 的增删改查操作支持，包括基本的CRUD操作、条件查询、批量操作等。
+
 use super::models::{CreateFileDTO, File, FileCondition, FileFilter, UpdateFileDTO};
 use diesel::prelude::*;
 use crate::utils::database::AnyConnection;
@@ -6,11 +11,27 @@ use crate::model::schema::files;
 use crate::model::schema::files::dsl::*;
 use diesel::sql_types::Bool;
 
+/// 创建一个新的文件记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `new_file`: 包含待插入文件数据的 DTO 对象
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn create_file(conn: &mut AnyConnection, new_file: &CreateFileDTO) -> Result<usize, diesel::result::Error> {
     diesel::insert_into(files::table)
         .values(new_file).execute(conn)
 }
 
+/// 根据ID查找文件记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `_id`: 要查找的文件ID
+///
+/// 返回值:
+/// 成功时返回匹配的文件记录（如果存在），失败则返回数据库错误
 pub fn find_file_by_id(conn: &mut AnyConnection, _id: i32) -> Result<Option<File>, diesel::result::Error> {
     files::table
         .filter(files::id.eq(_id))
@@ -19,6 +40,14 @@ pub fn find_file_by_id(conn: &mut AnyConnection, _id: i32) -> Result<Option<File
         .optional()
 }
 
+/// 增加文件的引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 文件ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn increase_file_reference_count(
     conn: &mut AnyConnection,
     file_id: i32,
@@ -28,6 +57,14 @@ pub fn increase_file_reference_count(
         .execute(conn)
 }
 
+/// 减少文件的引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 文件ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn decrease_file_reference_count(
     conn: &mut AnyConnection,
     file_id: i32,
@@ -37,6 +74,15 @@ pub fn decrease_file_reference_count(
         .execute(conn)
 }
 
+/// [已弃用] 根据过滤条件查询文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 #[deprecated]
 pub fn select_files(
     conn: &mut AnyConnection,
@@ -69,13 +115,25 @@ pub fn select_files(
         .load(conn)
 }
 
+/// 根据文件ID删除文件记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 要删除的文件ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn delete_file_by_id(conn: &mut AnyConnection, file_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
 
-
-// 将 FileCondition 转换为 diesel 查询条件的辅助函数
-// 更新 build_condition 函数以处理新增的条件类型
+/// 构建符合 Diesel 查询语法的条件表达式
+///
+/// 参数:
+/// - `condition`: 表达查询条件的数据结构
+///
+/// 返回值:
+/// 符合 Diesel 查询条件类型的动态表达式盒子
 fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<files::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
@@ -129,7 +187,15 @@ fn build_file_condition(condition: FileCondition) -> Box<dyn BoxableExpression<f
     }
 }
 
-// 修改 select_files_by_condition 函数以接受 Vec<FileCondition>
+/// 根据多个条件查询文件记录，并可设置最大返回数量
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `limit`: 最大返回记录数限制（可选）
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -152,6 +218,17 @@ pub fn select_files_by_conditions(
         .load(conn)
 }
 
+/// 根据多个条件和高级选项查询文件记录
+///
+/// 支持分页、排序等复杂查询需求
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `options`: 查询选项，包括分页和排序配置
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 #[allow(dead_code)]
 pub fn select_files_by_conditions_with_options(
     conn: &mut AnyConnection,
@@ -216,6 +293,15 @@ pub fn select_files_by_conditions_with_options(
         .load(conn)
 }
 
+/// 根据给定条件批量更新文件记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 更新条件集合，各条件之间采用 AND 连接
+/// - `update_set`: 包含更新数据的 DTO 对象
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn update_files_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -232,6 +318,14 @@ pub fn update_files_by_conditions(
     query.set(update_set).execute(conn)
 }
 
+/// 根据给定条件批量删除文件记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功删除的记录数目或数据库错误
 pub fn delete_files_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -246,6 +340,15 @@ pub fn delete_files_by_conditions(
 
     query.execute(conn)
 }
+
+/// 根据给定条件批量增加文件引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn increase_files_reference_count_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -262,6 +365,14 @@ pub fn increase_files_reference_count_by_conditions(
     query.set(files::reference_count.eq(files::reference_count + 1)).execute(conn)
 }
 
+/// 根据给定条件批量减少文件引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn decrease_files_reference_count_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
@@ -278,6 +389,14 @@ pub fn decrease_files_reference_count_by_conditions(
     query.set(files::reference_count.eq(files::reference_count - 1)).execute(conn)
 }
 
+/// 根据分组ID查询关联的文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `other_group_id`: 分组ID
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
 pub fn select_file_by_group_id(
     conn: &mut AnyConnection,
     other_group_id: i64,
@@ -291,6 +410,14 @@ pub fn select_file_by_group_id(
         .load(conn)
 }
 
+/// 根据文件ID获取文件详情
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 文件ID
+///
+/// 返回值:
+/// 查询成功的文件记录或数据库错误
 pub fn get_file_by_id(
     conn: &mut AnyConnection,
     file_id: i32,
@@ -301,6 +428,15 @@ pub fn get_file_by_id(
         .first(conn)
 }
 
+/// 根据文件ID更新文件信息
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_id`: 文件ID
+/// - `update_set`: 包含更新数据的 DTO 对象
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn update_file_by_id(
     conn: &mut AnyConnection,
     file_id: i32,

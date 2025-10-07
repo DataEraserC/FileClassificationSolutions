@@ -1,3 +1,8 @@
+// tags.rs
+//! 标签管理模块
+//!
+//! 提供对标签表 (`tags`) 的增删改查操作支持，包括基本的CRUD操作、条件查询、批量操作等。
+
 use super::models::{CreateTagDTO, Tag, TagFilter};
 use diesel::prelude::*;
 use crate::utils::database::AnyConnection;
@@ -8,6 +13,14 @@ use crate::model::models::{OrderDirection, TagOrderBy, TagQueryOptions, UpdateTa
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 
+/// 创建一个新的标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `new_tag`: 包含待插入标签数据的 DTO 对象
+///
+/// 返回值:
+/// 成功时返回新创建的标签记录，失败则返回数据库错误
 pub fn create_tag(
     conn: &mut AnyConnection,
     new_tag: &CreateTagDTO,
@@ -22,6 +35,14 @@ pub fn create_tag(
         .first(conn)
 }
 
+/// 根据名称查找标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_name`: 要查找的标签名称
+///
+/// 返回值:
+/// 成功时返回匹配的标签记录（如果存在），失败则返回数据库错误
 #[allow(dead_code)]
 pub fn find_tag_by_name(
     conn: &mut AnyConnection,
@@ -33,6 +54,14 @@ pub fn find_tag_by_name(
         .optional()
 }
 
+/// 根据ID查找标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 要查找的标签ID
+///
+/// 返回值:
+/// 成功时返回匹配的标签记录（如果存在），失败则返回数据库错误
 pub fn find_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Option<Tag>, diesel::result::Error> {
     tags.filter(tags::id.eq(tag_id))
         .select(Tag::as_select())
@@ -40,6 +69,14 @@ pub fn find_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Option<Ta
         .optional()
 }
 
+/// 增加标签的引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn increase_tag_reference_count(
     conn: &mut AnyConnection,
     tag_id: i32,
@@ -49,6 +86,14 @@ pub fn increase_tag_reference_count(
         .execute(conn)
 }
 
+/// 减少标签的引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn decrease_tag_reference_count(
     conn: &mut AnyConnection,
     tag_id: i32,
@@ -58,6 +103,15 @@ pub fn decrease_tag_reference_count(
         .execute(conn)
 }
 
+/// 根据过滤条件查询标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 标签过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tags(
     conn: &mut AnyConnection,
     search_input: TagFilter,
@@ -80,11 +134,25 @@ pub fn select_tags(
         .load(conn)
 }
 
+/// 根据标签ID删除标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 要删除的标签ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     diesel::delete(tags.filter(tags::id.eq(tag_id))).execute(conn)
 }
 
-// 将 TagCondition 转换为 diesel 查询条件的辅助函数
+/// 构建符合 Diesel 查询语法的条件表达式
+///
+/// 参数:
+/// - `condition`: 表达查询条件的数据结构
+///
+/// 返回值:
+/// 符合 Diesel 查询条件类型的动态表达式盒子
 fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tags::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
     match condition {
         TagCondition::Id(_id) => Box::new(tags::id.eq(_id)),
@@ -130,7 +198,15 @@ fn build_tag_condition(condition: TagCondition) -> Box<dyn BoxableExpression<tag
     }
 }
 
-// 根据 TagCondition 向量查询标签
+/// 根据多个条件查询标签记录，并可设置最大返回数量
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `limit`: 最大返回记录数限制（可选）
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tags_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -153,6 +229,17 @@ pub fn select_tags_by_conditions(
         .load(conn)
 }
 
+/// 根据多个条件和高级选项查询标签记录
+///
+/// 支持分页、排序等复杂查询需求
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `options`: 查询选项，包括分页和排序配置
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 #[allow(dead_code)]
 pub fn select_tags_by_conditions_with_options(
     conn: &mut AnyConnection,
@@ -205,6 +292,15 @@ pub fn select_tags_by_conditions_with_options(
         .load(conn)
 }
 
+/// 根据给定条件批量更新标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 更新条件集合，各条件之间采用 AND 连接
+/// - `update_set`: 包含更新数据的 DTO 对象
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn update_tags_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -221,6 +317,14 @@ pub fn update_tags_by_conditions(
     query.set(update_set).execute(conn)
 }
 
+/// 根据给定条件批量删除标签记录
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 删除条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功删除的记录数目或数据库错误
 pub fn delete_tags_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -236,6 +340,14 @@ pub fn delete_tags_by_conditions(
     query.execute(conn)
 }
 
+/// 根据给定条件批量增加标签引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn increase_tags_reference_count_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -252,6 +364,14 @@ pub fn increase_tags_reference_count_by_conditions(
     query.set(tags::reference_count.eq(tags::reference_count + 1)).execute(conn)
 }
 
+/// 根据给定条件批量减少标签引用计数
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+///
+/// 返回值:
+/// 成功更新的记录数目或数据库错误
 pub fn decrease_tags_reference_count_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -268,6 +388,14 @@ pub fn decrease_tags_reference_count_by_conditions(
     query.set(tags::reference_count.eq(tags::reference_count - 1)).execute(conn)
 }
 
+/// 根据分组ID查询关联的标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tag_by_group_id(
     conn: &mut AnyConnection,
     group_id: i64,
@@ -281,6 +409,14 @@ pub fn select_tag_by_group_id(
         .load(conn)
 }
 
+/// 根据标签ID获取标签详情
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+///
+/// 返回值:
+/// 查询成功的标签记录或数据库错误
 pub fn get_tag_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,
@@ -291,6 +427,15 @@ pub fn get_tag_by_id(
         .first(conn)
 }
 
+/// 根据标签ID更新标签信息
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+/// - `update_set`: 包含更新数据的 DTO 对象
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn update_tag_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,

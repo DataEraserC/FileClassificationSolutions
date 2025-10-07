@@ -1,3 +1,9 @@
+// tags.rs
+//! 标签服务模块
+//!
+//! 提供标签相关的业务逻辑处理，包括标签的创建、删除、查询和更新操作，
+//! 并处理标签与其关联分组等资源的引用计数和级联删除。
+
 use crate::model::models::{GroupTagCondition, TagCondition, TagQueryOptions, UpdateTagDTO};
 use crate::{
     internal::tags,
@@ -6,6 +12,14 @@ use crate::{
 use diesel::{Connection};
 use crate::utils::database::AnyConnection;
 
+/// 通过名称创建标签
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `name`: 标签名称
+///
+/// 返回值:
+/// 成功时返回创建的标签记录，失败时返回数据库错误
 pub fn create_tag_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<Tag, diesel::result::Error>
 where
     S: Into<String>,
@@ -14,10 +28,31 @@ where
     tags::create_tag(conn, &new_tag)
 }
 
+/// 创建标签
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `create_tag_dto`: 包含标签信息的DTO对象
+///
+/// 返回值:
+/// 成功时返回创建的标签记录，失败时返回数据库错误
 pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<Tag, diesel::result::Error> {
     tags::create_tag(conn, create_tag_dto)
 }
 
+/// 删除标签（级联删除相关资源）
+///
+/// 该函数负责删除标签并级联删除相关资源：
+/// 1. 减少所有关联分组的引用计数
+/// 2. 删除标签与分组的关联关系
+/// 3. 删除标签本身
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 要删除的标签ID
+///
+/// 返回值:
+/// 成功时返回删除的记录数，失败时返回数据库错误
 pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
     // 使用事务确保数据一致性
     conn.transaction::<usize, diesel::result::Error, _>(|conn| {
@@ -44,6 +79,15 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
     })
 }
 
+/// 根据过滤条件查询标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 标签过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tags(
     conn: &mut AnyConnection,
     search_input: TagFilter,
@@ -52,6 +96,15 @@ pub fn select_tags(
     tags::select_tags(conn, search_input, limit)
 }
 
+/// 根据条件查询标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `condition`: 查询条件向量
+/// - `limit`: 返回记录数限制（可选）
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tags_by_conditions(
     conn: &mut AnyConnection,
     condition: Vec<TagCondition>,
@@ -59,6 +112,16 @@ pub fn select_tags_by_conditions(
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     tags::select_tags_by_conditions(conn, condition, limit)
 }
+
+/// 根据条件和选项查询标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tags_by_conditions_with_options(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -67,6 +130,15 @@ pub fn select_tags_by_conditions_with_options(
     tags::select_tags_by_conditions_with_options(conn, conditions, options)
 }
 
+/// 根据条件批量更新标签
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 更新条件向量
+/// - `update_set`: 更新内容DTO
+///
+/// 返回值:
+/// 成功更新的记录数或数据库错误
 pub fn update_tags_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -75,10 +147,23 @@ pub fn update_tags_by_conditions(
     tags::update_tags_by_conditions(conn, conditions, update_set)
 }
 
-
-// NOTE: 这个方法在core里不应该有用法
-// 要暴露给用户使用的话 应当改为先select再delete_by_id
-// 防止引用计算问题
+/// 根据条件批量删除标签（级联删除相关资源）
+///
+/// 注意：这个方法在core里不应该有直接用法
+/// 要暴露给用户使用的话应当改为先select再delete_by_id，防止引用计算问题
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 删除条件向量
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+///
+/// 操作流程:
+/// 对于每个要删除的标签，执行以下操作：
+/// 1. 减少所有关联分组的引用计数
+/// 2. 删除标签与分组的关联关系
+/// 3. 删除标签本身
 pub fn delete_tags_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<TagCondition>,
@@ -123,6 +208,14 @@ pub fn delete_tags_by_conditions(
     })
 }
 
+/// 根据分组ID查询关联的标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 分组ID
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
 pub fn select_tag_by_group_id(
     conn: &mut AnyConnection,
     group_id: i64,
@@ -130,6 +223,14 @@ pub fn select_tag_by_group_id(
     crate::internal::tags::select_tag_by_group_id(conn, group_id)
 }
 
+/// 根据标签ID获取标签详情
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+///
+/// 返回值:
+/// 查询成功的标签记录或数据库错误
 pub fn get_tag_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,
@@ -137,6 +238,15 @@ pub fn get_tag_by_id(
     tags::get_tag_by_id(conn, tag_id)
 }
 
+/// 根据标签ID更新标签信息
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_id`: 标签ID
+/// - `update_set`: 更新内容DTO
+///
+/// 返回值:
+/// 成功时返回影响的行数，失败时返回数据库错误
 pub fn update_tag_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,
