@@ -80,7 +80,7 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
 ///
 /// 返回值:
 /// 查询成功的标签记录列表或数据库错误
-pub fn select_tags(
+pub fn select_tags_by_filter(
     conn: &mut AnyConnection,
     search_input: TagFilter,
     limit: i64,

@@ -140,7 +140,7 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
     Ok(())
 }
 
-/// [已弃用] 根据过滤条件查询文件列表
+/// 根据过滤条件查询文件列表
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -149,9 +149,7 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
 ///
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
-#[allow(deprecated)]
-#[deprecated]
-pub fn select_files(
+pub fn select_files_by_filter(
     conn: &mut AnyConnection,
     search_input: FileFilter,
     limit: i64,

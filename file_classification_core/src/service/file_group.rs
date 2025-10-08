@@ -78,7 +78,7 @@ pub fn create_file_group(
 ///    - 减少分组的引用计数
 ///    - 减少文件的引用计数
 ///    - 删除文件-分组关联记录
-pub fn delete_file_group(
+pub fn delete_file_group_by_dto(
     conn: &mut AnyConnection,
     file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
@@ -178,7 +178,7 @@ pub fn delete_file_groups_by_conditions(
             };
 
             // 调用单个删除函数，复用其业务逻辑和验证规则
-            let deleted_count = delete_file_group(conn, file_group_dto)?;
+            let deleted_count = delete_file_group_by_dto(conn, file_group_dto)?;
             total_deleted += deleted_count;
         }
 

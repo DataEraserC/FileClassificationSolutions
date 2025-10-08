@@ -122,7 +122,7 @@ pub fn delete_group(
     })
 }
 
-/// [已弃用] 根据过滤条件查询分组列表
+/// 根据过滤条件查询分组列表
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -131,9 +131,7 @@ pub fn delete_group(
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-#[allow(deprecated)]
-#[deprecated]
-pub fn select_groups(
+pub fn select_groups_by_filter(
     conn: &mut AnyConnection,
     search_input: GroupFilter,
     limit: i64,

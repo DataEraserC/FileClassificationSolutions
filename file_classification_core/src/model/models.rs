@@ -47,7 +47,7 @@ impl Debug for File {
 /// 创建文件的DTO对象
 /// 
 /// 用于向数据库插入新文件记录时的数据传输对象
-#[derive(Insertable)]
+#[derive(Insertable, Deserialize)]
 #[diesel(table_name = files)]
 pub struct CreateFileDTO {
     /// 文件类型/扩展名
@@ -117,7 +117,7 @@ pub enum FileCondition {
 /// 文件查询选项结构体
 /// 
 /// 定义了文件查询的可选参数，如分页、排序等
-#[derive(Default)]
+#[derive(Default, Deserialize)]
 pub struct FileQueryOptions {
     /// 查询结果限制数量
     pub limit: Option<i64>,
@@ -130,6 +130,7 @@ pub struct FileQueryOptions {
 /// 文件排序字段枚举
 /// 
 /// 定义了可以用于文件查询结果排序的字段
+#[derive(Deserialize)]
 pub enum FileOrderBy {
     /// 按文件ID排序
     Id(OrderDirection),
@@ -335,7 +336,7 @@ pub enum GroupCondition {
 /// 分组查询选项结构体
 /// 
 /// 定义了分组查询的可选参数，如分页、排序等
-#[derive(Default)]
+#[derive(Default, Deserialize)]
 pub struct GroupQueryOptions {
     /// 查询结果限制数量
     pub limit: Option<i64>,
@@ -348,6 +349,7 @@ pub struct GroupQueryOptions {
 /// 分组排序字段枚举
 /// 
 /// 定义了可以用于分组查询结果排序的字段
+#[derive(Deserialize)]
 pub enum GroupOrderBy {
     /// 按分组ID排序
     Id(OrderDirection),
@@ -370,6 +372,7 @@ pub enum GroupOrderBy {
 /// 排序方向枚举
 /// 
 /// 定义了排序的方向，升序或降序
+#[derive(Deserialize)]
 pub enum OrderDirection {
     /// 升序排列
     Asc,
@@ -538,7 +541,7 @@ pub enum TagCondition {
 /// 标签查询选项结构体
 /// 
 /// 定义了标签查询的可选参数，如分页、排序等
-#[derive(Default)]
+#[derive(Default, Deserialize)]
 pub struct TagQueryOptions {
     /// 查询结果限制数量
     pub limit: Option<i64>,
@@ -551,6 +554,7 @@ pub struct TagQueryOptions {
 /// 标签排序字段枚举
 /// 
 /// 定义了可以用于标签查询结果排序的字段
+#[derive(Deserialize)]
 pub enum TagOrderBy {
     /// 按标签ID排序
     Id(OrderDirection),
@@ -666,7 +670,7 @@ pub enum FileGroupCondition {
 /// 文件-分组关联查询选项结构体
 /// 
 /// 定义了文件-分组关联查询的可选参数，如分页、排序等
-#[derive(Default)]
+#[derive(Default, Deserialize)]
 pub struct FileGroupQueryOptions {
     /// 查询结果限制数量
     pub limit: Option<i64>,
@@ -679,6 +683,7 @@ pub struct FileGroupQueryOptions {
 /// 文件-分组关联排序字段枚举
 /// 
 /// 定义了可以用于文件-分组关联查询结果排序的字段
+#[derive(Deserialize)]
 pub enum FileGroupOrderBy {
     /// 按文件ID排序
     FileId(OrderDirection),
@@ -747,7 +752,7 @@ pub enum GroupTagCondition {
 /// 分组-标签关联查询选项结构体
 /// 
 /// 定义了分组-标签关联查询的可选参数，如分页、排序等
-#[derive(Default)]
+#[derive(Default, Deserialize)]
 pub struct GroupTagQueryOptions {
     /// 查询结果限制数量
     pub limit: Option<i64>,
@@ -760,6 +765,7 @@ pub struct GroupTagQueryOptions {
 /// 分组-标签关联排序字段枚举
 /// 
 /// 定义了可以用于分组-标签关联查询结果排序的字段
+#[derive(Deserialize)]
 pub enum GroupTagOrderBy {
     /// 按分组ID排序
     GroupId(OrderDirection),

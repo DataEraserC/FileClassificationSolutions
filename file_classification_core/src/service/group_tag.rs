@@ -69,7 +69,7 @@ pub fn create_group_tag(
 ///    - 减少分组的引用计数
 ///    - 减少标签的引用计数
 ///    - 删除分组-标签关联记录
-pub fn delete_group_tag_by_id(
+pub fn delete_group_tag_by_dto(
     conn: &mut AnyConnection,
     group_tag_dto: GroupTagDTO,
 ) -> Result<usize, AppError> {
@@ -165,7 +165,7 @@ pub fn delete_group_tags_by_conditions(
             };
             
             // 调用单个删除函数，复用其业务逻辑
-            let deleted_count = delete_group_tag_by_id(conn, group_tag_dto)?;
+            let deleted_count = delete_group_tag_by_dto(conn, group_tag_dto)?;
             total_deleted += deleted_count;
         }
 
