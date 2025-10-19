@@ -108,6 +108,7 @@ http-client.private.env.json
 
 # Project related
 
+.idea/
 *.db
 *.log
 
