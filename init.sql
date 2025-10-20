@@ -15,12 +15,14 @@ CREATE TABLE IF NOT EXISTS groups (
     click_count INTEGER NOT NULL DEFAULT 0, -- 点击次数
     share_count INTEGER NOT NULL DEFAULT 0, -- 分享次数
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 创建时间
-    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  -- 修改时间
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 修改时间
+    parent_id INTEGER REFERENCES groups(id)  -- 父组ID，用于层次结构
 );
 
 CREATE TABLE IF NOT EXISTS file_groups (
     file_id INTEGER NOT NULL,
     group_id INTEGER NOT NULL,
+    relation_type INTEGER NOT NULL DEFAULT 1, -- 关系类型：1表示主组关系
     PRIMARY KEY (file_id, group_id),
     FOREIGN KEY (file_id) REFERENCES files(id),
     FOREIGN KEY (group_id) REFERENCES groups(id)
@@ -38,4 +40,13 @@ CREATE TABLE IF NOT EXISTS group_tags (
     PRIMARY KEY (group_id, tag_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
+CREATE TABLE IF NOT EXISTS group_relations (
+    first_group_id INTEGER NOT NULL,
+    second_group_id INTEGER NOT NULL,
+    relation_type INTEGER NOT NULL DEFAULT 1, -- 关系类型：1表示父子关系
+    PRIMARY KEY (first_group_id, second_group_id, relation_type),
+    FOREIGN KEY (first_group_id) REFERENCES groups(id),
+    FOREIGN KEY (second_group_id) REFERENCES groups(id)
 );

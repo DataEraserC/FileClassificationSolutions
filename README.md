@@ -33,13 +33,14 @@ A RESTful API service built on the Actix-web framework that provides HTTP interf
 
 ### Core Table Structure
 
-The system uses the following 5 core tables to store data:
+The system uses the following 6 core tables to store data:
 
 1. `files` table: Stores basic file information
 2. `groups` table: Stores file group information
 3. `file_groups` table: Stores many-to-many relationships between files and groups
 4. `tags` table: Stores tag information
 5. `group_tags` table: Stores many-to-many relationships between groups and tags
+6. `group_relations` table: Stores hierarchical relationships between groups
 
 ### Table Structure Details
 
@@ -61,12 +62,14 @@ CREATE TABLE IF NOT EXISTS groups (
     click_count INTEGER NOT NULL DEFAULT 0, -- Click count
     share_count INTEGER NOT NULL DEFAULT 0, -- Share count
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Creation time
-    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  -- Modification time
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Modification time
+    parent_id INTEGER REFERENCES groups(id)  -- Parent group ID for hierarchical structure
 );
 
 CREATE TABLE IF NOT EXISTS file_groups (
     file_id INTEGER NOT NULL,
     group_id INTEGER NOT NULL,
+    relation_type INTEGER NOT NULL DEFAULT 1, -- Relationship type: 1 for primary group relationship
     PRIMARY KEY (file_id, group_id),
     FOREIGN KEY (file_id) REFERENCES files(id),
     FOREIGN KEY (group_id) REFERENCES groups(id)
@@ -84,6 +87,15 @@ CREATE TABLE IF NOT EXISTS group_tags (
     PRIMARY KEY (group_id, tag_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
+CREATE TABLE IF NOT EXISTS group_relations (
+    first_group_id INTEGER NOT NULL,
+    second_group_id INTEGER NOT NULL,
+    relation_type INTEGER NOT NULL DEFAULT 1, -- Relationship type: 1 for parent-child relationship
+    PRIMARY KEY (first_group_id, second_group_id, relation_type),
+    FOREIGN KEY (first_group_id) REFERENCES groups(id),
+    FOREIGN KEY (second_group_id) REFERENCES groups(id)
 );
 ```
 
