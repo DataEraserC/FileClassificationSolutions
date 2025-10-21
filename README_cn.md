@@ -33,17 +33,18 @@ FileClassificationSolutions 是一个基于 Rust 语言开发的创新文件分�
 
 ### 核心表结构
 
-系统使用以下 5 个核心表来存储数据：
+系统使用以下 6 个核心表来存储数据：
 
 1. `files` 表：存储文件的基本信息
 2. `groups` 表：存储文件分组信息
 3. `file_groups` 表：存储文件与分组的多对多关系
 4. `tags` 表：存储标签信息
 5. `group_tags` 表：存储分组与标签的多对多关系
+6. `group_relations` 表：存储分组间的层级关系
 
 ### 表结构详情
 
-```sql
+```
 CREATE TABLE IF NOT EXISTS files (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,   -- 文件类型
@@ -61,12 +62,14 @@ CREATE TABLE IF NOT EXISTS groups (
     click_count INTEGER NOT NULL DEFAULT 0, -- 点击次数
     share_count INTEGER NOT NULL DEFAULT 0, -- 分享次数
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 创建时间
-    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP  -- 修改时间
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 修改时间
+    parent_id INTEGER REFERENCES groups(id)  -- 父组ID，用于层级结构
 );
 
 CREATE TABLE IF NOT EXISTS file_groups (
     file_id INTEGER NOT NULL,
     group_id INTEGER NOT NULL,
+    relation_type INTEGER NOT NULL DEFAULT 1, -- 关系类型：1表示主组关系
     PRIMARY KEY (file_id, group_id),
     FOREIGN KEY (file_id) REFERENCES files(id),
     FOREIGN KEY (group_id) REFERENCES groups(id)
@@ -84,6 +87,15 @@ CREATE TABLE IF NOT EXISTS group_tags (
     PRIMARY KEY (group_id, tag_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
+
+CREATE TABLE IF NOT EXISTS group_relations (
+    first_group_id INTEGER NOT NULL,
+    second_group_id INTEGER NOT NULL,
+    relation_type INTEGER NOT NULL DEFAULT 1, -- 关系类型：1表示父子关系
+    PRIMARY KEY (first_group_id, second_group_id, relation_type),
+    FOREIGN KEY (first_group_id) REFERENCES groups(id),
+    FOREIGN KEY (second_group_id) REFERENCES groups(id)
 );
 ```
 

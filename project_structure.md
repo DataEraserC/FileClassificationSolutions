@@ -171,6 +171,8 @@ erDiagram
     groups ||--o{ file_groups : has
     groups ||--o{ group_tags : has
     tags ||--o{ group_tags : has
+    groups ||--o{ group_relations : has
+    groups ||--o{ group_relations : has
     
     files {
         int id PK
@@ -189,11 +191,13 @@ erDiagram
         int share_count
         timestamp create_time
         timestamp modify_time
+        int parent_id FK
     }
     
     file_groups {
         int file_id PK,FK
         int group_id PK,FK
+        int relation_type
     }
     
     tags {
@@ -205,6 +209,12 @@ erDiagram
     group_tags {
         int group_id PK,FK
         int tag_id PK,FK
+    }
+    
+    group_relations {
+        int first_group_id PK,FK
+        int second_group_id PK,FK
+        int relation_type
     }
 ```
 

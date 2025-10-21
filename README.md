@@ -44,7 +44,7 @@ The system uses the following 6 core tables to store data:
 
 ### Table Structure Details
 
-```sql
+```
 CREATE TABLE IF NOT EXISTS files (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,   -- File type
