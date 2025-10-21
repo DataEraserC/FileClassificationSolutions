@@ -1,19 +1,5 @@
-# 网站分类管理示例说明
-
-# 本目录下提供了三种不同的分类方式示例：
-# 1. hierarchical_classification.fcc - 纯层级分类
-#    仅使用 group_relations 表建立组之间的层级关系
-#
-# 2. tag_based_classification.fcc - 纯标签分类
-#    仅使用 group_tags 表为组添加标签进行分类
-#
-# 3. hybrid_classification.fcc - 混合分类
-#    同时使用层级结构和标签进行分类
-
-# 用户可以根据自己的需求选择其中一种分类方式
-
-# 网站分类管理示例
-# 使用层级+标签混合分类方式管理网站书签
+# 混合分类示例
+# 结合使用层级结构和标签组织网站书签
 
 # 1. 创建顶层分类组（非主组，用于建立层级结构）
 group create --name "娱乐网站"
@@ -39,7 +25,6 @@ tag create --name "技术"
 tag create --name "在线"
 
 # 4. 为每个网站创建主文件组并创建文件
-# 每个文件都有自己的主组，主组与文件一对一关联
 group create --name "youtube_bookmark"
 file create --type "bookmark" --path "https://youtube.com" --group-id 13
 group create --name "bilibili_bookmark"

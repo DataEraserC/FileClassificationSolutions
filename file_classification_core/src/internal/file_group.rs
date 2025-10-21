@@ -81,14 +81,18 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
     match condition {
         FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
         FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
+        FileGroupCondition::RelationType(typ) => Box::new(file_groups::relation_type.eq(typ)),
 
         FileGroupCondition::FileIdGreaterThan(value) => Box::new(file_groups::file_id.gt(value)),
         FileGroupCondition::FileIdLessThan(value) => Box::new(file_groups::file_id.lt(value)),
         FileGroupCondition::GroupIdGreaterThan(value) => Box::new(file_groups::group_id.gt(value)),
         FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
+        FileGroupCondition::RelationTypeGreaterThan(value) => Box::new(file_groups::relation_type.gt(value)),
+        FileGroupCondition::RelationTypeLessThan(value) => Box::new(file_groups::relation_type.lt(value)),
 
         FileGroupCondition::FileIdIn(values) => Box::new(file_groups::file_id.eq_any(values)),
         FileGroupCondition::GroupIdIn(values) => Box::new(file_groups::group_id.eq_any(values)),
+        FileGroupCondition::RelationTypeIn(values) => Box::new(file_groups::relation_type.eq_any(values)),
 
         FileGroupCondition::And(conditions) => {
             let mut result: Option<Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;

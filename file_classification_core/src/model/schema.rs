@@ -4,6 +4,7 @@ diesel::table! {
 		file_groups (file_id, group_id) {
 				file_id -> Integer,
 				group_id -> Integer,
+				relation_type -> Integer,
 		}
 }
 
@@ -15,6 +16,14 @@ diesel::table! {
 				path -> Text,
 				reference_count -> Integer,
 				group_id -> Integer,
+		}
+}
+
+diesel::table! {
+		group_relations (first_group_id, second_group_id, relation_type) {
+				first_group_id -> Integer,
+				second_group_id -> Integer,
+				relation_type -> Integer,
 		}
 }
 
@@ -35,6 +44,7 @@ diesel::table! {
 				share_count -> Integer,
 				create_time -> Timestamp,
 				modify_time -> Timestamp,
+				parent_id -> Nullable<Integer>,
 		}
 }
 
@@ -52,4 +62,11 @@ diesel::joinable!(files -> groups (group_id));
 diesel::joinable!(group_tags -> groups (group_id));
 diesel::joinable!(group_tags -> tags (tag_id));
 
-diesel::allow_tables_to_appear_in_same_query!(file_groups, files, group_tags, groups, tags,);
+diesel::allow_tables_to_appear_in_same_query!(
+	file_groups,
+	files,
+	group_relations,
+	group_tags,
+	groups,
+	tags,
+);

@@ -623,11 +623,13 @@ pub struct FileGroupDTO {
     pub file_id: i32,
     /// 分组ID，外键关联 `groups` 表
     pub group_id: i32,
+    /// 关联类型，1表示主分组关系
+    pub relation_type: i32,
 }
 
 impl Debug for FileGroupDTO {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
-        write!(f, "FileGroup {{ file_id: {}, group_id: {} }}", self.file_id, self.group_id)
+        write!(f, "FileGroup {{ file_id: {}, group_id: {}, relation_type: {} }}", self.file_id, self.group_id, self.relation_type)
     }
 }
 
@@ -641,6 +643,8 @@ pub enum FileGroupCondition {
     FileId(i32),
     /// 根据分组ID查询
     GroupId(i32),
+    /// 根据关联类型查询
+    RelationType(i32),
 
     // 范围比较条件
     /// 文件ID大于指定值
@@ -651,12 +655,18 @@ pub enum FileGroupCondition {
     GroupIdGreaterThan(i32),
     /// 分组ID小于指定值
     GroupIdLessThan(i32),
+    /// 关联类型大于指定值
+    RelationTypeGreaterThan(i32),
+    /// 关联类型小于指定值
+    RelationTypeLessThan(i32),
 
     // 集合包含条件
     /// 文件ID在指定集合中
     FileIdIn(Vec<i32>),
     /// 分组ID在指定集合中
     GroupIdIn(Vec<i32>),
+    /// 关联类型在指定集合中
+    RelationTypeIn(Vec<i32>),
 
     // 逻辑组合条件
     /// AND逻辑组合多个条件
@@ -771,4 +781,100 @@ pub enum GroupTagOrderBy {
     GroupId(OrderDirection),
     /// 按标签ID排序
     TagId(OrderDirection),
+}
+
+/** GroupRelation Related
+ 组关系相关数据模型
+*/
+
+/// 组关系实体模型
+/// 
+/// 对应数据库中的 `group_relations` 表，表示组和组之间的关联关系
+#[derive(Queryable, Selectable, Insertable, Serialize, serde::Deserialize, Clone)]
+#[diesel(table_name = crate::model::schema::group_relations)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct GroupRelation {
+    /// 第一个组ID，外键关联 `groups` 表
+    pub first_group_id: i32,
+    /// 第二个组ID，外键关联 `groups` 表
+    pub second_group_id: i32,
+    /// 关系类型
+    pub relation_type: i32,
+}
+
+impl Debug for GroupRelation {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmtResult {
+        write!(f, "GroupRelation {{ first_group_id: {}, second_group_id: {}, relation_type: {} }}", 
+               self.first_group_id, self.second_group_id, self.relation_type)
+    }
+}
+
+/// 组关系查询条件枚举
+/// 
+/// 定义了可以用于查询组关系的各种条件类型，支持复合条件查询
+#[derive(serde::Deserialize, Clone)]
+pub enum GroupRelationCondition {
+    // 基本相等条件
+    /// 根据第一个组ID查询
+    FirstGroupId(i32),
+    /// 根据第二个组ID查询
+    SecondGroupId(i32),
+    /// 根据关系类型查询
+    RelationType(i32),
+
+    // 范围比较条件
+    /// 第一个组ID大于指定值
+    FirstGroupIdGreaterThan(i32),
+    /// 第一个组ID小于指定值
+    FirstGroupIdLessThan(i32),
+    /// 第二个组ID大于指定值
+    SecondGroupIdGreaterThan(i32),
+    /// 第二个组ID小于指定值
+    SecondGroupIdLessThan(i32),
+    /// 关系类型大于指定值
+    RelationTypeGreaterThan(i32),
+    /// 关系类型小于指定值
+    RelationTypeLessThan(i32),
+
+    // 集合包含条件
+    /// 第一个组ID在指定集合中
+    FirstGroupIdIn(Vec<i32>),
+    /// 第二个组ID在指定集合中
+    SecondGroupIdIn(Vec<i32>),
+    /// 关系类型在指定集合中
+    RelationTypeIn(Vec<i32>),
+
+    // 逻辑组合条件
+    /// AND逻辑组合多个条件
+    And(Vec<GroupRelationCondition>),
+    /// OR逻辑组合多个条件
+    Or(Vec<GroupRelationCondition>),
+    /// NOT逻辑取反条件
+    Not(Box<GroupRelationCondition>),
+}
+
+/// 组关系查询选项结构体
+/// 
+/// 定义了组关系查询的可选参数，如分页、排序等
+#[derive(Default, Deserialize)]
+pub struct GroupRelationQueryOptions {
+    /// 查询结果限制数量
+    pub limit: Option<i64>,
+    /// 查询结果偏移量（用于分页）
+    pub offset: Option<i64>,
+    /// 排序条件列表
+    pub order_by: Vec<GroupRelationOrderBy>,
+}
+
+/// 组关系排序字段枚举
+/// 
+/// 定义了可以用于组关系查询结果排序的字段
+#[derive(Deserialize)]
+pub enum GroupRelationOrderBy {
+    /// 按第一个组ID排序
+    FirstGroupId(OrderDirection),
+    /// 按第二个组ID排序
+    SecondGroupId(OrderDirection),
+    /// 按关系类型排序
+    RelationType(OrderDirection),
 }

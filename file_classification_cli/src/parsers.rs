@@ -385,6 +385,31 @@ pub fn parse_file_group_conditions(args: &[String]) -> Vec<models::FileGroupCond
                 }
                 i += 2;
             }
+            "relation_type" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::FileGroupCondition::RelationType(value));
+                }
+                i += 2;
+            }
+            "relation_type_gt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::FileGroupCondition::RelationTypeGreaterThan(value));
+                }
+                i += 2;
+            }
+            "relation_type_lt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::FileGroupCondition::RelationTypeLessThan(value));
+                }
+                i += 2;
+            }
+            "relation_type_in" if i + 1 < args.len() => {
+                let values: Result<Vec<i32>, _> = args[i + 1].split(',').map(|s| s.parse::<i32>()).collect();
+                if let Ok(values) = values {
+                    conditions.push(models::FileGroupCondition::RelationTypeIn(values));
+                }
+                i += 2;
+            }
             _ => i += 1,
         }
     }
@@ -446,6 +471,95 @@ pub fn parse_group_tag_conditions(args: &[String]) -> Vec<models::GroupTagCondit
                 let values: Result<Vec<i32>, _> = args[i + 1].split(',').map(|s| s.parse::<i32>()).collect();
                 if let Ok(values) = values {
                     conditions.push(models::GroupTagCondition::TagIdIn(values));
+                }
+                i += 2;
+            }
+            _ => i += 1,
+        }
+    }
+
+    conditions
+}
+
+/// 解析组关系条件
+pub fn parse_group_relation_conditions(args: &[String]) -> Vec<models::GroupRelationCondition> {
+    let mut conditions = Vec::new();
+    let mut i = 0;
+
+    while i < args.len() {
+        match args[i].as_str() {
+            "first_group_id" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::FirstGroupId(value));
+                }
+                i += 2;
+            }
+            "first_group_id_gt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::FirstGroupIdGreaterThan(value));
+                }
+                i += 2;
+            }
+            "first_group_id_lt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::FirstGroupIdLessThan(value));
+                }
+                i += 2;
+            }
+            "first_group_id_in" if i + 1 < args.len() => {
+                let values: Result<Vec<i32>, _> = args[i + 1].split(',').map(|s| s.parse::<i32>()).collect();
+                if let Ok(values) = values {
+                    conditions.push(models::GroupRelationCondition::FirstGroupIdIn(values));
+                }
+                i += 2;
+            }
+            "second_group_id" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::SecondGroupId(value));
+                }
+                i += 2;
+            }
+            "second_group_id_gt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::SecondGroupIdGreaterThan(value));
+                }
+                i += 2;
+            }
+            "second_group_id_lt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::SecondGroupIdLessThan(value));
+                }
+                i += 2;
+            }
+            "second_group_id_in" if i + 1 < args.len() => {
+                let values: Result<Vec<i32>, _> = args[i + 1].split(',').map(|s| s.parse::<i32>()).collect();
+                if let Ok(values) = values {
+                    conditions.push(models::GroupRelationCondition::SecondGroupIdIn(values));
+                }
+                i += 2;
+            }
+            "relation_type" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::RelationType(value));
+                }
+                i += 2;
+            }
+            "relation_type_gt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::RelationTypeGreaterThan(value));
+                }
+                i += 2;
+            }
+            "relation_type_lt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<i32>() {
+                    conditions.push(models::GroupRelationCondition::RelationTypeLessThan(value));
+                }
+                i += 2;
+            }
+            "relation_type_in" if i + 1 < args.len() => {
+                let values: Result<Vec<i32>, _> = args[i + 1].split(',').map(|s| s.parse::<i32>()).collect();
+                if let Ok(values) = values {
+                    conditions.push(models::GroupRelationCondition::RelationTypeIn(values));
                 }
                 i += 2;
             }
@@ -602,6 +716,36 @@ pub fn parse_group_tag_order_by(args: &[String]) -> Vec<models::GroupTagOrderBy>
         let order_by = match field {
             "group_id" => models::GroupTagOrderBy::GroupId(direction),
             "tag_id" => models::GroupTagOrderBy::TagId(direction),
+            _ => continue,
+        };
+
+        order_bys.push(order_by);
+    }
+
+    order_bys
+}
+
+/// 解析组关系排序
+pub fn parse_group_relation_order_by(args: &[String]) -> Vec<models::GroupRelationOrderBy> {
+    let mut order_bys = Vec::new();
+
+    for arg in args {
+        let parts: Vec<&str> = arg.split(':').collect();
+        if parts.is_empty() || parts.len() > 2 {
+            continue;
+        }
+
+        let field = parts[0];
+        let direction = if parts.len() == 2 && parts[1] == "desc" {
+            models::OrderDirection::Desc
+        } else {
+            models::OrderDirection::Asc
+        };
+
+        let order_by = match field {
+            "first_group_id" => models::GroupRelationOrderBy::FirstGroupId(direction),
+            "second_group_id" => models::GroupRelationOrderBy::SecondGroupId(direction),
+            "relation_type" => models::GroupRelationOrderBy::RelationType(direction),
             _ => continue,
         };
 

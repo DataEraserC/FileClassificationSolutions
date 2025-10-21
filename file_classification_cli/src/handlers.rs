@@ -19,7 +19,7 @@ use crate::parsers::{
     parse_file_conditions, parse_file_group_conditions, parse_file_group_order_by,
     parse_file_order_by, parse_group_conditions, parse_group_order_by,
     parse_group_tag_conditions, parse_group_tag_order_by, parse_tag_conditions,
-    parse_tag_order_by,
+    parse_tag_order_by, parse_group_relation_conditions, parse_group_relation_order_by,
 };
 use crate::repl::run_repl;
 
@@ -37,6 +37,7 @@ pub fn handle_command(
         Commands::Tag { action } => handle_tag_action(action, conn, context),
         Commands::FileGroup { action } => handle_file_group_action(action, conn, context),
         Commands::GroupTag { action } => handle_group_tag_action(action, conn, context),
+        Commands::GroupRelation { action } => handle_group_relation_action(action, conn, context),
     }
 }
 
@@ -750,7 +751,7 @@ fn handle_file_group_action(
             let file_id = file_id.unwrap_or_else(|| get_input("请输入文件 ID: ").parse().expect("无效的文件 ID"));
             let group_id = group_id.or(context.selected_group_id).unwrap_or_else(|| get_input("请输入组 ID: ").parse().expect("无效的组 ID"));
 
-            let dto = models::FileGroupDTO { file_id, group_id };
+            let dto = models::FileGroupDTO { file_id, group_id, relation_type: 1 };
             match service::file_group::create_file_group(conn, dto) {
                 Ok(dto) => println!("成功创建文件组关联: {:?}", dto),
                 Err(e) => eprintln!("创建文件组关联失败: {:?}", e),
@@ -764,7 +765,7 @@ fn handle_file_group_action(
                 "确定要删除文件 ID 为 {} 和组 ID 为 {} 的关联吗? (y/n): ",
                 file_id, group_id
             )) {
-                let dto = models::FileGroupDTO { file_id, group_id };
+                let dto = models::FileGroupDTO { file_id, group_id, relation_type: 1 };
                 match service::file_group::delete_file_group_by_dto(conn, dto) {
                     Ok(count) => println!("成功删除 {} 个文件组关联", count),
                     Err(e) => eprintln!("删除文件组关联失败: {:?}", e),
@@ -900,3 +901,99 @@ fn handle_group_tag_action(
     }
     Ok(())
 }
+
+/// 处理组关系相关动作
+fn handle_group_relation_action(
+    action: cli::GroupRelationActions,
+    conn: &mut AnyConnection,
+    context: &mut Context,
+) -> Result<(), Box<dyn Error>> {
+    match action {
+        cli::GroupRelationActions::Create { first_group_id, second_group_id, relation_type } => {
+            let first_group_id = first_group_id.unwrap_or_else(|| get_input("请输入第一个组 ID: ").parse().expect("无效的组 ID"));
+            let second_group_id = second_group_id.unwrap_or_else(|| get_input("请输入第二个组 ID: ").parse().expect("无效的组 ID"));
+            let relation_type = relation_type.unwrap_or(1); // 默认为父子关系
+
+            let dto = models::GroupRelation { 
+                first_group_id, 
+                second_group_id, 
+                relation_type,
+            };
+            
+            match service::group_relations::create_group_relation(conn, dto) {
+                Ok(dto) => println!("成功创建组关系: {:?}", dto),
+                Err(e) => eprintln!("创建组关系失败: {:?}", e),
+            }
+        }
+        cli::GroupRelationActions::Delete { first_group_id, second_group_id, relation_type } => {
+            let first_group_id = first_group_id.unwrap_or_else(|| get_input("请输入第一个组 ID: ").parse().expect("无效的组 ID"));
+            let second_group_id = second_group_id.unwrap_or_else(|| get_input("请输入第二个组 ID: ").parse().expect("无效的组 ID"));
+            let relation_type = relation_type.unwrap_or(1); // 默认为父子关系
+
+            if confirm_deletion(&format!(
+                "确定要删除组 ID 为 {} 和组 ID 为 {} 的关系吗? (y/n): ",
+                first_group_id, second_group_id
+            )) {
+                let dto = models::GroupRelation { 
+                    first_group_id, 
+                    second_group_id, 
+                    relation_type,
+                };
+                
+                match service::group_relations::delete_group_relation(conn, dto) {
+                    Ok(count) => println!("成功删除 {} 个组关系", count),
+                    Err(e) => eprintln!("删除组关系失败: {:?}", e),
+                }
+            } else {
+                println!("操作已取消");
+            }
+        }
+        cli::GroupRelationActions::ListInteractive => {
+            println!("暂不支持交互式列出组关系");
+        },
+        cli::GroupRelationActions::ListByConditions {
+            conditions,
+            order_by,
+            limit,
+            offset,
+        } => {
+            let conditions = parse_group_relation_conditions(&conditions);
+            let mut options = models::GroupRelationQueryOptions::default();
+            options.limit = limit;
+            options.offset = offset;
+            options.order_by = parse_group_relation_order_by(&order_by);
+
+            match service::group_relations::select_group_relations_by_conditions_with_options(
+                conn,
+                conditions,
+                options,
+            ) {
+                Ok(relations) => {
+                    println!("查询结果 (共 {} 条记录):", relations.len());
+                    for relation in &relations {
+                        println!("{:?}", relation);
+                    }
+
+                    if let Some(first_relation) = relations.first() {
+                        context.selected_group_id = Some(first_relation.first_group_id);
+                        println!(
+                            "\n提示：第一个组关系的第一个组 ID ({}) 已被选中，可用于后续操作。",
+                            first_relation.first_group_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::GroupRelationActions::DeleteByConditions { conditions } => {
+            let conditions = parse_group_relation_conditions(&conditions);
+            match service::group_relations::delete_group_relations_by_conditions(conn, conditions) {
+                Ok(count) => println!("成功删除 {} 条记录", count),
+                Err(e) => eprintln!("删除失败: {:?}", e),
+            }
+        }
+    }
+    Ok(())
+}
+
+

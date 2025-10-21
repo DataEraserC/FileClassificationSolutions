@@ -98,7 +98,7 @@ pub fn delete_group(
                 // 对于非主组，需要先减少关联文件的引用计数
                 crate::internal::files::decrease_file_reference_count_by_id(conn, file.id)?;
                 // 删除文件组关系
-                crate::internal::file_group::delete_file_group_by_dto(conn, &FileGroupDTO { file_id: file.id, group_id })?;
+                crate::internal::file_group::delete_file_group_by_dto(conn, &FileGroupDTO { file_id: file.id, group_id, relation_type: 1 })?;
             }
         }
 
@@ -206,7 +206,7 @@ pub fn update_groups_by_conditions(
 /// 对于每个要删除的分组，执行以下操作：
 /// 1. 如果是主分组，则删除关联的文件
 /// 2. 如果是非主分组，则减少关联文件的引用计数
-/// 3. 删除文件组关联关系
+/// 3. 删除文件组关系
 /// 4. 减少关联标签的引用计数
 /// 5. 删除组标签关联关系
 /// 6. 删除分组本身

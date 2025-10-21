@@ -1,0 +1,62 @@
+# 层级分类示例
+# 仅使用层级结构组织网站书签
+
+# 1. 创建分类组（非主组，用于建立层级结构）
+group create --name "娱乐网站"
+group create --name "学习网站"
+group create --name "工作网站"
+group create --name "视频网站"
+group create --name "直播网站"
+group create --name "编程学习网站"
+group create --name "在线课程网站"
+group create --name "技术文档网站"
+group create --name "办公协作网站"
+
+# 2. 为每个网站创建主文件组并创建文件
+group create --name "youtube_bookmark"
+file create --type "bookmark" --path "https://youtube.com" --group-id 10
+group create --name "bilibili_bookmark"
+file create --type "bookmark" --path "https://bilibili.com" --group-id 11
+group create --name "twitch_bookmark"
+file create --type "bookmark" --path "https://twitch.tv" --group-id 12
+group create --name "github_bookmark"
+file create --type "bookmark" --path "https://github.com" --group-id 13
+group create --name "coursera_bookmark"
+file create --type "bookmark" --path "https://coursera.org" --group-id 14
+group create --name "google_bookmark"
+file create --type "bookmark" --path "https://google.com" --group-id 15
+group create --name "drive_bookmark"
+file create --type "bookmark" --path "https://drive.google.com" --group-id 16
+group create --name "slack_bookmark"
+file create --type "bookmark" --path "https://slack.com" --group-id 17
+
+# 3. 建立层级分类关系（使用group_relations表）
+# 娱乐网站 -> 视频网站 -> youtube_bookmark主组
+group-relation create --first-group-id 1 --second-group-id 4 --relation-type 1
+group-relation create --first-group-id 4 --second-group-id 10 --relation-type 1
+
+# 娱乐网站 -> 视频网站 -> bilibili_bookmark主组
+group-relation create --first-group-id 4 --second-group-id 11 --relation-type 1
+
+# 娱乐网站 -> 直播网站 -> twitch_bookmark主组
+group-relation create --first-group-id 1 --second-group-id 5 --relation-type 1
+group-relation create --first-group-id 5 --second-group-id 12 --relation-type 1
+
+# 学习网站 -> 编程学习网站 -> github_bookmark主组
+group-relation create --first-group-id 2 --second-group-id 6 --relation-type 1
+group-relation create --first-group-id 6 --second-group-id 13 --relation-type 1
+
+# 学习网站 -> 在线课程网站 -> coursera_bookmark主组
+group-relation create --first-group-id 2 --second-group-id 7 --relation-type 1
+group-relation create --first-group-id 7 --second-group-id 14 --relation-type 1
+
+# 学习网站 -> 技术文档网站 -> google_bookmark主组
+group-relation create --first-group-id 2 --second-group-id 8 --relation-type 1
+group-relation create --first-group-id 8 --second-group-id 15 --relation-type 1
+
+# 工作网站 -> 办公协作网站 -> drive_bookmark主组
+group-relation create --first-group-id 3 --second-group-id 9 --relation-type 1
+group-relation create --first-group-id 9 --second-group-id 16 --relation-type 1
+
+# 工作网站 -> 办公协作网站 -> slack_bookmark主组
+group-relation create --first-group-id 9 --second-group-id 17 --relation-type 1

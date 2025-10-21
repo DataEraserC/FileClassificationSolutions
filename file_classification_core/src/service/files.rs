@@ -43,6 +43,15 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
             return Err(FuturePrimaryGroupShouldBeEmpty);
         }
 
+        // 检查该组是否已经是其他组的父组
+        use crate::internal::group_relations::get_second_group;
+        use crate::service::group_relations::RELATION_TYPE_PARENT_CHILD;
+        let children = get_second_group(conn, target_group.id, RELATION_TYPE_PARENT_CHILD)?;
+        if !children.is_empty() {
+            // 如果该组已经是其他组的父组，则不能转为主组
+            return Err(FuturePrimaryGroupShouldBeEmpty);
+        }
+
         // 记录影响条数
         // let mut count = 0;
 
@@ -59,7 +68,7 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         // file_id = file.id;
 
         // 建立文件与主分组的关联关系
-        match service::file_group::create_file_group(conn, FileGroupDTO { file_id, group_id: target_group.id }) {
+        match service::file_group::create_file_group(conn, FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 }) {
             Ok(_) => {
                 // count += 1;
             }

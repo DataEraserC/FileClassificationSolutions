@@ -59,6 +59,14 @@ pub enum AppError {
     /// 未来主分组应为空错误
     FuturePrimaryGroupShouldBeEmpty,
 
+    // GroupRelation errors
+    /// 组关系循环引用错误
+    GroupRelationCycleDetected,
+    /// 组关系已存在错误
+    GroupRelationAlreadyExists,
+    /// 主组不能作为父组错误
+    PrimaryGroupCannotBeParent,
+
     // Validation errors
     /// 数据验证错误，包含具体的验证失败原因
     ValidationError(String),
@@ -99,6 +107,11 @@ impl Display for AppError {
                 f,
                 "Future primary group should be empty"
             ),
+
+            // GroupRelation errors
+            AppError::GroupRelationCycleDetected => write!(f, "Group relation cycle detected"),
+            AppError::GroupRelationAlreadyExists => write!(f, "Group relation already exists"),
+            AppError::PrimaryGroupCannotBeParent => write!(f, "Primary group cannot be parent"),
 
             AppError::ValidationError(msg) => write!(f, "Validation error: {}", msg),
 

@@ -25,6 +25,11 @@ pub mod group_tag;
 /// 提供对 `groups` 表的操作，包括分组记录的增删改查以及引用计数管理
 pub mod groups;
 
+/// 组关系数据访问模块
+/// 
+/// 提供对 `group_relations` 表的操作，包括组与组之间关系的管理
+pub mod group_relations;
+
 /// 标签数据访问模块
 /// 
 /// 提供对 `tags` 表的操作，包括标签记录的增删改查以及引用计数管理

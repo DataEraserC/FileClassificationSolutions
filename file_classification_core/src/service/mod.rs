@@ -35,6 +35,12 @@ pub mod file_group;
 /// 包括关联关系的创建、删除、查询等操作，以及相关的引用计数管理
 pub mod group_tag;
 
+/// 组关系业务服务模块
+/// 
+/// 提供组与组之间关系的业务逻辑处理，
+/// 包括关系的创建、删除、查询等操作，以及循环引用检测
+pub mod group_relations;
+
 // 导入数据库相关模块，供服务层使用
 use super::utils::database;
 

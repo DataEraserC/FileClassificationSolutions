@@ -39,6 +39,11 @@ pub enum Commands {
         #[clap(subcommand)]
         action: GroupTagActions,
     },
+    /// 组关系操作
+    GroupRelation {
+        #[clap(subcommand)]
+        action: GroupRelationActions,
+    },
     /// 进入 REPL 模式
     Repl,
     /// 执行脚本文件
@@ -313,6 +318,47 @@ pub enum GroupTagActions {
         offset: Option<i64>,
     },
     /// 删除组标签关联（按条件）
+    DeleteByConditions {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+    },
+}
+
+/// 组关系操作子命令
+#[derive(Subcommand)]
+pub enum GroupRelationActions {
+    /// 创建组关系
+    Create {
+        #[clap(short, long)]
+        first_group_id: Option<i32>,
+        #[clap(short, long)]
+        second_group_id: Option<i32>,
+        #[clap(short, long)]
+        relation_type: Option<i32>,
+    },
+    /// 删除组关系
+    Delete {
+        #[clap(short, long)]
+        first_group_id: Option<i32>,
+        #[clap(short, long)]
+        second_group_id: Option<i32>,
+        #[clap(short, long)]
+        relation_type: Option<i32>,
+    },
+    /// 查询组关系（交互式）
+    ListInteractive,
+    /// 根据条件查询组关系
+    ListByConditions {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        limit: Option<i64>,
+        #[clap(long)]
+        offset: Option<i64>,
+    },
+    /// 删除组关系（按条件）
     DeleteByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
         conditions: Vec<String>,

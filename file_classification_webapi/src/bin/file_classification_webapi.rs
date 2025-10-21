@@ -63,6 +63,12 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::group_tags::api_create_group_tag)
             .service(handlers::group_tags::api_delete_group_tag)
             .service(handlers::group_tags::api_delete_group_tags_by_conditions)
+            // 组关系路由
+            .service(handlers::group_relations::api_list_group_relations_by_conditions)
+            .service(handlers::group_relations::api_list_group_relations_by_conditions_with_options)
+            .service(handlers::group_relations::api_create_group_relation)
+            .service(handlers::group_relations::api_delete_group_relation)
+            .service(handlers::group_relations::api_delete_group_relations_by_conditions)
     })
 
 

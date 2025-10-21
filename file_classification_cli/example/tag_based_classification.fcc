@@ -1,0 +1,63 @@
+# 标签分类示例
+# 仅使用标签组织网站书签
+
+# 1. 创建分类组（非主组）
+group create --name "视频网站"
+group create --name "直播网站"
+group create --name "编程网站"
+group create --name "学习平台"
+group create --name "办公工具"
+group create --name "搜索引擎"
+
+# 2. 创建标签
+tag create --name "视频"
+tag create --name "直播"
+tag create --name "编程"
+tag create --name "学习"
+tag create --name "工作"
+tag create --name "娱乐"
+tag create --name "技术"
+tag create --name "搜索"
+
+# 3. 为每个网站创建主文件组并创建文件
+group create --name "youtube_bookmark"
+file create --type "bookmark" --path "https://youtube.com" --group-id 13
+group create --name "bilibili_bookmark"
+file create --type "bookmark" --path "https://bilibili.com" --group-id 14
+group create --name "twitch_bookmark"
+file create --type "bookmark" --path "https://twitch.tv" --group-id 15
+group create --name "github_bookmark"
+file create --type "bookmark" --path "https://github.com" --group-id 16
+group create --name "stackoverflow_bookmark"
+file create --type "bookmark" --path "https://stackoverflow.com" --group-id 17
+group create --name "coursera_bookmark"
+file create --type "bookmark" --path "https://coursera.org" --group-id 18
+group create --name "google_bookmark"
+file create --type "bookmark" --path "https://google.com" --group-id 19
+group create --name "drive_bookmark"
+file create --type "bookmark" --path "https://drive.google.com" --group-id 20
+
+# 4. 建立标签分类关系（使用group_tags表）
+# 为分类组添加标签
+group-tag create --group-id 1 --tag-id 1  # 视频网站 - 视频标签
+group-tag create --group-id 2 --tag-id 2  # 直播网站 - 直播标签
+group-tag create --group-id 3 --tag-id 3  # 编程网站 - 编程标签
+group-tag create --group-id 4 --tag-id 4  # 学习平台 - 学习标签
+group-tag create --group-id 5 --tag-id 5  # 办公工具 - 工作标签
+group-tag create --group-id 6 --tag-id 8  # 搜索引擎 - 搜索标签
+
+# 为具体网站主组添加标签
+group-tag create --group-id 13 --tag-id 1  # youtube - 视频标签
+group-tag create --group-id 13 --tag-id 6  # youtube - 娱乐标签
+group-tag create --group-id 14 --tag-id 1  # bilibili - 视频标签
+group-tag create --group-id 14 --tag-id 6  # bilibili - 娱乐标签
+group-tag create --group-id 15 --tag-id 2  # twitch - 直播标签
+group-tag create --group-id 15 --tag-id 6  # twitch - 娱乐标签
+group-tag create --group-id 16 --tag-id 3  # github - 编程标签
+group-tag create --group-id 16 --tag-id 7  # github - 技术标签
+group-tag create --group-id 17 --tag-id 3  # stackoverflow - 编程标签
+group-tag create --group-id 17 --tag-id 7  # stackoverflow - 技术标签
+group-tag create --group-id 18 --tag-id 4  # coursera - 学习标签
+group-tag create --group-id 19 --tag-id 7  # google - 技术标签
+group-tag create --group-id 19 --tag-id 8  # google - 搜索标签
+group-tag create --group-id 20 --tag-id 5  # drive - 工作标签

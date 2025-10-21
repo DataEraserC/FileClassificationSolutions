@@ -18,3 +18,6 @@ ALTER TABLE file_groups ADD COLUMN relation_type INTEGER NOT NULL DEFAULT 1;
 CREATE INDEX idx_group_relations_first ON group_relations(first_group_id);
 CREATE INDEX idx_group_relations_second ON group_relations(second_group_id);
 CREATE INDEX idx_groups_parent ON groups(parent_id);
+
+-- 更新现有数据，为所有file_groups记录设置relation_type为1（主组关系）
+UPDATE file_groups SET relation_type = 1;
