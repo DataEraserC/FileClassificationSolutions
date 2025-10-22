@@ -18,14 +18,18 @@ FileClassificationSolutions/
 │   │   ├── service/           # 业务逻辑层
 │   │   └── utils/             # 工具函数
 │   └── Cargo.toml             # 核心库包配置
-├── file_classification_webapi/ # Web API (旧版)
-│   ├── src/bin/               # 各个独立的API端点
-│   └── Cargo.toml             # Web API 包配置
-├── file_classification_webapi2/ # Web API (新版)
+├── file_classification_webapi/ # Web API
 │   ├── src/
-│   │   ├── handlers/          # 请求处理函数
-│   │   └── utils/             # Web API 工具函数
-│   └── Cargo.toml             # Web API2 包配置
+│   │   ├── handlers/          # API 请求处理函数
+│   │   ├── group_tags.rs      # 组标签关联 API 处理
+│   │   ├── groups.rs          # 组 API 处理
+│   │   ├── mod.rs             # 模块声明
+│   │   └── tags.rs            # 标签 API 处理
+│   ├── utils/                 # Web API 工具函数
+│   │   ├── database.rs        # 数据库连接池
+│   │   ├── mod.rs             # 模块声明
+│   │   └── models.rs          # API 数据传输对象
+│   └── Cargo.toml             # Web API 包配置
 ├── migrations/                # 数据库迁移脚本
 └── nix/                      # Nix 包管理配置
 ```
@@ -115,7 +119,7 @@ file_classification_cli/
 - 包含完整的增删改查功能
 - 支持组合条件查询（AND、OR、NOT）
 
-### file_classification_webapi (Web API - 新版)
+### file_classification_webapi (Web API)
 
 基于 Actix-web 框架构建的 RESTful API 服务。
 

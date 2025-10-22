@@ -18,14 +18,19 @@ FileClassificationSolutions/
 │   │   ├── service/           # Business logic layer
 │   │   └── utils/             # Utility functions
 │   └── Cargo.toml             # Core library package configuration
-├── file_classification_webapi/ # Web API (Legacy)
-│   ├── src/bin/               # Various independent API endpoints
-│   └── Cargo.toml             # Web API package configuration
-├── file_classification_webapi2/ # Web API (New)
+├── file_classification_webapi/ # Web API
 │   ├── src/
-│   │   ├── handlers/          # Request handler functions
-│   │   └── utils/             # Web API utility functions
-│   └── Cargo.toml             # Web API2 package configuration
+│   │   ├── handlers/          # API request handler functions
+│   │   ├── files.rs           # File API handlers
+│   │   ├── group_tags.rs      # Group-tag association API handlers
+│   │   ├── groups.rs          # Group API handlers
+│   │   ├── mod.rs             # Module declarations
+│   │   └── tags.rs            # Tag API handlers
+│   ├── utils/                 # Web API utility functions
+│   │   ├── database.rs        # Database connection pool
+│   │   ├── mod.rs             # Module declarations
+│   │   └── models.rs          # API data transfer objects
+│   └── Cargo.toml             # Web API package configuration
 ├── migrations/                # Database migration scripts
 └── nix/                      # Nix package management configuration
 ```
@@ -115,7 +120,7 @@ file_classification_cli/
 - Includes complete CRUD functionality
 - Supports combined condition queries (AND, OR, NOT)
 
-### file_classification_webapi (Web API - New Version)
+### file_classification_webapi (Web API)
 
 RESTful API service built on the Actix-web framework.
 

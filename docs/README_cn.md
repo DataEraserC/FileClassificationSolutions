@@ -44,7 +44,7 @@ FileClassificationSolutions 是一个基于 Rust 语言开发的创新文件分�
 
 ### 表结构详情
 
-```
+```sql
 CREATE TABLE IF NOT EXISTS files (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL,   -- 文件类型
