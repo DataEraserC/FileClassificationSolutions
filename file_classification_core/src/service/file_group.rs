@@ -9,9 +9,9 @@ use crate::internal::files as files_dao;
 use crate::internal::groups as groups_dao;
 use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupQueryOptions};
 use crate::service::AppError;
+use crate::utils::database::AnyConnection;
 use diesel::result::Error;
 use diesel::Connection;
-use crate::utils::database::AnyConnection;
 
 /// 创建文件-分组关联关系
 ///
@@ -33,30 +33,30 @@ use crate::utils::database::AnyConnection;
 ///    - 增加分组的引用计数
 ///    - 插入文件-分组关联记录
 pub fn create_file_group(
-    conn: &mut AnyConnection,
-    file_group_dto: FileGroupDTO,
+	conn: &mut AnyConnection,
+	file_group_dto: FileGroupDTO,
 ) -> Result<FileGroupDTO, AppError> {
-    // 业务规则验证
-    let group = groups_dao::find_group_by_id(conn, file_group_dto.group_id)?
-        .ok_or(AppError::GroupNotFound)?;
+	// 业务规则验证
+	let group =
+		groups_dao::find_group_by_id(conn, file_group_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
-    let _file = files_dao::find_file_by_id(conn, file_group_dto.file_id)?
-        .ok_or(AppError::FileNotFound)?;
+	let _file =
+		files_dao::find_file_by_id(conn, file_group_dto.file_id)?.ok_or(AppError::FileNotFound)?;
 
-    if group.is_primary {
-        return Err(AppError::CannotBindToPrimaryGroup);
-    }
+	if group.is_primary {
+		return Err(AppError::CannotBindToPrimaryGroup);
+	}
 
-    // 使用事务处理引用计数和数据插入
-    let _result = conn.transaction::<_, AppError, _>(|conn| {
-        files_dao::increase_file_reference_count_by_id(conn, file_group_dto.file_id)?;
-        groups_dao::increase_group_reference_count_by_id(conn, file_group_dto.group_id)?;
-        // 错误类型转换，将 diesel::result::Error 转换为 AppError
-        file_group_dao::insert_file_group(conn, &file_group_dto)?;
-        Ok(())
-    })?;
+	// 使用事务处理引用计数和数据插入
+	let _result = conn.transaction::<_, AppError, _>(|conn| {
+		files_dao::increase_file_reference_count_by_id(conn, file_group_dto.file_id)?;
+		groups_dao::increase_group_reference_count_by_id(conn, file_group_dto.group_id)?;
+		// 错误类型转换，将 diesel::result::Error 转换为 AppError
+		file_group_dao::insert_file_group(conn, &file_group_dto)?;
+		Ok(())
+	})?;
 
-    Ok(file_group_dto)
+	Ok(file_group_dto)
 }
 
 /// 删除文件-分组关联关系
@@ -79,31 +79,31 @@ pub fn create_file_group(
 ///    - 减少文件的引用计数
 ///    - 删除文件-分组关联记录
 pub fn delete_file_group_by_dto(
-    conn: &mut AnyConnection,
-    file_group_dto: FileGroupDTO,
+	conn: &mut AnyConnection,
+	file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
-    let group = groups_dao::find_group_by_id(conn, file_group_dto.group_id)?
-        .ok_or(AppError::GroupNotFound)?;
+	let group =
+		groups_dao::find_group_by_id(conn, file_group_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
-    let _file = files_dao::find_file_by_id(conn, file_group_dto.file_id)?
-        .ok_or(AppError::FileNotFound)?;
+	let _file =
+		files_dao::find_file_by_id(conn, file_group_dto.file_id)?.ok_or(AppError::FileNotFound)?;
 
-    if group.is_primary {
-        return Err(AppError::CannotUnbindPrimaryGroup);
-    }
+	if group.is_primary {
+		return Err(AppError::CannotUnbindPrimaryGroup);
+	}
 
-    let result = conn.transaction::<_, AppError, _>(|conn| {
-        // 减少组和标签的引用计数
-        groups_dao::decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
-        files_dao::decrease_file_reference_count_by_id(conn, file_group_dto.file_id)?;
+	let result = conn.transaction::<_, AppError, _>(|conn| {
+		// 减少组和标签的引用计数
+		groups_dao::decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
+		files_dao::decrease_file_reference_count_by_id(conn, file_group_dto.file_id)?;
 
-        // 调用数据访问层执行删除操作
-        let deleted_count = file_group_dao::delete_file_group_by_dto(conn, &file_group_dto)?;
+		// 调用数据访问层执行删除操作
+		let deleted_count = file_group_dao::delete_file_group_by_dto(conn, &file_group_dto)?;
 
-        Ok(deleted_count)
-    });
+		Ok(deleted_count)
+	});
 
-    result
+	result
 }
 
 /// 根据条件查询文件-分组关联记录
@@ -116,11 +116,11 @@ pub fn delete_file_group_by_dto(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn select_file_groups_by_conditions(
-    conn: &mut AnyConnection,
-    condition: Vec<FileGroupCondition>,
-    limit: Option<i64>,
+	conn: &mut AnyConnection,
+	condition: Vec<FileGroupCondition>,
+	limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    file_group_dao::select_file_groups_by_conditions(conn, condition, limit)
+	file_group_dao::select_file_groups_by_conditions(conn, condition, limit)
 }
 
 /// 根据条件和选项查询文件-分组关联记录
@@ -133,11 +133,11 @@ pub fn select_file_groups_by_conditions(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn select_file_groups_by_conditions_with_options(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileGroupCondition>,
-    options: FileGroupQueryOptions,
+	conn: &mut AnyConnection,
+	conditions: Vec<FileGroupCondition>,
+	options: FileGroupQueryOptions,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    file_group_dao::select_file_groups_by_conditions_with_options(conn, conditions, options)
+	file_group_dao::select_file_groups_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据条件批量删除文件-分组关联记录
@@ -156,33 +156,35 @@ pub fn select_file_groups_by_conditions_with_options(
 /// 1. 先查询将要删除的所有记录
 /// 2. 在事务中对每条记录调用delete_file_group执行删除操作
 pub fn delete_file_groups_by_conditions(
-    conn: &mut AnyConnection,
-    condition: Vec<FileGroupCondition>,
+	conn: &mut AnyConnection,
+	condition: Vec<FileGroupCondition>,
 ) -> Result<usize, Error> {
-    // 首先查询将要删除的记录
-    let file_groups_to_delete = file_group_dao::select_file_groups_by_conditions(conn, condition.clone(), None)
-        .map_err(|e| match e {
-            diesel::result::Error::NotFound => Error::NotFound,
-            _ => e,
-        })?;
+	// 首先查询将要删除的记录
+	let file_groups_to_delete =
+		file_group_dao::select_file_groups_by_conditions(conn, condition.clone(), None).map_err(
+			|e| match e {
+				diesel::result::Error::NotFound => Error::NotFound,
+				_ => e,
+			},
+		)?;
 
-    // 使用事务确保数据一致性
-    conn.transaction::<_, Error, _>(|conn| {
-        let mut total_deleted = 0;
+	// 使用事务确保数据一致性
+	conn.transaction::<_, Error, _>(|conn| {
+		let mut total_deleted = 0;
 
-        // 对于每个要删除的文件组关联，直接调用delete_file_group函数
-        for file_group in &file_groups_to_delete {
-            let file_group_dto = FileGroupDTO {
-                file_id: file_group.file_id,
-                group_id: file_group.group_id,
-                relation_type: 1
-            };
+		// 对于每个要删除的文件组关联，直接调用delete_file_group函数
+		for file_group in &file_groups_to_delete {
+			let file_group_dto = FileGroupDTO {
+				file_id: file_group.file_id,
+				group_id: file_group.group_id,
+				relation_type: 1,
+			};
 
-            // 调用单个删除函数，复用其业务逻辑和验证规则
-            let deleted_count = delete_file_group_by_dto(conn, file_group_dto)?;
-            total_deleted += deleted_count;
-        }
+			// 调用单个删除函数，复用其业务逻辑和验证规则
+			let deleted_count = delete_file_group_by_dto(conn, file_group_dto)?;
+			total_deleted += deleted_count;
+		}
 
-        Ok(total_deleted)
-    })
+		Ok(total_deleted)
+	})
 }

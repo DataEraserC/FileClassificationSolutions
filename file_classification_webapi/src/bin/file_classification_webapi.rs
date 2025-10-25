@@ -1,29 +1,29 @@
-use actix_web::{web, App, HttpServer, middleware::Logger};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 mod handlers;
 mod utils;
 
-use utils::database::establish_connection_pool;
-use file_classification_core::utils::database::run_pending_migrations;
 use file_classification_core::utils::database::establish_connection;
+use file_classification_core::utils::database::run_pending_migrations;
+use utils::database::establish_connection_pool;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init();
+	env_logger::init();
 
-    println!("正在启动文件分类 Web API...");
-    
-    // 运行待处理的数据库迁移
-    let mut conn = establish_connection();
-    if let Err(e) = run_pending_migrations(&mut conn) {
-        eprintln!("数据库迁移失败: {}", e);
-        return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
-    }
+	println!("正在启动文件分类 Web API...");
 
-    let pool = establish_connection_pool();
+	// 运行待处理的数据库迁移
+	let mut conn = establish_connection();
+	if let Err(e) = run_pending_migrations(&mut conn) {
+		eprintln!("数据库迁移失败: {}", e);
+		return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+	}
 
-    // 在HttpServer::new中添加新的路由
-    HttpServer::new(move || {
-        App::new()
+	let pool = establish_connection_pool();
+
+	// 在HttpServer::new中添加新的路由
+	HttpServer::new(move || {
+		App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
             // 文件相关路由
@@ -78,10 +78,8 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::group_relations::api_create_group_relation)
             .service(handlers::group_relations::api_delete_group_relation)
             .service(handlers::group_relations::api_delete_group_relations_by_conditions)
-    })
-
-
-    .bind("127.0.0.1:8082")?
-    .run()
-    .await
+	})
+	.bind("127.0.0.1:8082")?
+	.run()
+	.await
 }

@@ -1,8 +1,8 @@
 pub use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
-pub use diesel::{Connection, QueryResult};
+pub use diesel::Connection;
 use dotenvy::dotenv;
-use std::env;
 use file_classification_core::utils::database::AnyConnection;
+use std::env;
 
 // 定义连接池类型
 pub type DbPool = Pool<ConnectionManager<AnyConnection>>;
@@ -10,19 +10,15 @@ pub type DbPool = Pool<ConnectionManager<AnyConnection>>;
 pub type DbPooledConnection = PooledConnection<ConnectionManager<AnyConnection>>;
 
 pub fn establish_connection_pool() -> DbPool {
-    dotenv().ok();
-    // NOTE: from ./.env
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let database_type = env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
+	dotenv().ok();
+	// NOTE: from ./.env
+	let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+	let database_type = env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
 
-    let manager = match database_type.as_str() {
-        "sqlite" => {
-            ConnectionManager::<AnyConnection>::new(&database_url)
-        },
-        _ => panic!("Unsupported database type: {}", database_type),
-    };
+	let manager = match database_type.as_str() {
+		"sqlite" => ConnectionManager::<AnyConnection>::new(&database_url),
+		_ => panic!("Unsupported database type: {}", database_type),
+	};
 
-    Pool::builder()
-        .build(manager)
-        .expect("Failed to create pool.")
+	Pool::builder().build(manager).expect("Failed to create pool.")
 }

@@ -5,18 +5,21 @@
 //! 并处理文件与其关联分组、标签等资源的引用计数和级联删除。
 
 use crate::internal::file_group as file_group_dao;
-use crate::internal::groups as groups_dao;
-use crate::internal::group_relations as group_relations_dao;
-use crate::internal::tags as tags_dao;
 use crate::internal::files as files_dao;
+use crate::internal::group_relations as group_relations_dao;
 use crate::internal::group_tag as group_tag_dao;
-use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, FileQueryOptions, GroupTagCondition, UpdateFileDTO};
-use crate::service::AppError;
-use crate::utils::errors::AppError::{FuturePrimaryGroupShouldBeEmpty};
-use crate::service::file_group as file_group_service;
-use diesel::Connection;
-use crate::utils::database::AnyConnection;
+use crate::internal::groups as groups_dao;
+use crate::internal::tags as tags_dao;
 use crate::model::models::RELATION_TYPE_PARENT_CHILD;
+use crate::model::models::{
+	CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO,
+	FileQueryOptions, GroupTagCondition, UpdateFileDTO,
+};
+use crate::service::AppError;
+use crate::service::file_group as file_group_service;
+use crate::utils::database::AnyConnection;
+use crate::utils::errors::AppError::FuturePrimaryGroupShouldBeEmpty;
+use diesel::Connection;
 
 /// 创建文件（业务逻辑处理）
 ///
@@ -32,60 +35,64 @@ use crate::model::models::RELATION_TYPE_PARENT_CHILD;
 ///
 /// 返回值:
 /// 成功时返回插入记录的ID，失败则返回相应的错误
-pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> Result<i32, AppError> {
-    conn.transaction::<i32, AppError, _>(|conn| {
-        // 验证目标分组是否存在
-        let target_group = groups_dao::get_group_by_id(conn, create_file_dto.group_id)?;
+pub fn create_file(
+	conn: &mut AnyConnection,
+	create_file_dto: CreateFileDTO,
+) -> Result<i32, AppError> {
+	conn.transaction::<i32, AppError, _>(|conn| {
+		// 验证目标分组是否存在
+		let target_group = groups_dao::get_group_by_id(conn, create_file_dto.group_id)?;
 
-        // 目标分组不能已经是别人的主分组
-        if target_group.is_primary == true {
-            return Err(AppError::CannotBindToPrimaryGroup);
-        }
+		// 目标分组不能已经是别人的主分组
+		if target_group.is_primary == true {
+			return Err(AppError::CannotBindToPrimaryGroup);
+		}
 
-        // 检查目标分组是否为空（作为主分组必须为空）
-        if file_group_dao::check_group_empty(conn, target_group.id)? == false {
-            return Err(FuturePrimaryGroupShouldBeEmpty);
-        }
+		// 检查目标分组是否为空（作为主分组必须为空）
+		if file_group_dao::check_group_empty(conn, target_group.id)? == false {
+			return Err(FuturePrimaryGroupShouldBeEmpty);
+		}
 
-        // 检查该组是否已经是其他组的父组
-        let children = group_relations_dao::get_direct_children_ids(conn, target_group.id)?;
-        if !children.is_empty() {
-            // 如果该组已经是其他组的父组，则不能转为主组
-            return Err(FuturePrimaryGroupShouldBeEmpty);
-        }
+		// 检查该组是否已经是其他组的父组
+		let children = group_relations_dao::get_direct_children_ids(conn, target_group.id)?;
+		if !children.is_empty() {
+			// 如果该组已经是其他组的父组，则不能转为主组
+			return Err(FuturePrimaryGroupShouldBeEmpty);
+		}
 
-        // 记录影响条数
-        // let mut count = 0;
+		// 记录影响条数
+		// let mut count = 0;
 
-        // 创建文件记录
-        let mut file_id = files_dao::insert_file(conn, &create_file_dto)?;
+		// 创建文件记录
+		let mut file_id = files_dao::insert_file(conn, &create_file_dto)?;
 
-        // count += 1;
+		// count += 1;
 
-        // // 获取刚创建的文件 主分组id可以区别文件
-        // let file_list = files_dao::select_files_by_conditions(conn, vec![
-        //     FileCondition::GroupId(create_file_dto.group_id)
-        // ], None)?;
-        // let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
-        // file_id = file.id;
+		// // 获取刚创建的文件 主分组id可以区别文件
+		// let file_list = files_dao::select_files_by_conditions(conn, vec![
+		//     FileCondition::GroupId(create_file_dto.group_id)
+		// ], None)?;
+		// let file = file_list.get(0).ok_or(AppError::FileNotFound)?;
+		// file_id = file.id;
 
-        // 建立文件与主分组的关联关系
-        match file_group_service::create_file_group(conn, FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 }) {
-            Ok(_) => {
-                // count += 1;
-            }
-            Err(e) => {
-                return Err(e)
-            }
-        }
+		// 建立文件与主分组的关联关系
+		match file_group_service::create_file_group(
+			conn,
+			FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 },
+		) {
+			Ok(_) => {
+				// count += 1;
+			}
+			Err(e) => return Err(e),
+		}
 
-        // 将目标分组标记为主分组
-        groups_dao::mark_group_as_primary(conn, target_group.id)?;
-        // count += groups_dao::mark_group_as_primary(conn, target_group.id)?;
+		// 将目标分组标记为主分组
+		groups_dao::mark_group_as_primary(conn, target_group.id)?;
+		// count += groups_dao::mark_group_as_primary(conn, target_group.id)?;
 
-        // 返回文件id
-        Ok(file_id)
-    })
+		// 返回文件id
+		Ok(file_id)
+	})
 }
 
 /// 删除文件（级联删除相关资源）
@@ -103,52 +110,52 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
 /// 返回值:
 /// 成功时返回空元组，失败时返回相应的错误
 pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppError> {
-    // 开始事务
-    conn.transaction::<(), diesel::result::Error, _>(|conn| {
-        // 0. 删除对应的PrimaryGroup对应的GroupTag
-        // 1. 删除对应的PrimaryGroup
-        // 2. 删除对应的剩余FileGroup
-        let file_required_to_delete = files_dao::find_file_by_id(conn, file_id)?
-            .ok_or_else(|| diesel::result::Error::NotFound)?;
+	// 开始事务
+	conn.transaction::<(), diesel::result::Error, _>(|conn| {
+		// 0. 删除对应的PrimaryGroup对应的GroupTag
+		// 1. 删除对应的PrimaryGroup
+		// 2. 删除对应的剩余FileGroup
+		let file_required_to_delete =
+			files_dao::find_file_by_id(conn, file_id)?.ok_or_else(|| diesel::result::Error::NotFound)?;
 
-        // 查找与该文件关联的所有文件组关系（包括主组和其他组）
-        let file_groups = file_group_dao::select_file_groups_by_conditions(
-            conn,
-            vec![FileGroupCondition::FileId(file_required_to_delete.id)],
-            None,
-        )?;
+		// 查找与该文件关联的所有文件组关系（包括主组和其他组）
+		let file_groups = file_group_dao::select_file_groups_by_conditions(
+			conn,
+			vec![FileGroupCondition::FileId(file_required_to_delete.id)],
+			None,
+		)?;
 
-        // 对于每个文件组关系，减少对应组的引用计数
-        for file_group in &file_groups {
-            groups_dao::decrease_group_reference_count_by_id(conn, file_group.group_id)?;
-        }
+		// 对于每个文件组关系，减少对应组的引用计数
+		for file_group in &file_groups {
+			groups_dao::decrease_group_reference_count_by_id(conn, file_group.group_id)?;
+		}
 
-        // 仅对主组关联的标签减少引用计数
-        let tag_list = tags_dao::select_tag_by_group_id(conn, file_required_to_delete.group_id)?;
+		// 仅对主组关联的标签减少引用计数
+		let tag_list = tags_dao::select_tag_by_group_id(conn, file_required_to_delete.group_id)?;
 
-        if !tag_list.is_empty() {
-            tags_dao::decrease_tag_reference_count_by_ids(
-                conn,
-                tag_list.iter().map(|tag| tag.id).collect::<Vec<_>>(),
-            )?;
-        }
+		if !tag_list.is_empty() {
+			tags_dao::decrease_tag_reference_count_by_ids(
+				conn,
+				tag_list.iter().map(|tag| tag.id).collect::<Vec<_>>(),
+			)?;
+		}
 
-        // 删除与文件主组关联的所有组标签关系
-        group_tag_dao::delete_group_tags_by_conditions(
-            conn,
-            vec![GroupTagCondition::GroupId(file_required_to_delete.group_id)],
-        )?;
+		// 删除与文件主组关联的所有组标签关系
+		group_tag_dao::delete_group_tags_by_conditions(
+			conn,
+			vec![GroupTagCondition::GroupId(file_required_to_delete.group_id)],
+		)?;
 
-        // 删除与文件关联的所有文件组关系
-        file_group_dao::delete_file_groups_by_dtos(conn, file_groups)?;
+		// 删除与文件关联的所有文件组关系
+		file_group_dao::delete_file_groups_by_dtos(conn, file_groups)?;
 
-        // 删除主组和文件本身
-        groups_dao::delete_group_by_id(conn, file_required_to_delete.group_id)?;
-        files_dao::delete_file_by_id(conn, file_id)?;
+		// 删除主组和文件本身
+		groups_dao::delete_group_by_id(conn, file_required_to_delete.group_id)?;
+		files_dao::delete_file_by_id(conn, file_id)?;
 
-        Ok(())
-    })?;
-    Ok(())
+		Ok(())
+	})?;
+	Ok(())
 }
 
 /// 根据过滤条件查询文件列表
@@ -161,11 +168,11 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_filter(
-    conn: &mut AnyConnection,
-    search_input: FileFilter,
-    limit: i64,
+	conn: &mut AnyConnection,
+	search_input: FileFilter,
+	limit: i64,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    files_dao::select_files_by_filter(conn, search_input, limit)
+	files_dao::select_files_by_filter(conn, search_input, limit)
 }
 
 /// 根据条件查询文件列表
@@ -178,11 +185,11 @@ pub fn select_files_by_filter(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_conditions(
-    conn: &mut AnyConnection,
-    condition: Vec<FileCondition>,
-    limit: Option<i64>,
+	conn: &mut AnyConnection,
+	condition: Vec<FileCondition>,
+	limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    files_dao::select_files_by_conditions(conn, condition, limit)
+	files_dao::select_files_by_conditions(conn, condition, limit)
 }
 
 /// 根据条件和选项查询文件列表
@@ -195,11 +202,11 @@ pub fn select_files_by_conditions(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_conditions_with_options(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-    options: FileQueryOptions,
+	conn: &mut AnyConnection,
+	conditions: Vec<FileCondition>,
+	options: FileQueryOptions,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    files_dao::select_files_by_conditions_with_options(conn, conditions, options)
+	files_dao::select_files_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据条件批量更新文件
@@ -212,11 +219,11 @@ pub fn select_files_by_conditions_with_options(
 /// 返回值:
 /// 成功更新的记录数或数据库错误
 pub fn update_files_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-    update_set: UpdateFileDTO,
+	conn: &mut AnyConnection,
+	conditions: Vec<FileCondition>,
+	update_set: UpdateFileDTO,
 ) -> Result<usize, diesel::result::Error> {
-    files_dao::update_files_by_conditions(conn, conditions, update_set)
+	files_dao::update_files_by_conditions(conn, conditions, update_set)
 }
 
 /// 根据条件批量删除文件（级联删除相关资源）
@@ -234,32 +241,30 @@ pub fn update_files_by_conditions(
 /// 操作流程:
 /// 对于每个要删除的文件，直接调用delete_file函数执行删除操作
 pub fn delete_files_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
+	conn: &mut AnyConnection,
+	conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    // 首先查询将要删除的文件
-    let files_to_delete = select_files_by_conditions(conn, conditions.clone(), None)
-        .map_err(|e| match e {
-            diesel::result::Error::NotFound => diesel::result::Error::NotFound,
-            _ => e,
-        })?;
+	// 首先查询将要删除的文件
+	let files_to_delete =
+		select_files_by_conditions(conn, conditions.clone(), None).map_err(|e| match e {
+			diesel::result::Error::NotFound => diesel::result::Error::NotFound,
+			_ => e,
+		})?;
 
-    // 使用事务确保数据一致性
-    conn.transaction::<_, diesel::result::Error, _>(|conn| {
-        let mut total_deleted = 0;
+	// 使用事务确保数据一致性
+	conn.transaction::<_, diesel::result::Error, _>(|conn| {
+		let mut total_deleted = 0;
 
-        // 对于每个要删除的文件，直接调用delete_file函数
-        for file in &files_to_delete {
-            // 调用单个文件删除函数，复用其业务逻辑
-            delete_file(conn, file.id)?;
-            total_deleted += 1;
-        }
+		// 对于每个要删除的文件，直接调用delete_file函数
+		for file in &files_to_delete {
+			// 调用单个文件删除函数，复用其业务逻辑
+			delete_file(conn, file.id)?;
+			total_deleted += 1;
+		}
 
-        Ok(total_deleted)
-    })
+		Ok(total_deleted)
+	})
 }
-
-
 
 /// 根据分组ID查询关联的文件列表
 ///
@@ -270,10 +275,10 @@ pub fn delete_files_by_conditions(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_file_by_group_id(
-    conn: &mut AnyConnection,
-    other_group_id: i32,
+	conn: &mut AnyConnection,
+	other_group_id: i32,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    files_dao::select_files_by_group_id(conn, other_group_id)
+	files_dao::select_files_by_group_id(conn, other_group_id)
 }
 
 /// 根据文件ID获取文件详情
@@ -285,10 +290,10 @@ pub fn select_file_by_group_id(
 /// 返回值:
 /// 查询成功的文件记录或数据库错误
 pub fn get_file_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
+	conn: &mut AnyConnection,
+	file_id: i32,
 ) -> Result<File, diesel::result::Error> {
-    files_dao::get_file_by_id(conn, file_id)
+	files_dao::get_file_by_id(conn, file_id)
 }
 
 /// 根据文件ID更新文件信息
@@ -301,9 +306,9 @@ pub fn get_file_by_id(
 /// 返回值:
 /// 成功时返回影响的行数，失败时返回数据库错误
 pub fn update_file_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
-    update_set: UpdateFileDTO,
+	conn: &mut AnyConnection,
+	file_id: i32,
+	update_set: UpdateFileDTO,
 ) -> Result<usize, diesel::result::Error> {
-    files_dao::update_file_by_id(conn, file_id, update_set)
+	files_dao::update_file_by_id(conn, file_id, update_set)
 }

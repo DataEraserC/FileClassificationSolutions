@@ -4,10 +4,10 @@
 //! 提供对文件-分组关系表 (`file_groups`) 的增删查操作支持。
 
 use super::models::{FileGroupCondition, FileGroupDTO};
-use crate::model::schema::{file_groups, files};
-use diesel::prelude::*;
+use crate::model::models::{FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
+use crate::model::schema::file_groups;
 use crate::utils::database::AnyConnection;
-use crate::model::models::{File, FileGroupOrderBy, FileGroupQueryOptions, OrderDirection};
+use diesel::prelude::*;
 
 /// 插入一个新的文件-分组关联记录
 ///
@@ -18,12 +18,10 @@ use crate::model::models::{File, FileGroupOrderBy, FileGroupQueryOptions, OrderD
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn insert_file_group(
-    conn: &mut AnyConnection,
-    file_group_dto: &FileGroupDTO,
+	conn: &mut AnyConnection,
+	file_group_dto: &FileGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::insert_into(file_groups::table)
-        .values(file_group_dto)
-        .execute(conn)
+	diesel::insert_into(file_groups::table).values(file_group_dto).execute(conn)
 }
 
 /// 根据 DTO 中的信息删除一个文件-分组关联记录
@@ -35,15 +33,15 @@ pub fn insert_file_group(
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn delete_file_group_by_dto(
-    conn: &mut AnyConnection,
-    file_group_dto: &FileGroupDTO,
+	conn: &mut AnyConnection,
+	file_group_dto: &FileGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::delete(
-        file_groups::table
-            .filter(file_groups::group_id.eq(file_group_dto.group_id))
-            .filter(file_groups::file_id.eq(file_group_dto.file_id)),
-    )
-    .execute(conn)
+	diesel::delete(
+		file_groups::table
+			.filter(file_groups::group_id.eq(file_group_dto.group_id))
+			.filter(file_groups::file_id.eq(file_group_dto.file_id)),
+	)
+	.execute(conn)
 }
 
 /// 根据多个 DTO 对象批量删除文件-分组关联记录（带事务支持）
@@ -55,20 +53,19 @@ pub fn delete_file_group_by_dto(
 /// 返回值:
 /// 成功时返回影响的行数，失败则返回数据库错误
 pub fn delete_file_groups_by_dtos(
-    conn: &mut AnyConnection,
-    file_group_dtos: Vec<FileGroupDTO>,
+	conn: &mut AnyConnection,
+	file_group_dtos: Vec<FileGroupDTO>,
 ) -> Result<usize, diesel::result::Error> {
-    conn.transaction::<usize, diesel::result::Error, _>(|conn| {
-        let mut total_deleted = 0;
+	conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+		let mut total_deleted = 0;
 
-        for dto in file_group_dtos {
-            total_deleted += delete_file_group_by_dto(conn, &dto)?;
-        }
+		for dto in file_group_dtos {
+			total_deleted += delete_file_group_by_dto(conn, &dto)?;
+		}
 
-        Ok(total_deleted)
-    })
+		Ok(total_deleted)
+	})
 }
-
 
 /// 构建符合 Diesel 查询语法的条件表达式
 ///
@@ -77,50 +74,80 @@ pub fn delete_file_groups_by_dtos(
 ///
 /// 返回值:
 /// 符合 Diesel 查询条件类型的动态表达式盒子
-fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
-    match condition {
-        FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
-        FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
-        FileGroupCondition::RelationType(typ) => Box::new(file_groups::relation_type.eq(typ)),
+fn build_file_group_condition(
+	condition: FileGroupCondition,
+) -> Box<
+	dyn BoxableExpression<
+			file_groups::table,
+			<AnyConnection as Connection>::Backend,
+			SqlType = diesel::sql_types::Bool,
+		>,
+> {
+	match condition {
+		FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
+		FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
+		FileGroupCondition::RelationType(typ) => Box::new(file_groups::relation_type.eq(typ)),
 
-        FileGroupCondition::FileIdGreaterThan(value) => Box::new(file_groups::file_id.gt(value)),
-        FileGroupCondition::FileIdLessThan(value) => Box::new(file_groups::file_id.lt(value)),
-        FileGroupCondition::GroupIdGreaterThan(value) => Box::new(file_groups::group_id.gt(value)),
-        FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
-        FileGroupCondition::RelationTypeGreaterThan(value) => Box::new(file_groups::relation_type.gt(value)),
-        FileGroupCondition::RelationTypeLessThan(value) => Box::new(file_groups::relation_type.lt(value)),
+		FileGroupCondition::FileIdGreaterThan(value) => Box::new(file_groups::file_id.gt(value)),
+		FileGroupCondition::FileIdLessThan(value) => Box::new(file_groups::file_id.lt(value)),
+		FileGroupCondition::GroupIdGreaterThan(value) => Box::new(file_groups::group_id.gt(value)),
+		FileGroupCondition::GroupIdLessThan(value) => Box::new(file_groups::group_id.lt(value)),
+		FileGroupCondition::RelationTypeGreaterThan(value) => {
+			Box::new(file_groups::relation_type.gt(value))
+		}
+		FileGroupCondition::RelationTypeLessThan(value) => {
+			Box::new(file_groups::relation_type.lt(value))
+		}
 
-        FileGroupCondition::FileIdIn(values) => Box::new(file_groups::file_id.eq_any(values)),
-        FileGroupCondition::GroupIdIn(values) => Box::new(file_groups::group_id.eq_any(values)),
-        FileGroupCondition::RelationTypeIn(values) => Box::new(file_groups::relation_type.eq_any(values)),
+		FileGroupCondition::FileIdIn(values) => Box::new(file_groups::file_id.eq_any(values)),
+		FileGroupCondition::GroupIdIn(values) => Box::new(file_groups::group_id.eq_any(values)),
+		FileGroupCondition::RelationTypeIn(values) => {
+			Box::new(file_groups::relation_type.eq_any(values))
+		}
 
-        FileGroupCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
-            for cond in conditions {
-                let expr = build_file_group_condition(cond);
-                match result {
-                    None => result = Some(expr),
-                    Some(prev) => result = Some(Box::new(prev.and(expr))),
-                }
-            }
-            result.unwrap_or_else(|| Box::new(true.into_sql::<diesel::sql_types::Bool>()))
-        },
-        FileGroupCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<file_groups::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
-            for cond in conditions {
-                let expr = build_file_group_condition(cond);
-                match result {
-                    None => result = Some(expr),
-                    Some(prev) => result = Some(Box::new(prev.or(expr))),
-                }
-            }
-            result.unwrap_or_else(|| Box::new(false.into_sql::<diesel::sql_types::Bool>()))
-        },
-        FileGroupCondition::Not(condition) => {
-            let expr = build_file_group_condition(*condition);
-            Box::new(diesel::dsl::not(expr))
-        }
-    }
+		FileGroupCondition::And(conditions) => {
+			let mut result: Option<
+				Box<
+					dyn BoxableExpression<
+							file_groups::table,
+							<AnyConnection as Connection>::Backend,
+							SqlType = diesel::sql_types::Bool,
+						>,
+				>,
+			> = None;
+			for cond in conditions {
+				let expr = build_file_group_condition(cond);
+				match result {
+					None => result = Some(expr),
+					Some(prev) => result = Some(Box::new(prev.and(expr))),
+				}
+			}
+			result.unwrap_or_else(|| Box::new(true.into_sql::<diesel::sql_types::Bool>()))
+		}
+		FileGroupCondition::Or(conditions) => {
+			let mut result: Option<
+				Box<
+					dyn BoxableExpression<
+							file_groups::table,
+							<AnyConnection as Connection>::Backend,
+							SqlType = diesel::sql_types::Bool,
+						>,
+				>,
+			> = None;
+			for cond in conditions {
+				let expr = build_file_group_condition(cond);
+				match result {
+					None => result = Some(expr),
+					Some(prev) => result = Some(Box::new(prev.or(expr))),
+				}
+			}
+			result.unwrap_or_else(|| Box::new(false.into_sql::<diesel::sql_types::Bool>()))
+		}
+		FileGroupCondition::Not(condition) => {
+			let expr = build_file_group_condition(*condition);
+			Box::new(diesel::dsl::not(expr))
+		}
+	}
 }
 
 /// 根据多个条件查询文件-分组关联记录，并可设置最大返回数量
@@ -133,26 +160,24 @@ fn build_file_group_condition(condition: FileGroupCondition) -> Box<dyn BoxableE
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn select_file_groups_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileGroupCondition>,
-    limit: Option<i64>,
+	conn: &mut AnyConnection,
+	conditions: Vec<FileGroupCondition>,
+	limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    let mut query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+	let mut query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_file_group_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+	// 应用所有条件
+	for condition in conditions {
+		let boxed_condition = build_file_group_condition(condition);
+		query = query.filter(boxed_condition);
+	}
 
-    // 设置返回条目上限
-    if let Some(limit) = limit {
-        query = query.limit(limit)
-    }
+	// 设置返回条目上限
+	if let Some(limit) = limit {
+		query = query.limit(limit)
+	}
 
-    query
-        .select(FileGroupDTO::as_select())
-        .load(conn)
+	query.select(FileGroupDTO::as_select()).load(conn)
 }
 
 /// 根据多个条件和高级选项查询文件-分组关联记录
@@ -168,48 +193,42 @@ pub fn select_file_groups_by_conditions(
 /// 查询成功的记录列表或数据库错误
 #[allow(dead_code)]
 pub fn select_file_groups_by_conditions_with_options(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileGroupCondition>,
-    options: FileGroupQueryOptions,
+	conn: &mut AnyConnection,
+	conditions: Vec<FileGroupCondition>,
+	options: FileGroupQueryOptions,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    let mut query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+	let mut query = file_groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_file_group_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+	// 应用所有条件
+	for condition in conditions {
+		let boxed_condition = build_file_group_condition(condition);
+		query = query.filter(boxed_condition);
+	}
 
-    // 分页设置
-    if let Some(limit) = options.limit {
-        query = query.limit(limit);
-    }
+	// 分页设置
+	if let Some(limit) = options.limit {
+		query = query.limit(limit);
+	}
 
-    if let Some(offset) = options.offset {
-        query = query.offset(offset);
-    }
+	if let Some(offset) = options.offset {
+		query = query.offset(offset);
+	}
 
-    // 排序设置
-    for order_by in options.order_by {
-        query = match order_by {
-            FileGroupOrderBy::FileId(direction) => {
-                match direction {
-                    OrderDirection::Asc => query.order(file_groups::file_id.asc()),
-                    OrderDirection::Desc => query.order(file_groups::file_id.desc()),
-                }
-            }
-            FileGroupOrderBy::GroupId(direction) => {
-                match direction {
-                    OrderDirection::Asc => query.order(file_groups::group_id.asc()),
-                    OrderDirection::Desc => query.order(file_groups::group_id.desc()),
-                }
-            }
-        };
-    }
+	// 排序设置
+	for order_by in options.order_by {
+		query = match order_by {
+			FileGroupOrderBy::FileId(direction) => match direction {
+				OrderDirection::Asc => query.order(file_groups::file_id.asc()),
+				OrderDirection::Desc => query.order(file_groups::file_id.desc()),
+			},
+			FileGroupOrderBy::GroupId(direction) => match direction {
+				OrderDirection::Asc => query.order(file_groups::group_id.asc()),
+				OrderDirection::Desc => query.order(file_groups::group_id.desc()),
+			},
+		};
+	}
 
-    query
-        .select(FileGroupDTO::as_select())
-        .load(conn)
+	query.select(FileGroupDTO::as_select()).load(conn)
 }
 
 /// 检查指定分组是否为空（没有关联的文件）
@@ -220,13 +239,14 @@ pub fn select_file_groups_by_conditions_with_options(
 ///
 /// 返回值:
 /// 成功时返回布尔值，true表示分组为空，false表示分组不为空；失败则返回数据库错误
-pub fn check_group_empty(conn: &mut AnyConnection, group_id: i32) -> Result<bool, diesel::result::Error> {
-    let count = file_groups::table
-        .filter(file_groups::group_id.eq(group_id))
-        .count()
-        .first::<i64>(conn)?;
+pub fn check_group_empty(
+	conn: &mut AnyConnection,
+	group_id: i32,
+) -> Result<bool, diesel::result::Error> {
+	let count =
+		file_groups::table.filter(file_groups::group_id.eq(group_id)).count().first::<i64>(conn)?;
 
-    Ok(count == 0)
+	Ok(count == 0)
 }
 
 // /// 根据给定条件批量删除文件-分组关联记录

@@ -4,14 +4,14 @@
 //! 提供分组与标签之间关联关系的业务逻辑处理，包括创建、删除和查询分组-标签关联，
 //! 并处理相关的引用计数管理。
 
+use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
-use crate::internal::group_tag as group_tag_dao;
 use crate::model::models::{GroupTagCondition, GroupTagDTO, GroupTagQueryOptions};
 use crate::service::AppError;
+use crate::utils::database::AnyConnection;
 use diesel::result::Error;
 use diesel::Connection;
-use crate::utils::database::AnyConnection;
 
 /// 创建分组-标签关联关系
 ///
@@ -31,26 +31,25 @@ use crate::utils::database::AnyConnection;
 ///    - 增加标签的引用计数
 ///    - 插入分组-标签关联记录
 pub fn create_group_tag(
-    conn: &mut AnyConnection,
-    group_tag_dto: GroupTagDTO,
+	conn: &mut AnyConnection,
+	group_tag_dto: GroupTagDTO,
 ) -> Result<GroupTagDTO, AppError> {
-    let _group = groups_dao::find_group_by_id(conn, group_tag_dto.group_id)?
-        .ok_or(AppError::GroupNotFound)?;
+	let _group =
+		groups_dao::find_group_by_id(conn, group_tag_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
-    let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?
-        .ok_or(AppError::TagNotFound)?;
+	let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?.ok_or(AppError::TagNotFound)?;
 
-    let _result = conn.transaction::<_, AppError, _>(|conn| {
-        // 业务逻辑：增加引用计数
-        groups_dao::increase_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
-        tags_dao::increase_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
+	let _result = conn.transaction::<_, AppError, _>(|conn| {
+		// 业务逻辑：增加引用计数
+		groups_dao::increase_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+		tags_dao::increase_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
 
-        // 调用数据访问层执行插入操作
-        group_tag_dao::insert_group_tag(conn, &group_tag_dto)?;
-        Ok(())
-    })?;
+		// 调用数据访问层执行插入操作
+		group_tag_dao::insert_group_tag(conn, &group_tag_dto)?;
+		Ok(())
+	})?;
 
-    Ok(group_tag_dto)
+	Ok(group_tag_dto)
 }
 
 /// 根据ID删除分组-标签关联关系
@@ -71,27 +70,26 @@ pub fn create_group_tag(
 ///    - 减少标签的引用计数
 ///    - 删除分组-标签关联记录
 pub fn delete_group_tag_by_dto(
-    conn: &mut AnyConnection,
-    group_tag_dto: GroupTagDTO,
+	conn: &mut AnyConnection,
+	group_tag_dto: GroupTagDTO,
 ) -> Result<usize, AppError> {
-    let _group = groups_dao::find_group_by_id(conn, group_tag_dto.group_id)?
-        .ok_or(AppError::GroupNotFound)?;
+	let _group =
+		groups_dao::find_group_by_id(conn, group_tag_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
-    let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?
-        .ok_or(AppError::TagNotFound)?;
+	let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?.ok_or(AppError::TagNotFound)?;
 
-    let result = conn.transaction::<_, AppError, _>(|conn| {
-        // 业务逻辑：减少引用计数
-        groups_dao::decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
-        tags_dao::decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
+	let result = conn.transaction::<_, AppError, _>(|conn| {
+		// 业务逻辑：减少引用计数
+		groups_dao::decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+		tags_dao::decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
 
-        // 调用数据访问层执行删除操作
-        let deleted_count = group_tag_dao::delete_group_tag_by_dto(conn, &group_tag_dto)?;
+		// 调用数据访问层执行删除操作
+		let deleted_count = group_tag_dao::delete_group_tag_by_dto(conn, &group_tag_dto)?;
 
-        Ok(deleted_count)
-    })?;
+		Ok(deleted_count)
+	})?;
 
-    Ok(result)
+	Ok(result)
 }
 
 /// 根据条件查询分组-标签关联记录
@@ -104,11 +102,11 @@ pub fn delete_group_tag_by_dto(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn select_group_tags_by_conditions(
-    conn: &mut AnyConnection,
-    condition: Vec<GroupTagCondition>,
-    limit: Option<i64>,
+	conn: &mut AnyConnection,
+	condition: Vec<GroupTagCondition>,
+	limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    group_tag_dao::select_group_tags_by_conditions(conn, condition, limit)
+	group_tag_dao::select_group_tags_by_conditions(conn, condition, limit)
 }
 
 /// 根据条件和选项查询分组-标签关联记录
@@ -121,11 +119,11 @@ pub fn select_group_tags_by_conditions(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn select_group_tags_by_conditions_with_options(
-    conn: &mut AnyConnection,
-    conditions: Vec<GroupTagCondition>,
-    options: GroupTagQueryOptions,
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupTagCondition>,
+	options: GroupTagQueryOptions,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    group_tag_dao::select_group_tags_by_conditions_with_options(conn, conditions, options)
+	group_tag_dao::select_group_tags_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据条件批量删除分组-标签关联记录
@@ -144,33 +142,29 @@ pub fn select_group_tags_by_conditions_with_options(
 /// 1. 先查询将要删除的所有记录
 /// 2. 在事务中对每条记录调用delete_group_tag_by_id执行删除操作
 pub fn delete_group_tags_by_conditions(
-    conn: &mut AnyConnection,
-    condition: Vec<GroupTagCondition>,
+	conn: &mut AnyConnection,
+	condition: Vec<GroupTagCondition>,
 ) -> Result<usize, Error> {
-    // 首先查询将要删除的组标签关联
-    let group_tags_to_delete = select_group_tags_by_conditions(conn, condition.clone(), None)
-        .map_err(|e| match e {
-            diesel::result::Error::NotFound => diesel::result::Error::NotFound,
-            _ => e,
-        })?;
+	// 首先查询将要删除的组标签关联
+	let group_tags_to_delete = select_group_tags_by_conditions(conn, condition.clone(), None)
+		.map_err(|e| match e {
+			diesel::result::Error::NotFound => diesel::result::Error::NotFound,
+			_ => e,
+		})?;
 
-    // 使用事务确保数据一致性
-    conn.transaction::<_, Error, _>(|conn| {
-        let mut total_deleted = 0;
-        
-        // 对于每个要删除的组标签关联，直接调用delete_group_tag_by_id函数
-        for group_tag in &group_tags_to_delete {
-            let group_tag_dto = GroupTagDTO {
-                group_id: group_tag.group_id,
-                tag_id: group_tag.tag_id,
-            };
-            
-            // 调用单个删除函数，复用其业务逻辑
-            let deleted_count = delete_group_tag_by_dto(conn, group_tag_dto)?;
-            total_deleted += deleted_count;
-        }
+	// 使用事务确保数据一致性
+	conn.transaction::<_, Error, _>(|conn| {
+		let mut total_deleted = 0;
 
-        Ok(total_deleted)
-    })
+		// 对于每个要删除的组标签关联，直接调用delete_group_tag_by_id函数
+		for group_tag in &group_tags_to_delete {
+			let group_tag_dto = GroupTagDTO { group_id: group_tag.group_id, tag_id: group_tag.tag_id };
+
+			// 调用单个删除函数，复用其业务逻辑
+			let deleted_count = delete_group_tag_by_dto(conn, group_tag_dto)?;
+			total_deleted += deleted_count;
+		}
+
+		Ok(total_deleted)
+	})
 }
-

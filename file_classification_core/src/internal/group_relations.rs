@@ -4,14 +4,13 @@
 //! 提供对组关系表 (`group_relations`) 的增删改查操作支持，包括基本的CRUD操作、条件查询、批量操作等。
 
 use super::models::GroupRelation;
-use diesel::prelude::*;
-use crate::model::schema::group_relations::dsl::*;
-use crate::model::schema::group_relations;
 use super::models::GroupRelationCondition;
-use crate::model::models::{GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD};
-use diesel::dsl::not;
-use diesel::sql_types::Bool;
+use crate::model::models::{
+	GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD,
+};
+use crate::model::schema::group_relations;
 use crate::utils::database::AnyConnection;
+use diesel::prelude::*;
 
 /// 插入一个新的组关系记录
 ///
@@ -22,12 +21,10 @@ use crate::utils::database::AnyConnection;
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn insert_group_relation(
-    conn: &mut AnyConnection,
-    group_relation: &GroupRelation,
+	conn: &mut AnyConnection,
+	group_relation: &GroupRelation,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::insert_into(group_relations::table)
-        .values(group_relation)
-        .execute(conn)
+	diesel::insert_into(group_relations::table).values(group_relation).execute(conn)
 }
 
 /// 根据 DTO 中的信息删除一个组关系记录
@@ -39,16 +36,16 @@ pub fn insert_group_relation(
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn delete_group_relation_by_dto(
-    conn: &mut AnyConnection,
-    group_relation: &GroupRelation,
+	conn: &mut AnyConnection,
+	group_relation: &GroupRelation,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::delete(
-        group_relations::table
-            .filter(group_relations::first_group_id.eq(group_relation.first_group_id))
-            .filter(group_relations::second_group_id.eq(group_relation.second_group_id))
-            .filter(group_relations::relation_type.eq(group_relation.relation_type)),
-    )
-    .execute(conn)
+	diesel::delete(
+		group_relations::table
+			.filter(group_relations::first_group_id.eq(group_relation.first_group_id))
+			.filter(group_relations::second_group_id.eq(group_relation.second_group_id))
+			.filter(group_relations::relation_type.eq(group_relation.relation_type)),
+	)
+	.execute(conn)
 }
 
 /// 根据多个 DTO 对象批量删除组关系记录（带事务支持）
@@ -60,18 +57,18 @@ pub fn delete_group_relation_by_dto(
 /// 返回值:
 /// 成功时返回影响的行数，失败则返回数据库错误
 pub fn delete_group_relations_by_dtos(
-    conn: &mut AnyConnection,
-    relations: Vec<GroupRelation>,
+	conn: &mut AnyConnection,
+	relations: Vec<GroupRelation>,
 ) -> Result<usize, diesel::result::Error> {
-    conn.transaction::<usize, diesel::result::Error, _>(|conn| {
-        let mut total_deleted = 0;
+	conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+		let mut total_deleted = 0;
 
-        for relation in relations {
-            total_deleted += delete_group_relation_by_dto(conn, &relation)?;
-        }
+		for relation in relations {
+			total_deleted += delete_group_relation_by_dto(conn, &relation)?;
+		}
 
-        Ok(total_deleted)
-    })
+		Ok(total_deleted)
+	})
 }
 
 /// 构建符合 Diesel 查询语法的条件表达式
@@ -81,50 +78,92 @@ pub fn delete_group_relations_by_dtos(
 ///
 /// 返回值:
 /// 符合 Diesel 查询条件类型的动态表达式盒子
-fn build_group_relation_condition(condition: GroupRelationCondition) -> Box<dyn BoxableExpression<group_relations::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>> {
-    match condition {
-        GroupRelationCondition::FirstGroupId(id) => Box::new(group_relations::first_group_id.eq(id)),
-        GroupRelationCondition::SecondGroupId(id) => Box::new(group_relations::second_group_id.eq(id)),
-        GroupRelationCondition::RelationType(typ) => Box::new(group_relations::relation_type.eq(typ)),
+fn build_group_relation_condition(
+	condition: GroupRelationCondition,
+) -> Box<
+	dyn BoxableExpression<
+			group_relations::table,
+			<AnyConnection as Connection>::Backend,
+			SqlType = diesel::sql_types::Bool,
+		>,
+> {
+	match condition {
+		GroupRelationCondition::FirstGroupId(id) => Box::new(group_relations::first_group_id.eq(id)),
+		GroupRelationCondition::SecondGroupId(id) => Box::new(group_relations::second_group_id.eq(id)),
+		GroupRelationCondition::RelationType(typ) => Box::new(group_relations::relation_type.eq(typ)),
 
-        GroupRelationCondition::FirstGroupIdGreaterThan(value) => Box::new(group_relations::first_group_id.gt(value)),
-        GroupRelationCondition::FirstGroupIdLessThan(value) => Box::new(group_relations::first_group_id.lt(value)),
-        GroupRelationCondition::SecondGroupIdGreaterThan(value) => Box::new(group_relations::second_group_id.gt(value)),
-        GroupRelationCondition::SecondGroupIdLessThan(value) => Box::new(group_relations::second_group_id.lt(value)),
-        GroupRelationCondition::RelationTypeGreaterThan(value) => Box::new(group_relations::relation_type.gt(value)),
-        GroupRelationCondition::RelationTypeLessThan(value) => Box::new(group_relations::relation_type.lt(value)),
+		GroupRelationCondition::FirstGroupIdGreaterThan(value) => {
+			Box::new(group_relations::first_group_id.gt(value))
+		}
+		GroupRelationCondition::FirstGroupIdLessThan(value) => {
+			Box::new(group_relations::first_group_id.lt(value))
+		}
+		GroupRelationCondition::SecondGroupIdGreaterThan(value) => {
+			Box::new(group_relations::second_group_id.gt(value))
+		}
+		GroupRelationCondition::SecondGroupIdLessThan(value) => {
+			Box::new(group_relations::second_group_id.lt(value))
+		}
+		GroupRelationCondition::RelationTypeGreaterThan(value) => {
+			Box::new(group_relations::relation_type.gt(value))
+		}
+		GroupRelationCondition::RelationTypeLessThan(value) => {
+			Box::new(group_relations::relation_type.lt(value))
+		}
 
-        GroupRelationCondition::FirstGroupIdIn(values) => Box::new(group_relations::first_group_id.eq_any(values)),
-        GroupRelationCondition::SecondGroupIdIn(values) => Box::new(group_relations::second_group_id.eq_any(values)),
-        GroupRelationCondition::RelationTypeIn(values) => Box::new(group_relations::relation_type.eq_any(values)),
+		GroupRelationCondition::FirstGroupIdIn(values) => {
+			Box::new(group_relations::first_group_id.eq_any(values))
+		}
+		GroupRelationCondition::SecondGroupIdIn(values) => {
+			Box::new(group_relations::second_group_id.eq_any(values))
+		}
+		GroupRelationCondition::RelationTypeIn(values) => {
+			Box::new(group_relations::relation_type.eq_any(values))
+		}
 
-        GroupRelationCondition::And(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<group_relations::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
-            for cond in conditions {
-                let expr = build_group_relation_condition(cond);
-                match result {
-                    None => result = Some(expr),
-                    Some(prev) => result = Some(Box::new(prev.and(expr))),
-                }
-            }
-            result.unwrap_or_else(|| Box::new(true.into_sql::<diesel::sql_types::Bool>()))
-        },
-        GroupRelationCondition::Or(conditions) => {
-            let mut result: Option<Box<dyn BoxableExpression<group_relations::table, <AnyConnection as Connection>::Backend, SqlType=diesel::sql_types::Bool>>> = None;
-            for cond in conditions {
-                let expr = build_group_relation_condition(cond);
-                match result {
-                    None => result = Some(expr),
-                    Some(prev) => result = Some(Box::new(prev.or(expr))),
-                }
-            }
-            result.unwrap_or_else(|| Box::new(false.into_sql::<diesel::sql_types::Bool>()))
-        },
-        GroupRelationCondition::Not(condition) => {
-            let expr = build_group_relation_condition(*condition);
-            Box::new(diesel::dsl::not(expr))
-        }
-    }
+		GroupRelationCondition::And(conditions) => {
+			let mut result: Option<
+				Box<
+					dyn BoxableExpression<
+							group_relations::table,
+							<AnyConnection as Connection>::Backend,
+							SqlType = diesel::sql_types::Bool,
+						>,
+				>,
+			> = None;
+			for cond in conditions {
+				let expr = build_group_relation_condition(cond);
+				match result {
+					None => result = Some(expr),
+					Some(prev) => result = Some(Box::new(prev.and(expr))),
+				}
+			}
+			result.unwrap_or_else(|| Box::new(true.into_sql::<diesel::sql_types::Bool>()))
+		}
+		GroupRelationCondition::Or(conditions) => {
+			let mut result: Option<
+				Box<
+					dyn BoxableExpression<
+							group_relations::table,
+							<AnyConnection as Connection>::Backend,
+							SqlType = diesel::sql_types::Bool,
+						>,
+				>,
+			> = None;
+			for cond in conditions {
+				let expr = build_group_relation_condition(cond);
+				match result {
+					None => result = Some(expr),
+					Some(prev) => result = Some(Box::new(prev.or(expr))),
+				}
+			}
+			result.unwrap_or_else(|| Box::new(false.into_sql::<diesel::sql_types::Bool>()))
+		}
+		GroupRelationCondition::Not(condition) => {
+			let expr = build_group_relation_condition(*condition);
+			Box::new(diesel::dsl::not(expr))
+		}
+	}
 }
 
 /// 根据多个条件查询组关系记录，并可设置最大返回数量
@@ -137,26 +176,24 @@ fn build_group_relation_condition(condition: GroupRelationCondition) -> Box<dyn 
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn select_group_relations_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<GroupRelationCondition>,
-    limit: Option<i64>,
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupRelationCondition>,
+	limit: Option<i64>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    let mut query = group_relations::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+	let mut query = group_relations::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_group_relation_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+	// 应用所有条件
+	for condition in conditions {
+		let boxed_condition = build_group_relation_condition(condition);
+		query = query.filter(boxed_condition);
+	}
 
-    // 设置返回条目上限
-    if let Some(limit) = limit {
-        query = query.limit(limit)
-    }
+	// 设置返回条目上限
+	if let Some(limit) = limit {
+		query = query.limit(limit)
+	}
 
-    query
-        .select(GroupRelation::as_select())
-        .load::<GroupRelation>(conn)
+	query.select(GroupRelation::as_select()).load::<GroupRelation>(conn)
 }
 
 /// 根据多个条件和高级选项查询组关系记录
@@ -172,54 +209,46 @@ pub fn select_group_relations_by_conditions(
 /// 查询成功的记录列表或数据库错误
 #[allow(dead_code)]
 pub fn select_group_relations_by_conditions_with_options(
-    conn: &mut AnyConnection,
-    conditions: Vec<GroupRelationCondition>,
-    options: GroupRelationQueryOptions,
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupRelationCondition>,
+	options: GroupRelationQueryOptions,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    let mut query = group_relations::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+	let mut query = group_relations::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_group_relation_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+	// 应用所有条件
+	for condition in conditions {
+		let boxed_condition = build_group_relation_condition(condition);
+		query = query.filter(boxed_condition);
+	}
 
-    // 分页设置
-    if let Some(limit) = options.limit {
-        query = query.limit(limit);
-    }
+	// 分页设置
+	if let Some(limit) = options.limit {
+		query = query.limit(limit);
+	}
 
-    if let Some(offset) = options.offset {
-        query = query.offset(offset);
-    }
+	if let Some(offset) = options.offset {
+		query = query.offset(offset);
+	}
 
-    // 排序设置
-    for order_by in options.order_by {
-        query = match order_by {
-            GroupRelationOrderBy::FirstGroupId(direction) => {
-                match direction {
-                    OrderDirection::Asc => query.order(group_relations::first_group_id.asc()),
-                    OrderDirection::Desc => query.order(group_relations::first_group_id.desc()),
-                }
-            }
-            GroupRelationOrderBy::SecondGroupId(direction) => {
-                match direction {
-                    OrderDirection::Asc => query.order(group_relations::second_group_id.asc()),
-                    OrderDirection::Desc => query.order(group_relations::second_group_id.desc()),
-                }
-            }
-            GroupRelationOrderBy::RelationType(direction) => {
-                match direction {
-                    OrderDirection::Asc => query.order(group_relations::relation_type.asc()),
-                    OrderDirection::Desc => query.order(group_relations::relation_type.desc()),
-                }
-            }
-        };
-    }
+	// 排序设置
+	for order_by in options.order_by {
+		query = match order_by {
+			GroupRelationOrderBy::FirstGroupId(direction) => match direction {
+				OrderDirection::Asc => query.order(group_relations::first_group_id.asc()),
+				OrderDirection::Desc => query.order(group_relations::first_group_id.desc()),
+			},
+			GroupRelationOrderBy::SecondGroupId(direction) => match direction {
+				OrderDirection::Asc => query.order(group_relations::second_group_id.asc()),
+				OrderDirection::Desc => query.order(group_relations::second_group_id.desc()),
+			},
+			GroupRelationOrderBy::RelationType(direction) => match direction {
+				OrderDirection::Asc => query.order(group_relations::relation_type.asc()),
+				OrderDirection::Desc => query.order(group_relations::relation_type.desc()),
+			},
+		};
+	}
 
-    query
-        .select(GroupRelation::as_select())
-        .load::<GroupRelation>(conn)
+	query.select(GroupRelation::as_select()).load::<GroupRelation>(conn)
 }
 
 /// 检查两个组之间是否存在指定类型的关系
@@ -233,19 +262,19 @@ pub fn select_group_relations_by_conditions_with_options(
 /// 返回值:
 /// 成功时返回布尔值，true表示存在关系，false表示不存在关系；失败则返回数据库错误
 pub fn check_group_relation_exists(
-    conn: &mut AnyConnection,
-    first_id: i32,
-    second_id: i32,
-    rel_type: i32,
+	conn: &mut AnyConnection,
+	first_id: i32,
+	second_id: i32,
+	rel_type: i32,
 ) -> Result<bool, diesel::result::Error> {
-    let count = group_relations::table
-        .filter(group_relations::first_group_id.eq(first_id))
-        .filter(group_relations::second_group_id.eq(second_id))
-        .filter(group_relations::relation_type.eq(rel_type))
-        .count()
-        .first::<i64>(conn)?;
+	let count = group_relations::table
+		.filter(group_relations::first_group_id.eq(first_id))
+		.filter(group_relations::second_group_id.eq(second_id))
+		.filter(group_relations::relation_type.eq(rel_type))
+		.count()
+		.first::<i64>(conn)?;
 
-    Ok(count > 0)
+	Ok(count > 0)
 }
 
 /// 获取指定组的所有父组
@@ -258,23 +287,20 @@ pub fn check_group_relation_exists(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_first_group(
-    conn: &mut AnyConnection,
-    group_id: i32,
-    rel_type: Option<i32>,
+	conn: &mut AnyConnection,
+	group_id: i32,
+	rel_type: Option<i32>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    let query = group_relations::table
-        .filter(group_relations::second_group_id.eq(group_id));
-    
-    if let Some(relation_type_value) = rel_type {
-        query
-            .filter(group_relations::relation_type.eq(relation_type_value))
-            .select(GroupRelation::as_select())
-            .load::<GroupRelation>(conn)
-    } else {
-        query
-            .select(GroupRelation::as_select())
-            .load::<GroupRelation>(conn)
-    }
+	let query = group_relations::table.filter(group_relations::second_group_id.eq(group_id));
+
+	if let Some(relation_type_value) = rel_type {
+		query
+			.filter(group_relations::relation_type.eq(relation_type_value))
+			.select(GroupRelation::as_select())
+			.load::<GroupRelation>(conn)
+	} else {
+		query.select(GroupRelation::as_select()).load::<GroupRelation>(conn)
+	}
 }
 
 /// 获取指定组的所有子组
@@ -287,23 +313,20 @@ pub fn get_first_group(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_second_group(
-    conn: &mut AnyConnection,
-    group_id: i32,
-    rel_type: Option<i32>,
+	conn: &mut AnyConnection,
+	group_id: i32,
+	rel_type: Option<i32>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    let query = group_relations::table
-        .filter(group_relations::first_group_id.eq(group_id));
-    
-    if let Some(relation_type_value) = rel_type {
-        query
-            .filter(group_relations::relation_type.eq(relation_type_value))
-            .select(GroupRelation::as_select())
-            .load::<GroupRelation>(conn)
-    } else {
-        query
-            .select(GroupRelation::as_select())
-            .load::<GroupRelation>(conn)
-    }
+	let query = group_relations::table.filter(group_relations::first_group_id.eq(group_id));
+
+	if let Some(relation_type_value) = rel_type {
+		query
+			.filter(group_relations::relation_type.eq(relation_type_value))
+			.select(GroupRelation::as_select())
+			.load::<GroupRelation>(conn)
+	} else {
+		query.select(GroupRelation::as_select()).load::<GroupRelation>(conn)
+	}
 }
 
 /// 获取指定组的直接子组ID列表
@@ -315,14 +338,14 @@ pub fn get_second_group(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_direct_children_ids(
-    conn: &mut AnyConnection,
-    group_id: i32,
+	conn: &mut AnyConnection,
+	group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    group_relations::table
-        .filter(group_relations::first_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(RELATION_TYPE_PARENT_CHILD))
-        .select(group_relations::second_group_id)
-        .load::<i32>(conn)
+	group_relations::table
+		.filter(group_relations::first_group_id.eq(group_id))
+		.filter(group_relations::relation_type.eq(RELATION_TYPE_PARENT_CHILD))
+		.select(group_relations::second_group_id)
+		.load::<i32>(conn)
 }
 
 /// 获取指定组的直接父组ID列表
@@ -334,14 +357,14 @@ pub fn get_direct_children_ids(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_direct_parents_ids(
-    conn: &mut AnyConnection,
-    group_id: i32,
+	conn: &mut AnyConnection,
+	group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    group_relations::table
-        .filter(group_relations::second_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(RELATION_TYPE_PARENT_CHILD))
-        .select(group_relations::first_group_id)
-        .load::<i32>(conn)
+	group_relations::table
+		.filter(group_relations::second_group_id.eq(group_id))
+		.filter(group_relations::relation_type.eq(RELATION_TYPE_PARENT_CHILD))
+		.select(group_relations::first_group_id)
+		.load::<i32>(conn)
 }
 
 /// 获取指定组的所有父组ID列表（用于循环检测）
@@ -353,13 +376,13 @@ pub fn get_direct_parents_ids(
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_first_group_ids(
-    conn: &mut AnyConnection,
-    group_id: i32,
-    relation_type_value: i32,
+	conn: &mut AnyConnection,
+	group_id: i32,
+	relation_type_value: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    group_relations::table
-        .filter(group_relations::second_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(relation_type_value))
-        .select(group_relations::first_group_id)
-        .load::<i32>(conn)
+	group_relations::table
+		.filter(group_relations::second_group_id.eq(group_id))
+		.filter(group_relations::relation_type.eq(relation_type_value))
+		.select(group_relations::first_group_id)
+		.load::<i32>(conn)
 }
