@@ -67,6 +67,12 @@ pub fn run_repl(
                     print!("\x1B[2J\x1B[1;1H"); // 清屏
                     continue;
                 }
+                
+                // 跳过注释行
+                if line.starts_with("#") {
+                    continue;
+                }
+                
                 if line.starts_with("!") && line.len() > 1 {
                     // 执行系统命令
                     let cmd = &line[1..];
