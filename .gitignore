@@ -111,6 +111,7 @@ http-client.private.env.json
 .idea/
 *.db
 *.log
+.file_classification_history
 
 # nix related
 result
