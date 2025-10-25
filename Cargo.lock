@@ -846,6 +846,7 @@ dependencies = [
  "clap",
  "dialoguer",
  "file_classification_core",
+ "libsqlite3-sys",
  "rustyline",
  "shlex",
 ]
