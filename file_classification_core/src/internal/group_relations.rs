@@ -222,42 +222,6 @@ pub fn select_group_relations_by_conditions_with_options(
         .load::<GroupRelation>(conn)
 }
 
-/// 根据first_group_id获取组关系列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `first_id`: 第一个组ID
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_first_group_id(
-    conn: &mut AnyConnection,
-    first_id: i32,
-) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    group_relations::table
-        .select(GroupRelation::as_select())
-        .filter(group_relations::first_group_id.eq(first_id))
-        .load::<GroupRelation>(conn)
-}
-
-/// 根据second_group_id获取组关系列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `second_id`: 第二个组ID
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_second_group_id(
-    conn: &mut AnyConnection,
-    second_id: i32,
-) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    group_relations::table
-        .select(GroupRelation::as_select())
-        .filter(group_relations::second_group_id.eq(second_id))
-        .load::<GroupRelation>(conn)
-}
-
 /// 检查两个组之间是否存在指定类型的关系
 ///
 /// 参数:
@@ -289,20 +253,28 @@ pub fn check_group_relation_exists(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `group_id`: 组ID
-/// - `relation_type`: 关系类型
+/// - `relation_type`: 关系类型（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_first_group(
     conn: &mut AnyConnection,
     group_id: i32,
-    rel_type: i32,
+    rel_type: Option<i32>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    group_relations::table
-        .filter(group_relations::second_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(rel_type))
-        .select(GroupRelation::as_select())
-        .load::<GroupRelation>(conn)
+    let query = group_relations::table
+        .filter(group_relations::second_group_id.eq(group_id));
+    
+    if let Some(relation_type_value) = rel_type {
+        query
+            .filter(group_relations::relation_type.eq(relation_type_value))
+            .select(GroupRelation::as_select())
+            .load::<GroupRelation>(conn)
+    } else {
+        query
+            .select(GroupRelation::as_select())
+            .load::<GroupRelation>(conn)
+    }
 }
 
 /// 获取指定组的所有子组
@@ -310,18 +282,26 @@ pub fn get_first_group(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `group_id`: 组ID
-/// - `relation_type`: 关系类型
+/// - `relation_type`: 关系类型（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
 pub fn get_second_group(
     conn: &mut AnyConnection,
     group_id: i32,
-    rel_type: i32,
+    rel_type: Option<i32>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    group_relations::table
-        .filter(group_relations::first_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(rel_type))
-        .select(GroupRelation::as_select())
-        .load::<GroupRelation>(conn)
+    let query = group_relations::table
+        .filter(group_relations::first_group_id.eq(group_id));
+    
+    if let Some(relation_type_value) = rel_type {
+        query
+            .filter(group_relations::relation_type.eq(relation_type_value))
+            .select(GroupRelation::as_select())
+            .load::<GroupRelation>(conn)
+    } else {
+        query
+            .select(GroupRelation::as_select())
+            .load::<GroupRelation>(conn)
+    }
 }

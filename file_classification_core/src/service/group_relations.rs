@@ -186,7 +186,7 @@ pub fn get_direct_children_ids(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    let relations = group_relations_dao::select_group_relations_by_first_group_id(conn, group_id)?;
+    let relations = group_relations_dao::get_second_group(conn, group_id, Some(RELATION_TYPE_PARENT_CHILD))?;
     Ok(relations.into_iter().map(|r| r.second_group_id).collect())
 }
 
@@ -202,7 +202,7 @@ pub fn get_direct_parents_ids(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    let relations = group_relations_dao::select_group_relations_by_second_group_id(conn, group_id)?;
+    let relations = group_relations_dao::get_first_group(conn, group_id, Some(RELATION_TYPE_PARENT_CHILD))?;
     Ok(relations.into_iter().map(|r| r.first_group_id).collect())
 }
 
@@ -236,7 +236,7 @@ fn would_create_cycle(
         
         for &group_id in &current_groups {
             // 获取group_id的所有父组
-            let parent_relations = group_relations_dao::get_first_group(conn, group_id, relation_type)?;
+            let parent_relations = group_relations_dao::get_first_group(conn, group_id, Some(relation_type))?;
             
             for relation in parent_relations {
                 // 如果发现parent_id在祖先中，则会形成循环
