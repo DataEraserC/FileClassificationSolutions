@@ -34,13 +34,14 @@ jobs:
       - name: Install dependencies (Windows)
         if: matrix.os == 'windows-latest'
         run: |
-          vcpkg install sqlite3:x64-windows
+          vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
       - name: Run tests
         run: cargo test --verbose
 
   build-android:
     name: Build Android binary
     needs: test
+    if: always()
     runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
@@ -81,61 +82,89 @@ jobs:
           name: file_classification_cli-android
           path: target/aarch64-linux-android/release/file_classification_cli
 
-  build:
-    name: Build release binaries
+  build-linux:
+    name: Build release binary (Linux)
     needs: test
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        include:
-          - os: ubuntu-latest
-            target: linux
-          - os: windows-latest
-            target: windows
-          - os: macos-latest
-            target: macos
-      fail-fast: false
+    if: always()
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Install dependencies (Linux)
-        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libsqlite3-dev
-      - name: Install dependencies (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew install sqlite3
-      - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
-        run: |
-          vcpkg install sqlite3:x64-windows
-      - name: Set up vcpkg for Windows
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo "C:\\vcpkg\\installed\\x64-windows\\lib" >> $env:GITHUB_PATH
       - name: Build release binary
         run: |
           cargo build --release --bin file_classification_cli
-      - name: Set binary name (Unix)
-        if: matrix.os != 'windows-latest'
+      - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
-      - name: Set binary name (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_cli-linux
+          path: target/release/${{ env.BINARY_NAME }}
+
+  build-windows:
+    name: Build release binary (Windows)
+    needs: test
+    if: always()
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install vcpkg
+        run: |
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          .\bootstrap-vcpkg.bat
+      - name: Install dependencies (Windows)
+        run: |
+          vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
+      - name: Set up vcpkg for Windows
+        run: |
+          echo "C:\\vcpkg\\installed\\x64-windows\\lib" >> $env:GITHUB_PATH
+          echo "C:\\vcpkg\\installed\\x64-windows-static\\lib" >> $env:GITHUB_PATH
+      - name: Build release binary
+        run: |
+          cargo build --release --bin file_classification_cli
+      - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli.exe" >> $env:GITHUB_ENV
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-${{ matrix.target }}
+          name: file_classification_cli-windows
+          path: target/release/${{ env.BINARY_NAME }}
+
+  build-macos:
+    name: Build release binary (macOS)
+    needs: test
+    if: always()
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies (macOS)
+        run: |
+          brew install sqlite3
+      - name: Build release binary
+        run: |
+          cargo build --release --bin file_classification_cli
+      - name: Set binary name
+        run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_cli-macos
           path: target/release/${{ env.BINARY_NAME }}
 
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, build-android]
+    needs: [build-linux, build-windows, build-macos, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
