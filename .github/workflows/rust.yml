@@ -40,7 +40,13 @@ jobs:
           .\bootstrap-vcpkg.bat
       - name: Install dependencies (Windows)
         run: |
-          vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
+          cd vcpkg
+          .\vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
+      - name: Setup vcpkg paths for Windows
+        run: |
+          echo "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" >> $env:GITHUB_ENV
+          echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\lib" >> $env:GITHUB_PATH
+          echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_PATH
       - name: Run tests
         run: cargo test --verbose
 
@@ -84,15 +90,15 @@ jobs:
         run: |
           mkdir -p .cargo
           echo '[target.aarch64-linux-android]' > .cargo/config.toml
-          echo 'ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"' >> .cargo/config.toml
-          echo 'linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"' >> .cargo/config.toml
+          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
+          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang\"" >> .cargo/config.toml
       - name: Install SQLite for Android
         run: |
-          # Note: We may need to cross-compile SQLite for Android or use the system version
-          echo "Preparing Android build environment"
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
       - name: Build for Android
         run: |
-          cargo build --target aarch64-linux-android --release --bin file_classification_cli
+          cargo build --target aarch64-linux-android --release --bin file_classification_cli --verbose
       - name: Set Android binary name
         run: echo "ANDROID_BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload Android artifacts
@@ -116,7 +122,7 @@ jobs:
           sudo apt-get install -y libsqlite3-dev
       - name: Build release binary
         run: |
-          cargo build --release --bin file_classification_cli
+          cargo build --release --bin file_classification_cli --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload artifacts
@@ -141,14 +147,16 @@ jobs:
           .\bootstrap-vcpkg.bat
       - name: Install dependencies (Windows)
         run: |
-          vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
+          cd vcpkg
+          .\vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
       - name: Set up vcpkg for Windows
         run: |
-          echo "C:\\vcpkg\\installed\\x64-windows\\lib" >> $env:GITHUB_PATH
-          echo "C:\\vcpkg\\installed\\x64-windows-static\\lib" >> $env:GITHUB_PATH
+          echo "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" >> $env:GITHUB_ENV
+          echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\lib" >> $env:GITHUB_PATH
+          echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_PATH
       - name: Build release binary
         run: |
-          cargo build --release --bin file_classification_cli
+          cargo build --release --bin file_classification_cli --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli.exe" >> $env:GITHUB_ENV
       - name: Upload artifacts
@@ -171,7 +179,7 @@ jobs:
           brew install sqlite3
       - name: Build release binary
         run: |
-          cargo build --release --bin file_classification_cli
+          cargo build --release --bin file_classification_cli --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload artifacts
