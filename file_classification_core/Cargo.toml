@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 diesel = { workspace = true }
+diesel_migrations = { workspace = true }
 libsqlite3-sys = { workspace = true }
 dotenvy = { workspace = true }
 chrono = { workspace = true }

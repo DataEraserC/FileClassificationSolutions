@@ -3,12 +3,21 @@ mod handlers;
 mod utils;
 
 use utils::database::establish_connection_pool;
+use file_classification_core::utils::database::run_pending_migrations;
+use file_classification_core::utils::database::establish_connection;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     println!("正在启动文件分类 Web API...");
+    
+    // 运行待处理的数据库迁移
+    let mut conn = establish_connection();
+    if let Err(e) = run_pending_migrations(&mut conn) {
+        eprintln!("数据库迁移失败: {}", e);
+        return Err(std::io::Error::new(std::io::ErrorKind::Other, e));
+    }
 
     let pool = establish_connection_pool();
 

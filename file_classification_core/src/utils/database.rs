@@ -49,3 +49,24 @@ pub fn establish_connection() -> AnyConnection {
         _ => panic!("Unsupported database type: {}", database_type),
     }
 }
+
+/// 运行所有待处理的数据库迁移
+/// 
+/// 该函数会查找并运行所有尚未应用的数据库迁移脚本。
+/// 迁移脚本位于项目中的 migrations 目录下。
+/// 
+/// 参数：
+/// - `conn`: 数据库连接对象
+/// 
+/// 返回值：
+/// 成功时返回迁移版本列表，失败时返回错误信息
+pub fn run_pending_migrations(conn: &mut AnyConnection) -> Result<Vec<diesel::migration::MigrationVersion>, Box<dyn std::error::Error + Send + Sync>> {
+    use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+    
+    const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
+    
+    match conn.run_pending_migrations(MIGRATIONS) {
+        Ok(applied_migrations) => Ok(applied_migrations),
+        Err(e) => Err(e),
+    }
+}

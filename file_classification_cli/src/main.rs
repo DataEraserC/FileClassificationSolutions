@@ -23,6 +23,13 @@ mod repl;
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
     let mut conn = utils::database::establish_connection();
+    
+    // 运行待处理的数据库迁移
+    if let Err(e) = utils::database::run_pending_migrations(&mut conn) {
+        eprintln!("数据库迁移失败: {}", e);
+        return Err(e);
+    }
+    
     let mut context = Context::new();
 
     match cli.command {
