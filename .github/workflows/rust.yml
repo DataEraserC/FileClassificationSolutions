@@ -124,7 +124,6 @@ jobs:
           - armv7-unknown-linux-gnueabihf
           # RISC-V architectures - supported ones
           - riscv64gc-unknown-linux-gnu
-          - riscv32i-unknown-none-elf
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -134,11 +133,25 @@ jobs:
       - name: Install dependencies (Linux)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libsqlite3-dev
+          sudo apt-get install -y libsqlite3-dev gcc-multilib
       - name: Install cross-compilation tools
         run: |
           sudo apt-get install -y gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-i686-linux-gnu \
             gcc-riscv64-linux-gnu
+      - name: Configure cargo for cross-compilation
+        run: |
+          mkdir -p .cargo
+          echo '[target.i686-unknown-linux-gnu]' > .cargo/config.toml
+          echo 'linker = "i686-linux-gnu-gcc"' >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[target.aarch64-unknown-linux-gnu]' >> .cargo/config.toml
+          echo 'linker = "aarch64-linux-gnu-gcc"' >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[target.armv7-unknown-linux-gnueabihf]' >> .cargo/config.toml
+          echo 'linker = "arm-linux-gnueabihf-gcc"' >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[target.riscv64gc-unknown-linux-gnu]' >> .cargo/config.toml
+          echo 'linker = "riscv64-linux-gnu-gcc"' >> .cargo/config.toml
       - name: Build release binary
         run: |
           cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
@@ -245,7 +258,6 @@ jobs:
             artifacts/file_classification_cli-aarch64-unknown-linux-gnu/file_classification_cli
             artifacts/file_classification_cli-armv7-unknown-linux-gnueabihf/file_classification_cli
             artifacts/file_classification_cli-riscv64gc-unknown-linux-gnu/file_classification_cli
-            artifacts/file_classification_cli-riscv32i-unknown-none-elf/file_classification_cli
             artifacts/file_classification_cli-x86_64-pc-windows-msvc/file_classification_cli.exe
             artifacts/file_classification_cli-i686-pc-windows-msvc/file_classification_cli.exe
             artifacts/file_classification_cli-aarch64-pc-windows-msvc/file_classification_cli.exe
