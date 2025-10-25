@@ -108,38 +108,65 @@ jobs:
           path: target/aarch64-linux-android/release/file_classification_cli
 
   build-linux:
-    name: Build release binary (Linux)
+    name: Build Linux binaries
     needs: test-linux
     if: always()
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          # x86 architectures
+          - x86_64-unknown-linux-gnu
+          - i686-unknown-linux-gnu
+          # ARM architectures - most common ones
+          - aarch64-unknown-linux-gnu
+          - armv7-unknown-linux-gnueabihf
+          # RISC-V architectures - most common ones
+          - riscv64gc-unknown-linux-gnu
+          - riscv32gc-unknown-linux-gnu
+          - riscv32i-unknown-none-elf
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
       - name: Install dependencies (Linux)
         run: |
           sudo apt-get update
           sudo apt-get install -y libsqlite3-dev
+      - name: Install cross-compilation tools
+        run: |
+          sudo apt-get install -y gcc-arm-linux-gnueabihf gcc-aarch64-linux-gnu gcc-i686-linux-gnu \
+            gcc-riscv64-linux-gnu
       - name: Build release binary
         run: |
-          cargo build --release --bin file_classification_cli --verbose
+          cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-linux
-          path: target/release/${{ env.BINARY_NAME }}
+          name: file_classification_cli-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_cli
 
   build-windows:
-    name: Build release binary (Windows)
+    name: Build Windows binaries
     needs: test-windows
     if: always()
     runs-on: windows-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-pc-windows-msvc
+          - i686-pc-windows-msvc
+          - aarch64-pc-windows-msvc
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
       - name: Install vcpkg
         run: |
           git clone https://github.com/Microsoft/vcpkg.git
@@ -156,37 +183,44 @@ jobs:
           echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_PATH
       - name: Build release binary
         run: |
-          cargo build --release --bin file_classification_cli --verbose
+          cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli.exe" >> $env:GITHUB_ENV
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-windows
-          path: target/release/${{ env.BINARY_NAME }}
+          name: file_classification_cli-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_cli.exe
 
   build-macos:
-    name: Build release binary (macOS)
+    name: Build macOS binaries
     needs: test-macos
     if: always()
     runs-on: macos-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
       - name: Install dependencies (macOS)
         run: |
           brew install sqlite3
       - name: Build release binary
         run: |
-          cargo build --release --bin file_classification_cli --verbose
+          cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-macos
-          path: target/release/${{ env.BINARY_NAME }}
+          name: file_classification_cli-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_cli
 
   release:
     name: Create GitHub Release
@@ -204,7 +238,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/file_classification_cli-linux/file_classification_cli
-            artifacts/file_classification_cli-windows/file_classification_cli.exe
-            artifacts/file_classification_cli-macos/file_classification_cli
+            artifacts/file_classification_cli-x86_64-unknown-linux-gnu/file_classification_cli
+            artifacts/file_classification_cli-i686-unknown-linux-gnu/file_classification_cli
+            artifacts/file_classification_cli-aarch64-unknown-linux-gnu/file_classification_cli
+            artifacts/file_classification_cli-armv7-unknown-linux-gnueabihf/file_classification_cli
+            artifacts/file_classification_cli-riscv64gc-unknown-linux-gnu/file_classification_cli
+            artifacts/file_classification_cli-riscv32gc-unknown-linux-gnu/file_classification_cli
+            artifacts/file_classification_cli-riscv32i-unknown-none-elf/file_classification_cli
+            artifacts/file_classification_cli-x86_64-pc-windows-msvc/file_classification_cli.exe
+            artifacts/file_classification_cli-i686-pc-windows-msvc/file_classification_cli.exe
+            artifacts/file_classification_cli-aarch64-pc-windows-msvc/file_classification_cli.exe
+            artifacts/file_classification_cli-x86_64-apple-darwin/file_classification_cli
+            artifacts/file_classification_cli-aarch64-apple-darwin/file_classification_cli
             artifacts/file_classification_cli-android/file_classification_cli
