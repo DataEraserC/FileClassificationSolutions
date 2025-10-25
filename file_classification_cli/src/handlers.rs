@@ -439,7 +439,7 @@ fn handle_file_action(
     Ok(())
 }
 
-/// 处理组相关动作
+/// 处理组相关操作
 fn handle_group_action(
     action: cli::GroupActions,
     conn: &mut AnyConnection,
@@ -448,10 +448,10 @@ fn handle_group_action(
     match action {
         cli::GroupActions::Create { name } => {
             let name = name.unwrap_or_else(|| get_input("请输入组名称: "));
-
-            match service::groups::create_group_by_name(conn, &name) {
-                Ok(count) => println!("成功创建组，影响 {} 行", count),
-                Err(e) => eprintln!("创建组失败: {:?}", e),
+            let create_dto = models::CreateGroupDTO { name };
+            match service::groups::create_group(conn, &create_dto) {
+                Ok(id) => println!("组创建成功，ID: {}", id),
+                Err(e) => println!("组创建失败: {}", e),
             }
         }
         cli::GroupActions::Delete { id } => {
@@ -471,7 +471,9 @@ fn handle_group_action(
                 println!("操作已取消");
             }
         }
-        cli::GroupActions::ListInteractive => list_groups_interactive(conn, context),
+        cli::GroupActions::ListInteractive => {
+            list_groups_interactive(conn, context);
+        }
         cli::GroupActions::ListByConditions {
             conditions,
             order_by,
@@ -529,6 +531,15 @@ fn handle_group_action(
                     }
                 }
                 Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::GroupActions::GetTree { id } => {
+            match service::groups::get_group_tree(conn, id) {
+                Ok(tree) => {
+                    println!("组树状结构:");
+                    print_group_tree(&tree, 0);
+                }
+                Err(e) => println!("获取组树状结构失败: {}", e),
             }
         }
         cli::GroupActions::UpdateById {
@@ -996,4 +1007,19 @@ fn handle_group_relation_action(
     Ok(())
 }
 
-
+/// 打印组树状结构
+fn print_group_tree(node: &models::GroupTreeNode, depth: usize) {
+    let indent = "  ".repeat(depth);
+    println!("{}- {} (ID: {}, 引用数: {}, 主组: {}, 点击数: {}, 分享数: {})",
+             indent,
+             node.group.name,
+             node.group.id,
+             node.group.reference_count,
+             node.group.is_primary,
+             node.group.click_count,
+             node.group.share_count);
+    
+    for child in &node.children {
+        print_group_tree(child, depth + 1);
+    }
+}

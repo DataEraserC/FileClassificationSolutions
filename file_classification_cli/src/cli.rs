@@ -157,6 +157,11 @@ pub enum GroupActions {
         #[clap(short, long)]
         tag_id: i32,
     },
+    /// 获取组的树状结构
+    GetTree {
+        #[clap(short, long)]
+        id: i32,
+    },
     /// 通过ID更新组
     UpdateById {
         #[clap(short, long)]

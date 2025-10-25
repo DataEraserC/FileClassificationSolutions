@@ -42,6 +42,7 @@ pub fn print_help() {
     println!("  group list-by-conditions -c <conditions> --order_by <order> --limit <n> --offset <n>");
     println!("  group list-by-file-id --file_id <id>");
     println!("  group list-by-tag-id --tag_id <id>");
+    println!("  group get-tree --id <id>");
     println!("  group update-by-id --id <id> [options]");
     println!("  group update-by-conditions -c <conditions> [options]");
     println!("  group delete-by-conditions -c <conditions>");
