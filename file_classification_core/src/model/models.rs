@@ -208,7 +208,7 @@ pub struct UpdateFile {
 /// 分组实体模型
 /// 
 /// 对应数据库中的 `groups` 表，表示系统中的一个分组记录
-#[derive(Queryable, Selectable, Serialize, Clone)]
+#[derive(Queryable, Selectable, Serialize, Deserialize, Clone)]
 #[diesel(table_name = groups)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Group {
@@ -877,4 +877,13 @@ pub enum GroupRelationOrderBy {
     SecondGroupId(OrderDirection),
     /// 按关系类型排序
     RelationType(OrderDirection),
+}
+
+/// 树节点结构，用于表示组的层级结构
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct GroupTreeNode {
+    /// 组信息
+    pub group: Group,
+    /// 子节点列表
+    pub children: Vec<GroupTreeNode>,
 }

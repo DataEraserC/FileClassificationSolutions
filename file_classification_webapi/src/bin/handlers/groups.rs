@@ -1,6 +1,6 @@
 use actix_web::{get, post, put, delete, web, HttpResponse, Result};
 use serde_json::json;
-use file_classification_core::{model::models::{GroupCondition, UpdateGroupDTO, GroupFilter}, service::groups::{select_groups_by_filter, select_groups_by_conditions, create_group, update_groups_by_conditions, delete_group}, utils};
+use file_classification_core::{model::models::{GroupCondition, UpdateGroupDTO, GroupFilter, GroupTreeNode}, service::groups::{select_groups_by_filter, select_groups_by_conditions, create_group, update_groups_by_conditions, delete_group, get_group_tree}, utils};
 use file_classification_core::service::groups::{delete_groups_by_conditions, select_group_by_file_id, select_group_by_tag_id, select_groups_by_conditions_with_options};
 use crate::utils::database::{DbPool, DbPooledConnection};
 use crate::utils::models::{ApiResponse, ApiError};
@@ -342,6 +342,41 @@ async fn api_delete_groups_by_conditions(
                 "message": format!("成功删除 {} 条记录", count),
                 "count": count
             }))),
+        // 错误处理
+        Err(e) => Ok(HttpResponse::InternalServerError().json(ApiError {
+            success: false,
+            message: e.to_string(),
+        }))
+    }
+}
+
+/// 获取组的树状结构
+///
+/// 根据组ID获取指定组的完整树状结构
+///
+/// 请求路径: GET /api/groups/{id}/tree
+#[get("/api/groups/{id}/tree")]
+async fn api_get_group_tree(
+    path: web::Path<i32>,
+    pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+    // 获取路径参数中的组ID
+    let group_id = path.into_inner();
+    
+    // 从连接池获取数据库连接
+    let mut conn = pool.get().expect("Failed to get connection from pool");
+    
+    // 调用服务层获取组的树状结构
+    match get_group_tree(&mut conn, group_id) {
+        Ok(tree) => {
+            // 构造成功响应
+            Ok(HttpResponse::Ok().json(ApiResponse {
+                success: true,
+                data: Some(tree),
+                message: None,
+                count: Some(1),
+            }))
+        }
         // 错误处理
         Err(e) => Ok(HttpResponse::InternalServerError().json(ApiError {
             success: false,

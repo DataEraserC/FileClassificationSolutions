@@ -4,12 +4,13 @@
 //! 提供分组相关的业务逻辑处理，包括分组的创建、删除、查询和更新操作，
 //! 并处理分组与其关联文件、标签等资源的引用计数和级联删除。
 
-use crate::model::models::{FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO};
+use crate::model::models::{FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO, GroupTreeNode};
 use crate::service::AppError;
 use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
 use diesel::result::Error;
 use diesel::{Connection};
 use crate::utils::database::AnyConnection;
+use crate::service::group_relations;
 
 /// 通过名称创建分组
 ///
@@ -295,4 +296,36 @@ pub fn update_group_by_id(
     update_set: UpdateGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
     groups::update_group_by_id(conn, group_id, update_set)
+}
+
+/// 根据组ID获取组的树状结构
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 根节点组ID
+///
+/// 返回值:
+/// 成功时返回组的树状结构，失败时返回错误
+pub fn get_group_tree(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<GroupTreeNode, AppError> {
+    // 首先获取根节点组信息
+    let group = groups::find_group_by_id(conn, group_id)?
+        .ok_or(AppError::GroupNotFound)?;
+    
+    // 获取直接子节点的ID列表
+    let child_ids = group_relations::get_direct_children_ids(conn, group_id)?;
+    
+    let mut children = Vec::new();
+    for child_id in child_ids {
+        // 递归获取每个子节点的树状结构
+        let child_tree = get_group_tree(conn, child_id)?;
+        children.push(child_tree);
+    }
+    
+    Ok(GroupTreeNode {
+        group,
+        children,
+    })
 }

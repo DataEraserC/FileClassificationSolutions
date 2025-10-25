@@ -174,6 +174,48 @@ pub fn delete_group_relations_by_conditions(
     })
 }
 
+/// 获取指定组的直接子组ID列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 组ID
+///
+/// 返回值:
+/// 成功时返回直接子组ID列表，失败时返回错误
+pub fn get_direct_children_ids(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<Vec<i32>, diesel::result::Error> {
+    let relations = select_group_relations_by_conditions(
+        conn,
+        vec![GroupRelationCondition::FirstGroupId(group_id)],
+        None,
+    )?;
+    
+    Ok(relations.into_iter().map(|r| r.second_group_id).collect())
+}
+
+/// 获取指定组的直接父组ID列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 组ID
+///
+/// 返回值:
+/// 成功时返回直接父组ID列表，失败时返回错误
+pub fn get_direct_parents_ids(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<Vec<i32>, diesel::result::Error> {
+    let relations = select_group_relations_by_conditions(
+        conn,
+        vec![GroupRelationCondition::SecondGroupId(group_id)],
+        None,
+    )?;
+    
+    Ok(relations.into_iter().map(|r| r.first_group_id).collect())
+}
+
 /// 检查是否会创建循环引用
 ///
 /// 参数:
