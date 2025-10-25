@@ -12,35 +12,54 @@ env:
   PROJECT_NAME: file_classification_cli
 
 jobs:
-  test:
-    name: Test on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-      fail-fast: false
+  test-linux:
+    name: Test on Ubuntu
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Install vcpkg (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Install dependencies (Linux)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+      - name: Run tests
+        run: cargo test --verbose
+
+  test-windows:
+    name: Test on Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install vcpkg
         run: |
           git clone https://github.com/Microsoft/vcpkg.git
           cd vcpkg
           .\bootstrap-vcpkg.bat
-          echo "VCPKG_ROOT=$pwd" >> $env:GITHUB_ENV
-          echo "$pwd" >> $env:GITHUB_PATH
       - name: Install dependencies (Windows)
-        if: matrix.os == 'windows-latest'
         run: |
           vcpkg install sqlite3:x64-windows sqlite3:x64-windows-static
       - name: Run tests
         run: cargo test --verbose
 
+  test-macos:
+    name: Test on macOS
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install dependencies (macOS)
+        run: |
+          brew install sqlite3
+      - name: Run tests
+        run: cargo test --verbose
+
   build-android:
     name: Build Android binary
-    needs: test
+    needs: [test-linux, test-windows, test-macos]
     if: always()
     runs-on: ubuntu-latest
     continue-on-error: true
@@ -84,7 +103,7 @@ jobs:
 
   build-linux:
     name: Build release binary (Linux)
-    needs: test
+    needs: test-linux
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -108,7 +127,7 @@ jobs:
 
   build-windows:
     name: Build release binary (Windows)
-    needs: test
+    needs: test-windows
     if: always()
     runs-on: windows-latest
     steps:
@@ -140,7 +159,7 @@ jobs:
 
   build-macos:
     name: Build release binary (macOS)
-    needs: test
+    needs: test-macos
     if: always()
     runs-on: macos-latest
     steps:
@@ -164,7 +183,7 @@ jobs:
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-linux, build-windows, build-macos, build-android]
+    needs: [test-linux, test-windows, test-macos, build-linux, build-windows, build-macos, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
