@@ -48,7 +48,7 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         }
 
         // 检查该组是否已经是其他组的父组
-        let children = group_relations_dao::get_second_group(conn, target_group.id, Some(RELATION_TYPE_PARENT_CHILD))?;
+        let children = group_relations_dao::get_direct_children_ids(conn, target_group.id)?;
         if !children.is_empty() {
             // 如果该组已经是其他组的父组，则不能转为主组
             return Err(FuturePrimaryGroupShouldBeEmpty);

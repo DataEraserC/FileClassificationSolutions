@@ -183,8 +183,7 @@ pub fn get_direct_children_ids(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    let relations = group_relations_dao::get_second_group(conn, group_id, Some(RELATION_TYPE_PARENT_CHILD))?;
-    Ok(relations.into_iter().map(|r| r.second_group_id).collect())
+    group_relations_dao::get_direct_children_ids(conn, group_id)
 }
 
 /// 获取指定组的直接父组ID列表
@@ -199,8 +198,7 @@ pub fn get_direct_parents_ids(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    let relations = group_relations_dao::get_first_group(conn, group_id, Some(RELATION_TYPE_PARENT_CHILD))?;
-    Ok(relations.into_iter().map(|r| r.first_group_id).collect())
+    group_relations_dao::get_direct_parents_ids(conn, group_id)
 }
 
 /// 检查是否会创建循环引用
@@ -232,19 +230,19 @@ fn would_create_cycle(
         let mut next_groups = Vec::new();
         
         for &group_id in &current_groups {
-            // 获取group_id的所有父组
-            let parent_relations = group_relations_dao::get_first_group(conn, group_id, Some(relation_type))?;
+            // 获取group_id的所有父组ID
+            let parent_ids = group_relations_dao::get_first_group_ids(conn, group_id, relation_type)?;
             
-            for relation in parent_relations {
+            for parent_id_value in parent_ids {
                 // 如果发现parent_id在祖先中，则会形成循环
-                if relation.first_group_id == parent_id {
+                if parent_id_value == parent_id {
                     return Ok(true);
                 }
                 
                 // 如果这个祖先还没有被处理过，加入到待处理列表
-                if !ancestors.contains(&relation.first_group_id) {
-                    ancestors.push(relation.first_group_id);
-                    next_groups.push(relation.first_group_id);
+                if !ancestors.contains(&parent_id_value) {
+                    ancestors.push(parent_id_value);
+                    next_groups.push(parent_id_value);
                 }
             }
         }

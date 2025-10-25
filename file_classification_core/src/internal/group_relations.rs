@@ -8,7 +8,7 @@ use diesel::prelude::*;
 use crate::model::schema::group_relations::dsl::*;
 use crate::model::schema::group_relations;
 use super::models::GroupRelationCondition;
-use crate::model::models::{GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection};
+use crate::model::models::{GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD};
 use diesel::dsl::not;
 use diesel::sql_types::Bool;
 use crate::utils::database::AnyConnection;
@@ -253,7 +253,7 @@ pub fn check_group_relation_exists(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `group_id`: 组ID
-/// - `relation_type`: 关系类型（可选）
+/// - `rel_type`: 关系类型（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
@@ -282,7 +282,7 @@ pub fn get_first_group(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `group_id`: 组ID
-/// - `relation_type`: 关系类型（可选）
+/// - `rel_type`: 关系类型（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
@@ -304,4 +304,62 @@ pub fn get_second_group(
             .select(GroupRelation::as_select())
             .load::<GroupRelation>(conn)
     }
+}
+
+/// 获取指定组的直接子组ID列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 组ID
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn get_direct_children_ids(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<Vec<i32>, diesel::result::Error> {
+    group_relations::table
+        .filter(group_relations::first_group_id.eq(group_id))
+        .filter(group_relations::relation_type.eq(RELATION_TYPE_PARENT_CHILD))
+        .select(group_relations::second_group_id)
+        .load::<i32>(conn)
+}
+
+/// 获取指定组的直接父组ID列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 组ID
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn get_direct_parents_ids(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<Vec<i32>, diesel::result::Error> {
+    group_relations::table
+        .filter(group_relations::second_group_id.eq(group_id))
+        .filter(group_relations::relation_type.eq(RELATION_TYPE_PARENT_CHILD))
+        .select(group_relations::first_group_id)
+        .load::<i32>(conn)
+}
+
+/// 获取指定组的所有父组ID列表（用于循环检测）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 组ID
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn get_first_group_ids(
+    conn: &mut AnyConnection,
+    group_id: i32,
+    relation_type_value: i32,
+) -> Result<Vec<i32>, diesel::result::Error> {
+    group_relations::table
+        .filter(group_relations::second_group_id.eq(group_id))
+        .filter(group_relations::relation_type.eq(relation_type_value))
+        .select(group_relations::first_group_id)
+        .load::<i32>(conn)
 }
