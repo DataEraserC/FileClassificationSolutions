@@ -113,6 +113,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         target:
           # x86 architectures
@@ -121,9 +122,8 @@ jobs:
           # ARM architectures - most common ones
           - aarch64-unknown-linux-gnu
           - armv7-unknown-linux-gnueabihf
-          # RISC-V architectures - most common ones
+          # RISC-V architectures - supported ones
           - riscv64gc-unknown-linux-gnu
-          - riscv32gc-unknown-linux-gnu
           - riscv32i-unknown-none-elf
     steps:
       - uses: actions/checkout@v4
@@ -156,6 +156,7 @@ jobs:
     if: always()
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         target:
           - x86_64-pc-windows-msvc
@@ -198,6 +199,7 @@ jobs:
     if: always()
     runs-on: macos-latest
     strategy:
+      fail-fast: false
       matrix:
         target:
           - x86_64-apple-darwin
@@ -243,7 +245,6 @@ jobs:
             artifacts/file_classification_cli-aarch64-unknown-linux-gnu/file_classification_cli
             artifacts/file_classification_cli-armv7-unknown-linux-gnueabihf/file_classification_cli
             artifacts/file_classification_cli-riscv64gc-unknown-linux-gnu/file_classification_cli
-            artifacts/file_classification_cli-riscv32gc-unknown-linux-gnu/file_classification_cli
             artifacts/file_classification_cli-riscv32i-unknown-none-elf/file_classification_cli
             artifacts/file_classification_cli-x86_64-pc-windows-msvc/file_classification_cli.exe
             artifacts/file_classification_cli-i686-pc-windows-msvc/file_classification_cli.exe
