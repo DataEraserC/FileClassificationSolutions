@@ -1,13 +1,17 @@
 // group_relations.rs
-//! 组关系数据访问模块
+//! 组关系管理模块
 //!
-//! 提供对 `group_relations` 表的操作，包括组与组之间关系的管理
+//! 提供对组关系表 (`group_relations`) 的增删改查操作支持，包括基本的CRUD操作、条件查询、批量操作等。
 
+use super::models::GroupRelation;
 use diesel::prelude::*;
-use crate::model::schema::{group_relations, groups};
+use crate::model::schema::group_relations::dsl::*;
+use crate::model::schema::group_relations;
+use super::models::GroupRelationCondition;
+use crate::model::models::{GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection};
+use diesel::dsl::not;
+use diesel::sql_types::Bool;
 use crate::utils::database::AnyConnection;
-use crate::model::models::{GroupRelation, GroupRelationCondition, 
-                              GroupRelationQueryOptions, GroupRelationOrderBy, OrderDirection};
 
 /// 插入一个新的组关系记录
 ///
@@ -51,18 +55,18 @@ pub fn delete_group_relation_by_dto(
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
-/// - `group_relations`: 包含要删除记录信息的对象向量
+/// - `relations`: 包含要删除记录信息的对象向量
 ///
 /// 返回值:
 /// 成功时返回影响的行数，失败则返回数据库错误
 pub fn delete_group_relations_by_dtos(
     conn: &mut AnyConnection,
-    group_relations: Vec<GroupRelation>,
+    relations: Vec<GroupRelation>,
 ) -> Result<usize, diesel::result::Error> {
     conn.transaction::<usize, diesel::result::Error, _>(|conn| {
         let mut total_deleted = 0;
 
-        for relation in group_relations {
+        for relation in relations {
             total_deleted += delete_group_relation_by_dto(conn, &relation)?;
         }
 
@@ -218,6 +222,42 @@ pub fn select_group_relations_by_conditions_with_options(
         .load::<GroupRelation>(conn)
 }
 
+/// 根据first_group_id获取组关系列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `first_id`: 第一个组ID
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_relations_by_first_group_id(
+    conn: &mut AnyConnection,
+    first_id: i32,
+) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+    group_relations::table
+        .select(GroupRelation::as_select())
+        .filter(group_relations::first_group_id.eq(first_id))
+        .load::<GroupRelation>(conn)
+}
+
+/// 根据second_group_id获取组关系列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `second_id`: 第二个组ID
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_relations_by_second_group_id(
+    conn: &mut AnyConnection,
+    second_id: i32,
+) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+    group_relations::table
+        .select(GroupRelation::as_select())
+        .filter(group_relations::second_group_id.eq(second_id))
+        .load::<GroupRelation>(conn)
+}
+
 /// 检查两个组之间是否存在指定类型的关系
 ///
 /// 参数:
@@ -230,14 +270,14 @@ pub fn select_group_relations_by_conditions_with_options(
 /// 成功时返回布尔值，true表示存在关系，false表示不存在关系；失败则返回数据库错误
 pub fn check_group_relation_exists(
     conn: &mut AnyConnection,
-    first_group_id: i32,
-    second_group_id: i32,
-    relation_type: i32,
+    first_id: i32,
+    second_id: i32,
+    rel_type: i32,
 ) -> Result<bool, diesel::result::Error> {
     let count = group_relations::table
-        .filter(group_relations::first_group_id.eq(first_group_id))
-        .filter(group_relations::second_group_id.eq(second_group_id))
-        .filter(group_relations::relation_type.eq(relation_type))
+        .filter(group_relations::first_group_id.eq(first_id))
+        .filter(group_relations::second_group_id.eq(second_id))
+        .filter(group_relations::relation_type.eq(rel_type))
         .count()
         .first::<i64>(conn)?;
 
@@ -256,11 +296,11 @@ pub fn check_group_relation_exists(
 pub fn get_first_group(
     conn: &mut AnyConnection,
     group_id: i32,
-    relation_type: i32,
+    rel_type: i32,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
     group_relations::table
         .filter(group_relations::second_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(relation_type))
+        .filter(group_relations::relation_type.eq(rel_type))
         .select(GroupRelation::as_select())
         .load::<GroupRelation>(conn)
 }
@@ -277,11 +317,11 @@ pub fn get_first_group(
 pub fn get_second_group(
     conn: &mut AnyConnection,
     group_id: i32,
-    relation_type: i32,
+    rel_type: i32,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
     group_relations::table
         .filter(group_relations::first_group_id.eq(group_id))
-        .filter(group_relations::relation_type.eq(relation_type))
+        .filter(group_relations::relation_type.eq(rel_type))
         .select(GroupRelation::as_select())
         .load::<GroupRelation>(conn)
 }

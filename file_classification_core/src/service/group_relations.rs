@@ -186,12 +186,7 @@ pub fn get_direct_children_ids(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    let relations = select_group_relations_by_conditions(
-        conn,
-        vec![GroupRelationCondition::FirstGroupId(group_id)],
-        None,
-    )?;
-    
+    let relations = group_relations_dao::select_group_relations_by_first_group_id(conn, group_id)?;
     Ok(relations.into_iter().map(|r| r.second_group_id).collect())
 }
 
@@ -207,12 +202,7 @@ pub fn get_direct_parents_ids(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<i32>, diesel::result::Error> {
-    let relations = select_group_relations_by_conditions(
-        conn,
-        vec![GroupRelationCondition::SecondGroupId(group_id)],
-        None,
-    )?;
-    
+    let relations = group_relations_dao::select_group_relations_by_second_group_id(conn, group_id)?;
     Ok(relations.into_iter().map(|r| r.first_group_id).collect())
 }
 
@@ -240,7 +230,7 @@ fn would_create_cycle(
     // 检查child是否已经是parent的祖先
     let mut ancestors = vec![child_id];
     let mut current_groups = vec![child_id];
-    
+
     while !current_groups.is_empty() {
         let mut next_groups = Vec::new();
         
