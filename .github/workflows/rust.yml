@@ -152,16 +152,24 @@ jobs:
           echo '' >> .cargo/config.toml
           echo '[target.riscv64gc-unknown-linux-gnu]' >> .cargo/config.toml
           echo 'linker = "riscv64-linux-gnu-gcc"' >> .cargo/config.toml
-      - name: Build release binary
+      - name: Build CLI release binary
         run: |
           cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+      - name: Build WebAPI release binary
+        run: |
+          cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
-      - name: Upload artifacts
+      - name: Upload CLI artifacts
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/file_classification_cli
+      - name: Upload WebAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_webapi-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_webapi
 
   build-windows:
     name: Build Windows binaries
@@ -195,16 +203,24 @@ jobs:
           echo "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" >> $env:GITHUB_ENV
           echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\lib" >> $env:GITHUB_PATH
           echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_PATH
-      - name: Build release binary
+      - name: Build CLI release binary
         run: |
           cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+      - name: Build WebAPI release binary
+        run: |
+          cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli.exe" >> $env:GITHUB_ENV
-      - name: Upload artifacts
+      - name: Upload CLI artifacts
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/file_classification_cli.exe
+      - name: Upload WebAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_webapi-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_webapi.exe
 
   build-macos:
     name: Build macOS binaries
@@ -226,16 +242,24 @@ jobs:
       - name: Install dependencies (macOS)
         run: |
           brew install sqlite3
-      - name: Build release binary
+      - name: Build CLI release binary
         run: |
           cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+      - name: Build WebAPI release binary
+        run: |
+          cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
-      - name: Upload artifacts
+      - name: Upload CLI artifacts
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/file_classification_cli
+      - name: Upload WebAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_webapi-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_webapi
 
   release:
     name: Create GitHub Release
@@ -258,9 +282,19 @@ jobs:
             artifacts/file_classification_cli-aarch64-unknown-linux-gnu/file_classification_cli
             artifacts/file_classification_cli-armv7-unknown-linux-gnueabihf/file_classification_cli
             artifacts/file_classification_cli-riscv64gc-unknown-linux-gnu/file_classification_cli
+            artifacts/file_classification_webapi-x86_64-unknown-linux-gnu/file_classification_webapi
+            artifacts/file_classification_webapi-i686-unknown-linux-gnu/file_classification_webapi
+            artifacts/file_classification_webapi-aarch64-unknown-linux-gnu/file_classification_webapi
+            artifacts/file_classification_webapi-armv7-unknown-linux-gnueabihf/file_classification_webapi
+            artifacts/file_classification_webapi-riscv64gc-unknown-linux-gnu/file_classification_webapi
             artifacts/file_classification_cli-x86_64-pc-windows-msvc/file_classification_cli.exe
             artifacts/file_classification_cli-i686-pc-windows-msvc/file_classification_cli.exe
             artifacts/file_classification_cli-aarch64-pc-windows-msvc/file_classification_cli.exe
+            artifacts/file_classification_webapi-x86_64-pc-windows-msvc/file_classification_webapi.exe
+            artifacts/file_classification_webapi-i686-pc-windows-msvc/file_classification_webapi.exe
+            artifacts/file_classification_webapi-aarch64-pc-windows-msvc/file_classification_webapi.exe
             artifacts/file_classification_cli-x86_64-apple-darwin/file_classification_cli
             artifacts/file_classification_cli-aarch64-apple-darwin/file_classification_cli
+            artifacts/file_classification_webapi-x86_64-apple-darwin/file_classification_webapi
+            artifacts/file_classification_webapi-aarch64-apple-darwin/file_classification_webapi
             artifacts/file_classification_cli-android/file_classification_cli
