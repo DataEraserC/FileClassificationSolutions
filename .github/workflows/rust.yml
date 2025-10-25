@@ -2,10 +2,10 @@ name: Build and Release
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "rust_new" ]
     tags: [ "v*" ]
   pull_request:
-    branches: [ "main", "master" ]
+    branches: [ "main", "master", "rust_new" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -24,6 +24,47 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
       - name: Run tests
         run: cargo test --verbose
+
+  build-android:
+    name: Build Android binary
+    needs: test
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Android targets
+        run: |
+          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+      - name: Install Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r25b
+      - name: Setup Android environment
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+      - name: Configure cargo for Android
+        run: |
+          mkdir -p .cargo
+          echo '[target.aarch64-linux-android]' > .cargo/config.toml
+          echo 'ar = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar"' >> .cargo/config.toml
+          echo 'linker = "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang"' >> .cargo/config.toml
+      - name: Install SQLite for Android
+        run: |
+          # Note: We may need to cross-compile SQLite for Android or use the system version
+          echo "Preparing Android build environment"
+      - name: Build for Android
+        run: |
+          cargo build --target aarch64-linux-android --release --bin file_classification_cli
+      - name: Set Android binary name
+        run: echo "ANDROID_BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_cli-android
+          path: target/aarch64-linux-android/release/file_classification_cli
 
   build:
     name: Build release binaries
@@ -70,7 +111,7 @@ jobs:
   release:
     name: Create GitHub Release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
+    needs: [build, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -86,3 +127,4 @@ jobs:
             artifacts/file_classification_cli-linux/file_classification_cli
             artifacts/file_classification_cli-windows/file_classification_cli.exe
             artifacts/file_classification_cli-macos/file_classification_cli
+            artifacts/file_classification_cli-android/file_classification_cli
