@@ -13,7 +13,7 @@ use crate::internal::group_tag as group_tag_dao;
 use crate::model::models::{CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO, FileQueryOptions, GroupTagCondition, UpdateFileDTO};
 use crate::service::AppError;
 use crate::utils::errors::AppError::{FuturePrimaryGroupShouldBeEmpty};
-use crate::{internal, service};
+use crate::service::file_group as file_group_service;
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
 use crate::model::models::RELATION_TYPE_PARENT_CHILD;
@@ -70,7 +70,7 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         // file_id = file.id;
 
         // 建立文件与主分组的关联关系
-        match service::file_group::create_file_group(conn, FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 }) {
+        match file_group_service::create_file_group(conn, FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 }) {
             Ok(_) => {
                 // count += 1;
             }
