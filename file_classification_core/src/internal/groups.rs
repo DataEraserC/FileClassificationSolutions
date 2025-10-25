@@ -124,7 +124,7 @@ pub fn mark_group_as_non_primary(conn: &mut AnyConnection) -> Result<usize, dies
     diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)
 }
 
-/// [已弃用] 根据过滤条件查询分组列表
+/// 根据过滤条件查询分组列表
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -133,7 +133,6 @@ pub fn mark_group_as_non_primary(conn: &mut AnyConnection) -> Result<usize, dies
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-#[deprecated]
 pub fn select_groups_by_filter(
     conn: &mut AnyConnection,
     search_input: GroupFilter,

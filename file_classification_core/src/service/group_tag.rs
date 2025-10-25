@@ -4,8 +4,9 @@
 //! 提供分组与标签之间关联关系的业务逻辑处理，包括创建、删除和查询分组-标签关联，
 //! 并处理相关的引用计数管理。
 
-use crate::internal::groups::{decrease_group_reference_count_by_id, find_group_by_id, increase_group_reference_count_by_id};
-use crate::internal::tags::{decrease_tag_reference_count_by_id, find_tag_by_id, increase_tag_reference_count_by_id};
+use crate::internal::groups as groups_dao;
+use crate::internal::tags as tags_dao;
+use crate::internal::group_tag as group_tag_dao;
 use crate::model::models::{GroupTagCondition, GroupTagDTO, GroupTagQueryOptions};
 use crate::service::AppError;
 use diesel::result::Error;
@@ -33,19 +34,19 @@ pub fn create_group_tag(
     conn: &mut AnyConnection,
     group_tag_dto: GroupTagDTO,
 ) -> Result<GroupTagDTO, AppError> {
-    let _group = find_group_by_id(conn, group_tag_dto.group_id)?
+    let _group = groups_dao::find_group_by_id(conn, group_tag_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;
 
-    let _tag = find_tag_by_id(conn, group_tag_dto.tag_id)?
+    let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?
         .ok_or(AppError::TagNotFound)?;
 
     let _result = conn.transaction::<_, AppError, _>(|conn| {
         // 业务逻辑：增加引用计数
-        increase_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
-        increase_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
+        groups_dao::increase_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+        tags_dao::increase_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
 
         // 调用数据访问层执行插入操作
-        crate::internal::group_tag::insert_group_tag(conn, &group_tag_dto)?;
+        group_tag_dao::insert_group_tag(conn, &group_tag_dto)?;
         Ok(())
     })?;
 
@@ -73,19 +74,19 @@ pub fn delete_group_tag_by_dto(
     conn: &mut AnyConnection,
     group_tag_dto: GroupTagDTO,
 ) -> Result<usize, AppError> {
-    let _group = find_group_by_id(conn, group_tag_dto.group_id)?
+    let _group = groups_dao::find_group_by_id(conn, group_tag_dto.group_id)?
         .ok_or(AppError::GroupNotFound)?;
 
-    let _tag = find_tag_by_id(conn, group_tag_dto.tag_id)?
+    let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?
         .ok_or(AppError::TagNotFound)?;
 
     let result = conn.transaction::<_, AppError, _>(|conn| {
         // 业务逻辑：减少引用计数
-        decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
-        decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
+        groups_dao::decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+        tags_dao::decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
 
         // 调用数据访问层执行删除操作
-        let deleted_count = crate::internal::group_tag::delete_group_tag_by_dto(conn, &group_tag_dto)?;
+        let deleted_count = group_tag_dao::delete_group_tag_by_dto(conn, &group_tag_dto)?;
 
         Ok(deleted_count)
     })?;
@@ -107,7 +108,7 @@ pub fn select_group_tags_by_conditions(
     condition: Vec<GroupTagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    crate::internal::group_tag::select_group_tags_by_conditions(conn, condition, limit)
+    group_tag_dao::select_group_tags_by_conditions(conn, condition, limit)
 }
 
 /// 根据条件和选项查询分组-标签关联记录
@@ -124,7 +125,7 @@ pub fn select_group_tags_by_conditions_with_options(
     conditions: Vec<GroupTagCondition>,
     options: GroupTagQueryOptions,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    crate::internal::group_tag::select_group_tags_by_conditions_with_options(conn, conditions, options)
+    group_tag_dao::select_group_tags_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据条件批量删除分组-标签关联记录

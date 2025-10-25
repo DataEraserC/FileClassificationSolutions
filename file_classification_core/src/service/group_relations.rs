@@ -5,7 +5,7 @@
 //! 并处理相关的业务规则验证和循环引用检测。
 
 use crate::internal::group_relations as group_relations_dao;
-use crate::internal::groups::{find_group_by_id};
+use crate::internal::groups as groups_dao;
 use crate::model::models::{GroupRelation, GroupRelationCondition, GroupRelationQueryOptions};
 use crate::service::AppError;
 use diesel::result::Error;
@@ -34,10 +34,10 @@ pub fn create_group_relation(
     group_relation: GroupRelation,
 ) -> Result<GroupRelation, AppError> {
     // 业务规则验证
-    let first_group = find_group_by_id(conn, group_relation.first_group_id)?
+    let first_group = groups_dao::find_group_by_id(conn, group_relation.first_group_id)?
         .ok_or(AppError::GroupNotFound)?;
 
-    let second_group = find_group_by_id(conn, group_relation.second_group_id)?
+    let second_group = groups_dao::find_group_by_id(conn, group_relation.second_group_id)?
         .ok_or(AppError::GroupNotFound)?;
 
     // 检查是否尝试创建循环引用

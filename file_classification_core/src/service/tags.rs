@@ -5,10 +5,10 @@
 //! 并处理标签与其关联分组等资源的引用计数和级联删除。
 
 use crate::model::models::{GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO};
-use crate::{
-    internal::tags,
-    model::models::{CreateTagDTO, Tag, TagFilter},
-};
+use crate::internal::groups as groups_dao;
+use crate::internal::tags as tags_dao;
+use crate::internal::group_tag as group_tag_dao;
+use crate::model::models::{CreateTagDTO, Tag, TagFilter};
 use diesel::{Connection};
 use crate::utils::database::AnyConnection;
 
@@ -25,7 +25,7 @@ where
     S: Into<String>,
 {
     let new_tag = CreateTagDTO { name: name.into() };
-    tags::insert_tag(conn, &new_tag)
+    tags_dao::insert_tag(conn, &new_tag)
 }
 
 /// 创建标签
@@ -37,7 +37,7 @@ where
 /// 返回值:
 /// 成功时返回插入记录的ID，失败则返回相应的错误
 pub fn create_tag(conn: &mut AnyConnection, create_tag_dto: &CreateTagDTO) -> Result<i32, diesel::result::Error> {
-    tags::insert_tag(conn, create_tag_dto)
+    tags_dao::insert_tag(conn, create_tag_dto)
 }
 
 /// 删除标签（级联删除相关资源）
@@ -57,17 +57,17 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
     // 使用事务确保数据一致性
     conn.transaction::<usize, diesel::result::Error, _>(|conn| {
         // 查找与该标签关联的所有组
-        let groups_associated_with_tag = crate::internal::groups::select_groups_by_tag_id(conn, tag_id)?;
+        let groups_associated_with_tag = groups_dao::select_groups_by_tag_id(conn, tag_id)?;
 
         for group in &groups_associated_with_tag {
             // 对于每个关联的组，减少其引用计数
-            crate::internal::groups::decrease_group_reference_count_by_id(conn, group.id)?;
+            groups_dao::decrease_group_reference_count_by_id(conn, group.id)?;
             // 删除与该标签关联的所有组标签关系
-            crate::internal::group_tag::delete_group_tag_by_dto(conn, &GroupTagDTO { tag_id: tag_id, group_id: group.id})?;
+            group_tag_dao::delete_group_tag_by_dto(conn, &GroupTagDTO { tag_id: tag_id, group_id: group.id})?;
         }
 
         // 删除标签本身
-        tags::delete_tag_by_id(conn, tag_id)
+        tags_dao::delete_tag_by_id(conn, tag_id)
     })
 }
 
@@ -85,7 +85,7 @@ pub fn select_tags_by_filter(
     search_input: TagFilter,
     limit: i64,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    tags::select_tags_by_filter(conn, search_input, limit)
+    tags_dao::select_tags_by_filter(conn, search_input, limit)
 }
 
 /// 根据条件查询标签列表
@@ -102,7 +102,7 @@ pub fn select_tags_by_conditions(
     condition: Vec<TagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    tags::select_tags_by_conditions(conn, condition, limit)
+    tags_dao::select_tags_by_conditions(conn, condition, limit)
 }
 
 /// 根据条件和选项查询标签列表
@@ -119,7 +119,7 @@ pub fn select_tags_by_conditions_with_options(
     conditions: Vec<TagCondition>,
     options: TagQueryOptions,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    tags::select_tags_by_conditions_with_options(conn, conditions, options)
+    tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据条件批量更新标签
@@ -136,7 +136,7 @@ pub fn update_tags_by_conditions(
     conditions: Vec<TagCondition>,
     update_set: UpdateTagDTO,
 ) -> Result<usize, diesel::result::Error> {
-    tags::update_tags_by_conditions(conn, conditions, update_set)
+    tags_dao::update_tags_by_conditions(conn, conditions, update_set)
 }
 
 /// 根据条件批量删除标签（级联删除相关资源）
@@ -191,7 +191,7 @@ pub fn select_tag_by_group_id(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    crate::internal::tags::select_tag_by_group_id(conn, group_id)
+    tags_dao::select_tag_by_group_id(conn, group_id)
 }
 
 /// 根据标签ID获取标签详情
@@ -206,7 +206,7 @@ pub fn get_tag_by_id(
     conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<Tag, diesel::result::Error> {
-    tags::get_tag_by_id(conn, tag_id)
+    tags_dao::get_tag_by_id(conn, tag_id)
 }
 
 /// 根据标签ID更新标签信息
@@ -223,5 +223,5 @@ pub fn update_tag_by_id(
     tag_id: i32,
     update_set: UpdateTagDTO,
 ) -> Result<usize, diesel::result::Error> {
-    tags::update_tag_by_id(conn, tag_id, update_set)
+    tags_dao::update_tag_by_id(conn, tag_id, update_set)
 }

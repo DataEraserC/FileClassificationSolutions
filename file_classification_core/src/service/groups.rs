@@ -6,12 +6,16 @@
 
 use crate::model::models::{FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition, UpdateGroupDTO, GroupTreeNode};
 use crate::service::AppError;
-use crate::{internal::groups, model::models::{CreateGroupDTO, Group, GroupFilter}};
+use crate::model::models::{CreateGroupDTO, Group, GroupFilter};
 use diesel::result::Error;
 use diesel::{Connection};
 use crate::utils::database::AnyConnection;
-use crate::service::group_relations;
-
+use crate::service::group_relations as group_relations_service;
+use crate::internal::file_group as file_group_dao;
+use crate::internal::groups as groups_dao;
+use crate::internal::tags as tags_dao;
+use crate::internal::files as files_dao;
+use crate::internal::group_tag as group_tag_dao;
 /// 通过名称创建分组
 ///
 /// 参数:
@@ -25,7 +29,7 @@ where
     S: Into<String>,
 {
     let new_group = CreateGroupDTO { name: name.into() };
-    groups::insert_group(conn, &new_group)
+    groups_dao::insert_group(conn, &new_group)
 }
 
 /// 创建分组
@@ -37,7 +41,7 @@ where
 /// 返回值:
 /// 成功时返回插入记录的ID，失败则返回相应的错误
 pub fn create_group(conn: &mut AnyConnection, create_group_dto: &CreateGroupDTO) -> Result<i32, Error> {
-    groups::insert_group(conn, create_group_dto)
+    groups_dao::insert_group(conn, create_group_dto)
 }
 
 /// 根据名称查找分组
@@ -52,7 +56,7 @@ pub fn find_group_by_name(
     conn: &mut AnyConnection,
     name: &str,
 ) -> Result<Option<Group>, AppError> {
-    Ok(groups::find_group_by_name(conn, name)?)
+    Ok(groups_dao::find_group_by_name(conn, name)?)
 }
 
 /// 删除分组（级联删除相关资源）
@@ -72,39 +76,39 @@ pub fn delete_group(
     group_id: i32,
 ) -> Result<usize, Error> {
     conn.transaction::<usize, Error, _>(|conn| {
-        let group = groups::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
+        let group = groups_dao::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
 
         // 获取关联的文件
-        let files_associated_with_group = crate::internal::files::select_files_by_group_id(conn, group_id)?;
+        let files_associated_with_group = files_dao::select_files_by_group_id(conn, group_id)?;
 
         if group.is_primary {
             // 获取主组的（唯一）关联文件
             let file_required_operation = files_associated_with_group.get(0).ok_or(AppError::FileNotFound)?;
 
             // 删除主组时，先删除关联的文件 及 关联文件的文件组关系
-            crate::internal::files::delete_file_by_id(conn, file_required_operation.id)?;
+            files_dao::delete_file_by_id(conn, file_required_operation.id)?;
 
             // 搜索关联文件的文件组关系
-            let file_groups_required_operation = crate::internal::file_group::select_file_groups_by_conditions(
+            let file_groups_required_operation = file_group_dao::select_file_groups_by_conditions(
                 conn,
                 vec![FileGroupCondition::FileId(file_required_operation.id)],
                 None,
             )?;
 
             // 删除关联文件的文件组关系
-            crate::internal::file_group::delete_file_groups_by_dtos(conn, file_groups_required_operation)?;
+            file_group_dao::delete_file_groups_by_dtos(conn, file_groups_required_operation)?;
 
         } else {
             for file in &files_associated_with_group {
                 // 对于非主组，需要先减少关联文件的引用计数
-                crate::internal::files::decrease_file_reference_count_by_id(conn, file.id)?;
+                files_dao::decrease_file_reference_count_by_id(conn, file.id)?;
                 // 删除文件组关系
-                crate::internal::file_group::delete_file_group_by_dto(conn, &FileGroupDTO { file_id: file.id, group_id, relation_type: 1 })?;
+                file_group_dao::delete_file_group_by_dto(conn, &FileGroupDTO { file_id: file.id, group_id, relation_type: 1 })?;
             }
         }
 
         // 减少组关联标签的引用计数
-        let group_tags = crate::internal::group_tag::select_group_tags_by_conditions(
+        let group_tags = group_tag_dao::select_group_tags_by_conditions(
             conn,
             vec![GroupTagCondition::GroupId(group_id)],
             None,
@@ -112,14 +116,14 @@ pub fn delete_group(
 
         for group_tag in &group_tags {
             // 减少每个关联标签的引用计数
-            crate::internal::tags::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
+            tags_dao::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
 
             // 删除组标签关系
-            crate::internal::group_tag::delete_group_tag_by_dto(conn, group_tag)?;
+            group_tag_dao::delete_group_tag_by_dto(conn, group_tag)?;
         }
 
         // 最后删除组本身
-        groups::delete_group_by_id(conn, group_id)
+        groups_dao::delete_group_by_id(conn, group_id)
     })
 }
 
@@ -137,7 +141,7 @@ pub fn select_groups_by_filter(
     search_input: GroupFilter,
     limit: i64,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    groups::select_groups_by_filter(conn, search_input, limit)
+    groups_dao::select_groups_by_filter(conn, search_input, limit)
 }
 
 /// 根据条件查询分组列表
@@ -154,7 +158,7 @@ pub fn select_groups_by_conditions(
     condition: Vec<GroupCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    groups::select_groups_by_conditions(conn, condition, limit)
+    groups_dao::select_groups_by_conditions(conn, condition, limit)
 }
 
 /// 根据条件和选项查询分组列表
@@ -171,7 +175,7 @@ pub fn select_groups_by_conditions_with_options(
     conditions: Vec<GroupCondition>,
     options: GroupQueryOptions,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    groups::select_groups_by_conditions_with_options(conn, conditions, options)
+    groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据条件批量更新分组
@@ -188,7 +192,7 @@ pub fn update_groups_by_conditions(
     conditions: Vec<GroupCondition>,
     update_set: UpdateGroupDTO,
 ) -> Result<usize, Error> {
-    groups::update_groups_by_conditions(conn, conditions, update_set)
+    groups_dao::update_groups_by_conditions(conn, conditions, update_set)
 }
 
 /// 根据条件批量删除分组（级联删除相关资源）
@@ -248,7 +252,7 @@ pub fn select_group_by_file_id(
     conn: &mut AnyConnection,
     other_file_id: i32,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    crate::internal::groups::select_groups_by_file_id(conn, other_file_id)
+    groups_dao::select_groups_by_file_id(conn, other_file_id)
 }
 
 /// 根据标签ID查询关联的分组列表
@@ -263,7 +267,7 @@ pub fn select_group_by_tag_id(
     conn: &mut AnyConnection,
     tag_id: i32,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    crate::internal::groups::select_groups_by_tag_id(conn, tag_id)
+    groups_dao::select_groups_by_tag_id(conn, tag_id)
 }
 
 /// 根据分组ID获取分组详情
@@ -278,7 +282,7 @@ pub fn get_group_by_id(
     conn: &mut AnyConnection,
     group_id: i32,
 ) -> Result<Group, diesel::result::Error> {
-    groups::get_group_by_id(conn, group_id)
+    groups_dao::get_group_by_id(conn, group_id)
 }
 
 /// 根据分组ID更新分组信息
@@ -295,7 +299,7 @@ pub fn update_group_by_id(
     group_id: i32,
     update_set: UpdateGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
-    groups::update_group_by_id(conn, group_id, update_set)
+    groups_dao::update_group_by_id(conn, group_id, update_set)
 }
 
 /// 根据组ID获取组的树状结构
@@ -311,11 +315,11 @@ pub fn get_group_tree(
     group_id: i32,
 ) -> Result<GroupTreeNode, AppError> {
     // 首先获取根节点组信息
-    let group = groups::find_group_by_id(conn, group_id)?
+    let group = groups_dao::find_group_by_id(conn, group_id)?
         .ok_or(AppError::GroupNotFound)?;
     
     // 获取直接子节点的ID列表
-    let child_ids = group_relations::get_direct_children_ids(conn, group_id)?;
+    let child_ids = group_relations_service::get_direct_children_ids(conn, group_id)?;
     
     let mut children = Vec::new();
     for child_id in child_ids {

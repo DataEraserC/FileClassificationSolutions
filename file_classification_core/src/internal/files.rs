@@ -142,7 +142,7 @@ pub fn decrease_file_reference_count_by_ids(
         .execute(conn)
 }
 
-/// [已弃用] 根据过滤条件查询文件列表
+/// 根据过滤条件查询文件列表
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -151,7 +151,6 @@ pub fn decrease_file_reference_count_by_ids(
 ///
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
-#[deprecated]
 pub fn select_files_by_filter(
     conn: &mut AnyConnection,
     search_input: FileFilter,
