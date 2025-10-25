@@ -6,14 +6,11 @@
 
 use crate::internal::group_relations as group_relations_dao;
 use crate::internal::groups as groups_dao;
-use crate::model::models::{GroupRelation, GroupRelationCondition, GroupRelationQueryOptions};
+use crate::model::models::{GroupRelation, GroupRelationCondition, GroupRelationQueryOptions, RELATION_TYPE_PARENT_CHILD};
 use crate::service::AppError;
 use diesel::result::Error;
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
-
-/// 关系类型常量定义
-pub const RELATION_TYPE_PARENT_CHILD: i32 = 1;
 
 /// 创建组关系
 ///

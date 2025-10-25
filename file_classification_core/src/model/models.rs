@@ -787,6 +787,9 @@ pub enum GroupTagOrderBy {
  组关系相关数据模型
 */
 
+/// 组关系类型常量定义
+pub const RELATION_TYPE_PARENT_CHILD: i32 = 1;
+
 /// 组关系实体模型
 /// 
 /// 对应数据库中的 `group_relations` 表，表示组和组之间的关联关系

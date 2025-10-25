@@ -16,7 +16,7 @@ use crate::utils::errors::AppError::{FuturePrimaryGroupShouldBeEmpty};
 use crate::{internal, service};
 use diesel::Connection;
 use crate::utils::database::AnyConnection;
-
+use crate::model::models::RELATION_TYPE_PARENT_CHILD;
 
 /// 创建文件（业务逻辑处理）
 ///
@@ -48,7 +48,6 @@ pub fn create_file(conn: &mut AnyConnection, create_file_dto: CreateFileDTO) -> 
         }
 
         // 检查该组是否已经是其他组的父组
-        use crate::service::group_relations::RELATION_TYPE_PARENT_CHILD;
         let children = group_relations_dao::get_second_group(conn, target_group.id, Some(RELATION_TYPE_PARENT_CHILD))?;
         if !children.is_empty() {
             // 如果该组已经是其他组的父组，则不能转为主组
