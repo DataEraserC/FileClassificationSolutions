@@ -1,0 +1,463 @@
+// 文件管理相关函数
+
+function listFilesByFilter() {
+    const fileId = getInputValue('file-id');
+    const fileType = getInputValue('file-type');
+    const filePath = getInputValue('file-path');
+    
+    // 构造查询参数
+    let params = new URLSearchParams();
+    if (fileId) params.append('id', fileId);
+    if (fileType) params.append('type_', fileType);
+    if (filePath) params.append('path', filePath);
+    
+    const url = `${BASE_URL}/api/files/filter?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            renderFileTable(data.data || []);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('查询文件失败: ' + error.message, 'error');
+        });
+}
+
+function renderFileTable(files) {
+    const tableBody = document.querySelector('#files-table tbody');
+    tableBody.innerHTML = '';
+    
+    files.forEach(file => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="checkbox" class="file-checkbox" data-id="${file.id}"></td>
+            <td>${file.id}</td>
+            <td>${file.type_}</td>
+            <td>${file.path}</td>
+            <td>${file.reference_count}</td>
+            <td>${file.group_id}</td>
+            <td>
+                <button class="action-button edit" onclick="openEditFileDialog(${file.id})">修改</button>
+                <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+function getFileById() {
+    const fileId = getInputValue('file-id');
+    if (!fileId) {
+        showMessage('请输入文件ID', 'warning');
+        return;
+    }
+    
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderFileTable([data.data]);
+            } else {
+                showMessage('获取文件失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取文件失败: ' + error.message, 'error');
+        });
+}
+
+function createFile() {
+    const fileType = getInputValue('create-file-type');
+    const filePath = getInputValue('create-file-path');
+    const groupId = getInputValue('create-file-group-id');
+    
+    if (!fileType || !filePath || !groupId) {
+        showMessage('请填写完整的文件信息', 'warning');
+        return;
+    }
+    
+    const fileData = {
+        type_: fileType,
+        path: filePath,
+        group_id: parseInt(groupId)
+    };
+    
+    const url = `${BASE_URL}/api/files`;
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(fileData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('文件创建成功', 'success');
+            closeModal();
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            showMessage('文件创建失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件创建失败: ' + error.message, 'error');
+    });
+}
+
+function updateFile() {
+    const fileId = getInputValue('edit-file-id');
+    const fileType = getInputValue('edit-file-type');
+    const filePath = getInputValue('edit-file-path');
+    const groupId = getInputValue('edit-file-group-id');
+    
+    if (!fileId || !fileType || !filePath || !groupId) {
+        showMessage('请填写完整的文件信息', 'warning');
+        return;
+    }
+    
+    const updateData = {
+        type_: fileType,
+        path: filePath,
+        group_id: parseInt(groupId)
+    };
+    
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('文件更新成功', 'success');
+            closeModal();
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            showMessage('文件更新失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件更新失败: ' + error.message, 'error');
+    });
+}
+
+function deleteFile(fileId) {
+    if (!confirm('确定要删除该文件吗？')) {
+        return;
+    }
+    
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('文件删除成功', 'success');
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            showMessage('文件删除失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件删除失败: ' + error.message, 'error');
+    });
+}
+
+// 批量删除选中的文件
+function deleteSelectedFiles() {
+    const selectedCheckboxes = document.querySelectorAll('.file-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        showMessage('请至少选择一个文件进行删除', 'warning');
+        return;
+    }
+    
+    if (!confirm(`确定要删除这 ${selectedCheckboxes.length} 个文件吗？`)) {
+        return;
+    }
+    
+    const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
+    
+    // 构造删除条件
+    const conditions = ids.map(id => ({ Id: id }));
+    
+    const url = `${BASE_URL}/api/files/delete/by-conditions`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage(`成功删除 ${data.count} 个文件`, 'success');
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            showMessage('文件批量删除失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件批量删除失败: ' + error.message, 'error');
+    });
+}
+
+// 打开创建文件对话框
+function openCreateFileDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>新增文件</h2>
+        <form id="create-file-form">
+            <div class="form-group">
+                <label for="create-file-type">文件类型:</label>
+                <input type="text" id="create-file-type" required>
+            </div>
+            <div class="form-group">
+                <label for="create-file-path">文件路径:</label>
+                <input type="text" id="create-file-path" required>
+            </div>
+            <div class="form-group">
+                <label for="create-file-group-id">组ID:</label>
+                <input type="number" id="create-file-group-id" required>
+            </div>
+            <button type="submit">创建</button>
+            <button type="button" onclick="closeModal()">取消</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('create-file-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createFile();
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+// 打开编辑文件对话框
+function openEditFileDialog(fileId) {
+    // 首先获取文件信息
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const file = data.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>编辑文件</h2>
+                    <form id="edit-file-form">
+                        <div class="form-group">
+                            <label for="edit-file-id">文件ID:</label>
+                            <input type="number" id="edit-file-id" value="${file.id}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-type">文件类型:</label>
+                            <input type="text" id="edit-file-type" value="${file.type_}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-path">文件路径:</label>
+                            <input type="text" id="edit-file-path" value="${file.path}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-group-id">组ID:</label>
+                            <input type="number" id="edit-file-group-id" value="${file.group_id}" required>
+                        </div>
+                        <button type="submit">更新</button>
+                        <button type="button" onclick="closeModal()">取消</button>
+                    </form>
+                `;
+                
+                // 绑定表单提交事件
+                document.getElementById('edit-file-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    updateFile();
+                });
+                
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                showMessage('获取文件信息失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取文件信息失败: ' + error.message, 'error');
+        });
+}
+
+// 打开批量删除文件对话框
+function openBatchDeleteFileDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>批量删除文件</h2>
+        <form id="batch-delete-file-form">
+            <div class="form-group">
+                <label for="batch-delete-file-conditions">删除条件 (JSON格式):</label>
+                <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+            </div>
+            <button type="submit">删除</button>
+            <button type="button" onclick="closeModal()">取消</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('batch-delete-file-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('batch-delete-file-conditions').value;
+        if (!conditionsJson) {
+            showMessage('请输入删除条件', 'warning');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            deleteFilesByConditions(conditions);
+        } catch (e) {
+            showMessage('JSON格式错误: ' + e.message, 'error');
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function deleteFilesByConditions(conditions) {
+    const url = `${BASE_URL}/api/files/delete/by-conditions`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('文件批量删除成功', 'success');
+            closeModal();
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            showMessage('文件批量删除失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件批量删除失败: ' + error.message, 'error');
+    });
+}
+
+// 打开复杂查询文件对话框
+function openComplexSearchFileDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>复杂查询文件</h2>
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchComplexSearchTab('visual')">可视化查询</button>
+            <button class="tab-button" onclick="switchComplexSearchTab('json')">JSON查询</button>
+        </div>
+        <div id="visual-search" class="tab-content active">
+            <form id="visual-file-search-form">
+                <div class="form-group">
+                    <label for="visual-search-field">查询字段:</label>
+                    <select id="visual-search-field">
+                        <option value="Id">ID</option>
+                        <option value="Type">类型</option>
+                        <option value="Path">路径</option>
+                        <option value="ReferenceCount">引用计数</option>
+                        <option value="GroupId">组ID</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-operator">操作符:</label>
+                    <select id="visual-search-operator">
+                        <option value="equal">等于</option>
+                        <option value="like">包含</option>
+                        <option value="greater">大于</option>
+                        <option value="less">小于</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-value">值:</label>
+                    <input type="text" id="visual-search-value">
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
+                </div>
+                <div class="form-group">
+                    <label>已添加的条件:</label>
+                    <div id="visual-search-conditions"></div>
+                </div>
+                <button type="button" onclick="performVisualSearch()">查询</button>
+            </form>
+        </div>
+        <div id="json-search" class="tab-content" style="display: none;">
+            <form id="json-file-search-form">
+                <div class="form-group">
+                    <label for="complex-search-file-conditions">查询条件 (JSON格式):</label>
+                    <textarea id="complex-search-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+                </div>
+                <button type="submit">查询</button>
+            </form>
+        </div>
+        <button type="button" onclick="closeModal()">取消</button>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('json-file-search-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('complex-search-file-conditions').value;
+        if (!conditionsJson) {
+            showMessage('请输入查询条件', 'warning');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            searchFilesByConditions(conditions);
+        } catch (e) {
+            showMessage('JSON格式错误: ' + e.message, 'error');
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function searchFilesByConditions(conditions) {
+    const url = `${BASE_URL}/api/files/search/by-conditions`;
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal();
+            renderFileTable(data.data || []);
+        } else {
+            showMessage('文件查询失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件查询失败: ' + error.message, 'error');
+    });
+}
