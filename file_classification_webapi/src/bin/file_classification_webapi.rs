@@ -38,8 +38,7 @@ async fn main() -> std::io::Result<()> {
 		App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
-            // 静态文件服务
-            .service(fs::Files::new("/", &static_dir).index_file("index.html"))
+            // API路由 - 放在静态文件服务之前以确保优先匹配
             // 文件相关路由
             .service(handlers::files::api_list_files_by_filter)
             .service(handlers::files::api_get_file_by_id)
@@ -93,6 +92,8 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::group_relations::api_create_group_relation)
             .service(handlers::group_relations::api_delete_group_relation)
             .service(handlers::group_relations::api_delete_group_relations_by_conditions)
+            // 静态文件服务 - 放在最后，作为兜底
+            .service(fs::Files::new("/", &static_dir).index_file("index.html"))
 	})
 	.bind("127.0.0.1:8082")?
 	.run()

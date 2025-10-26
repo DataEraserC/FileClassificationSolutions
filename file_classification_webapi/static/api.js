@@ -655,7 +655,7 @@ function listFileGroupsByConditions() {
     
     const url = `${BASE_URL}/api/file-groups/search/by-conditions`;
     fetch(url, {
-        method: 'GET',
+        method: 'POST', // 修正：应该使用POST方法而不是GET
         headers: {
             'Content-Type': 'application/json'
         },
@@ -783,7 +783,7 @@ function listGroupTagsByConditions() {
     
     const url = `${BASE_URL}/api/group-tags/search/by-conditions`;
     fetch(url, {
-        method: 'GET',
+        method: 'POST', // 修正：应该使用POST方法而不是GET
         headers: {
             'Content-Type': 'application/json'
         },
@@ -911,7 +911,7 @@ function listGroupRelationsByConditions() {
     
     const url = `${BASE_URL}/api/group-relations/search/by-conditions`;
     fetch(url, {
-        method: 'GET',
+        method: 'POST', // 修正：应该使用POST方法而不是GET
         headers: {
             'Content-Type': 'application/json'
         },
