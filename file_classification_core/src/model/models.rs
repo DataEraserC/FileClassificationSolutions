@@ -4,7 +4,7 @@
 //! 定义了应用程序中使用的所有数据库实体模型、数据传输对象(DTO)、查询条件和更新对象，
 //! 包括文件、分组、标签以及它们之间关联关系的相关结构。
 
-use super::schema::{file_groups, files, group_tags, groups, tags};
+use super::schema::{file_groups, files, group_relations, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -705,6 +705,19 @@ pub enum FileGroupOrderBy {
 	GroupId(OrderDirection),
 }
 
+/// 文件-分组关联过滤条件结构体
+///
+/// 用于简单文件-分组关联查询的过滤条件，各字段都是可选的
+#[derive(Deserialize)]
+pub struct FileGroupFilter {
+	/// 文件ID过滤条件
+	pub file_id: Option<i32>,
+	/// 分组ID过滤条件
+	pub group_id: Option<i32>,
+	/// 关联类型过滤条件
+	pub relation_type: Option<i32>,
+}
+
 /** GroupTag Related
  分组-标签关联关系相关数据模型
 */
@@ -785,6 +798,17 @@ pub enum GroupTagOrderBy {
 	GroupId(OrderDirection),
 	/// 按标签ID排序
 	TagId(OrderDirection),
+}
+
+/// 分组-标签关联过滤条件结构体
+///
+/// 用于简单分组-标签关联查询的过滤条件，各字段都是可选的
+#[derive(Deserialize)]
+pub struct GroupTagFilter {
+	/// 分组ID过滤条件
+	pub group_id: Option<i32>,
+	/// 标签ID过滤条件
+	pub tag_id: Option<i32>,
 }
 
 /** GroupRelation Related
@@ -887,6 +911,19 @@ pub enum GroupRelationOrderBy {
 	SecondGroupId(OrderDirection),
 	/// 按关系类型排序
 	RelationType(OrderDirection),
+}
+
+/// 组关系过滤条件结构体
+///
+/// 用于简单组关系查询的过滤条件，各字段都是可选的
+#[derive(Deserialize)]
+pub struct GroupRelationFilter {
+	/// 第一个组ID过滤条件
+	pub first_group_id: Option<i32>,
+	/// 第二个组ID过滤条件
+	pub second_group_id: Option<i32>,
+	/// 关系类型过滤条件
+	pub relation_type: Option<i32>,
 }
 
 /// 树节点结构，用于表示组的层级结构

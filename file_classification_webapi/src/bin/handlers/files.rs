@@ -3,10 +3,10 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
 use file_classification_core::service::files::{
 	create_file, delete_files_by_conditions, select_file_by_group_id,
-	select_files_by_conditions_with_options,
+	select_files_by_conditions_with_options, select_files_by_filter_with_options,
 };
 use file_classification_core::{
-	model::models::{FileCondition, FileFilter, UpdateFileDTO},
+	model::models::{FileCondition, FileFilter, UpdateFileDTO, FileQueryOptions},
 	service::files::{
 		delete_file, select_files_by_conditions, select_files_by_filter, update_files_by_conditions,
 	}
@@ -40,6 +40,43 @@ async fn api_list_files_by_filter(
 			}))
 		}
 		// 错误处理
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 带选项地根据过滤条件搜索文件
+///
+/// 此接口允许客户端传递额外的查询选项（例如排序规则），以更灵活的方式检索数据。
+///
+/// 请求路径: GET /api/files/search/by-filter-with-options
+#[get("/api/files/search/by-filter-with-options")]
+async fn api_list_files_by_filter_with_options(
+	query: web::Query<(FileFilter, FileQueryOptions)>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 解析查询参数
+	let (filter, options) = query.into_inner();
+
+	// 获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 执行带选项的查询
+	match select_files_by_filter_with_options(&mut conn, filter, options) {
+		Ok(files) => {
+			let count = files.len();
+
+			// 返回成功响应
+			Ok(HttpResponse::Ok().json(ApiResponse {
+				success: true,
+				data: Some(files),
+				message: None,
+				count: Some(count),
+			}))
+		}
+
+		// 处理错误情况
 		Err(e) => Ok(
 			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
 		),

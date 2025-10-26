@@ -6,7 +6,7 @@
 use super::models::GroupRelation;
 use super::models::GroupRelationCondition;
 use crate::model::models::{
-	GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD,
+	GroupRelationFilter, GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD,
 };
 use crate::model::schema::group_relations;
 use crate::utils::database::AnyConnection;
@@ -164,6 +164,67 @@ fn build_group_relation_condition(
 			Box::new(diesel::dsl::not(expr))
 		}
 	}
+}
+
+/// 根据过滤条件查询组关系列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组关系过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_relations_by_filter(
+	conn: &mut AnyConnection,
+	search_input: GroupRelationFilter,
+	limit: i64,
+) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+	// 使用 into_boxed() 来对查询进行类型擦除
+	let mut base_query = group_relations::dsl::group_relations.limit(limit).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+	// 如果 search_input 中有各字段，则添加相应的过滤条件
+	if let Some(first_group_id) = search_input.first_group_id {
+		base_query = base_query.filter(group_relations::first_group_id.eq(first_group_id));
+	}
+	if let Some(second_group_id) = search_input.second_group_id {
+		base_query = base_query.filter(group_relations::second_group_id.eq(second_group_id));
+	}
+	if let Some(relation_type) = search_input.relation_type {
+		base_query = base_query.filter(group_relations::relation_type.eq(relation_type));
+	}
+
+	base_query.select(GroupRelation::as_select()).load::<GroupRelation>(conn)
+}
+
+/// 根据过滤条件和选项查询组关系列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组关系过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_relations_by_filter_with_options(
+	conn: &mut AnyConnection,
+	search_input: GroupRelationFilter,
+	options: GroupRelationQueryOptions,
+) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(first_group_id) = search_input.first_group_id {
+		conditions.push(GroupRelationCondition::FirstGroupId(first_group_id));
+	}
+	if let Some(second_group_id) = search_input.second_group_id {
+		conditions.push(GroupRelationCondition::SecondGroupId(second_group_id));
+	}
+	if let Some(relation_type) = search_input.relation_type {
+		conditions.push(GroupRelationCondition::RelationType(relation_type));
+	}
+	
+	select_group_relations_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据多个条件查询组关系记录，并可设置最大返回数量

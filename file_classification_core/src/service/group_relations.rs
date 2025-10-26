@@ -7,7 +7,7 @@
 use crate::internal::group_relations as group_relations_dao;
 use crate::internal::groups as groups_dao;
 use crate::model::models::{
-	GroupRelation, GroupRelationCondition, GroupRelationQueryOptions, RELATION_TYPE_PARENT_CHILD,
+	GroupRelation, GroupRelationCondition, GroupRelationFilter, GroupRelationQueryOptions, RELATION_TYPE_PARENT_CHILD,
 };
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
@@ -101,6 +101,40 @@ pub fn delete_group_relation(
 	});
 
 	result
+}
+
+/// 根据过滤条件查询组关系列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组关系过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_relations_by_filter(
+	conn: &mut AnyConnection,
+	search_input: GroupRelationFilter,
+	limit: i64,
+) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+	group_relations_dao::select_group_relations_by_filter(conn, search_input, limit)
+}
+
+/// 根据过滤条件和选项查询组关系列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组关系过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_relations_by_filter_with_options(
+	conn: &mut AnyConnection,
+	search_input: GroupRelationFilter,
+	options: GroupRelationQueryOptions,
+) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+	group_relations_dao::select_group_relations_by_filter_with_options(conn, search_input, options)
 }
 
 /// 根据条件查询组关系记录

@@ -7,7 +7,7 @@
 use crate::internal::file_group as file_group_dao;
 use crate::internal::files as files_dao;
 use crate::internal::groups as groups_dao;
-use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupQueryOptions};
+use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupFilter, FileGroupQueryOptions};
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
 use diesel::result::Error;
@@ -36,33 +36,35 @@ pub fn create_file_group(
 	conn: &mut AnyConnection,
 	file_group_dto: FileGroupDTO,
 ) -> Result<FileGroupDTO, AppError> {
-	// 业务规则验证
-	let group =
+	// 验证分组是否存在
+	let _group =
 		groups_dao::find_group_by_id(conn, file_group_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
-	let _file =
-		files_dao::find_file_by_id(conn, file_group_dto.file_id)?.ok_or(AppError::FileNotFound)?;
+	// 验证文件是否存在
+	let _file = files_dao::get_file_by_id(conn, file_group_dto.file_id).map_err(|_| AppError::FileNotFound)?;
 
-	if group.is_primary {
+	// 检查分组是否为主分组（主分组不能通过此方法关联）
+	if _group.is_primary {
 		return Err(AppError::CannotBindToPrimaryGroup);
 	}
 
-	// 使用事务处理引用计数和数据插入
-	let _result = conn.transaction::<_, AppError, _>(|conn| {
+	// 使用事务确保数据一致性
+	let result = conn.transaction::<FileGroupDTO, AppError, _>(|conn| {
+		// 业务逻辑：增加文件和分组的引用计数
 		files_dao::increase_file_reference_count_by_id(conn, file_group_dto.file_id)?;
 		groups_dao::increase_group_reference_count_by_id(conn, file_group_dto.group_id)?;
-		// 错误类型转换，将 diesel::result::Error 转换为 AppError
+
+		// 调用数据访问层执行插入操作
 		file_group_dao::insert_file_group(conn, &file_group_dto)?;
-		Ok(())
+		Ok(file_group_dto)
 	})?;
 
-	Ok(file_group_dto)
+	Ok(result)
 }
 
-/// 删除文件-分组关联关系
+/// 根据DTO信息删除文件-分组关联关系
 ///
-/// 该函数负责删除文件和分组之间的关联关系，并处理相关的引用计数。
-/// 业务规则：不允许解除文件与主分组的关联。
+/// 该函数负责删除指定的文件-分组关联关系，并处理相关的引用计数。
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -73,37 +75,73 @@ pub fn create_file_group(
 ///
 /// 操作流程:
 /// 1. 验证分组和文件是否存在
-/// 2. 检查分组是否为主分组（主分组不允许通过此方法解绑）
+/// 2. 检查分组是否为主分组（主分组不能通过此方法解绑）
 /// 3. 在事务中执行以下操作：
-///    - 减少分组的引用计数
 ///    - 减少文件的引用计数
+///    - 减少分组的引用计数
 ///    - 删除文件-分组关联记录
 pub fn delete_file_group_by_dto(
 	conn: &mut AnyConnection,
 	file_group_dto: FileGroupDTO,
 ) -> Result<usize, AppError> {
-	let group =
+	// 验证分组是否存在
+	let _group =
 		groups_dao::find_group_by_id(conn, file_group_dto.group_id)?.ok_or(AppError::GroupNotFound)?;
 
-	let _file =
-		files_dao::find_file_by_id(conn, file_group_dto.file_id)?.ok_or(AppError::FileNotFound)?;
+	// 验证文件是否存在
+	let _file = files_dao::get_file_by_id(conn, file_group_dto.file_id).map_err(|_| AppError::FileNotFound)?;
 
-	if group.is_primary {
+	// 检查分组是否为主分组（主分组不能通过此方法解绑）
+	if _group.is_primary {
 		return Err(AppError::CannotUnbindPrimaryGroup);
 	}
 
+	// 使用事务确保数据一致性
 	let result = conn.transaction::<_, AppError, _>(|conn| {
-		// 减少组和标签的引用计数
-		groups_dao::decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
+		// 业务逻辑：减少文件和分组的引用计数
 		files_dao::decrease_file_reference_count_by_id(conn, file_group_dto.file_id)?;
+		groups_dao::decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
 
 		// 调用数据访问层执行删除操作
 		let deleted_count = file_group_dao::delete_file_group_by_dto(conn, &file_group_dto)?;
-
 		Ok(deleted_count)
-	});
+	})?;
 
-	result
+	Ok(result)
+}
+
+/// 根据过滤条件查询文件-分组关联列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件-分组关联过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_file_groups_by_filter(
+	conn: &mut AnyConnection,
+	search_input: FileGroupFilter,
+	limit: i64,
+) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+	file_group_dao::select_file_groups_by_filter(conn, search_input, limit)
+}
+
+/// 根据过滤条件和选项查询文件-分组关联列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件-分组关联过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_file_groups_by_filter_with_options(
+	conn: &mut AnyConnection,
+	search_input: FileGroupFilter,
+	options: FileGroupQueryOptions,
+) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+	file_group_dao::select_file_groups_by_filter_with_options(conn, search_input, options)
 }
 
 /// 根据条件查询文件-分组关联记录
@@ -140,7 +178,7 @@ pub fn select_file_groups_by_conditions_with_options(
 	file_group_dao::select_file_groups_by_conditions_with_options(conn, conditions, options)
 }
 
-/// 根据条件批量删除文件-分组关联记录
+/// 根据条件批量删除文件-分组关联记录（级联删除相关资源）
 ///
 /// 注意：这个方法在core里不应该有直接用法
 /// 要暴露给用户使用的话应当改为先select再delete_by_id，防止引用计算问题

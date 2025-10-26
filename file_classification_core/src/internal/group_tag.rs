@@ -5,7 +5,7 @@
 
 use super::models::GroupTagCondition;
 use super::models::GroupTagDTO;
-use crate::model::models::{GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
+use crate::model::models::{GroupTagFilter, GroupTagOrderBy, GroupTagQueryOptions, OrderDirection};
 use crate::model::schema::group_tags;
 use crate::utils::database::AnyConnection;
 use diesel::dsl::not;
@@ -141,6 +141,61 @@ fn build_group_tag_condition(
 			Box::new(not(expr))
 		}
 	}
+}
+
+/// 根据过滤条件查询组-标签关联列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组-标签关联过滤条件
+/// - `limit`: 最大返回记录数
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_tags_by_filter(
+	conn: &mut AnyConnection,
+	search_input: GroupTagFilter,
+	limit: i64,
+) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+	// 使用 into_boxed() 来对查询进行类型擦除
+	let mut base_query = group_tags::dsl::group_tags.limit(limit).into_boxed::<<AnyConnection as Connection>::Backend>();
+
+	// 如果 search_input 中有各字段，则添加相应的过滤条件
+	if let Some(group_id) = search_input.group_id {
+		base_query = base_query.filter(group_tags::group_id.eq(group_id));
+	}
+	if let Some(tag_id) = search_input.tag_id {
+		base_query = base_query.filter(group_tags::tag_id.eq(tag_id));
+	}
+
+	base_query.select(GroupTagDTO::as_select()).load(conn)
+}
+
+/// 根据过滤条件和选项查询组-标签关联列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组-标签关联过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的记录列表或数据库错误
+pub fn select_group_tags_by_filter_with_options(
+	conn: &mut AnyConnection,
+	search_input: GroupTagFilter,
+	options: GroupTagQueryOptions,
+) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(group_id) = search_input.group_id {
+		conditions.push(GroupTagCondition::GroupId(group_id));
+	}
+	if let Some(tag_id) = search_input.tag_id {
+		conditions.push(GroupTagCondition::TagId(tag_id));
+	}
+	
+	select_group_tags_by_conditions_with_options(conn, conditions, options)
 }
 
 /// 根据多个条件查询组-标签关联记录，并可设置最大返回数量
