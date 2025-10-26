@@ -75,18 +75,21 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::tags::api_delete_tag_by_id)
             .service(handlers::tags::api_delete_tags_by_conditions)
             // 文件组关联路由
+            .service(handlers::file_groups::api_list_file_groups_by_filter)
             .service(handlers::file_groups::api_list_file_groups_by_conditions)
             .service(handlers::file_groups::api_list_file_groups_by_conditions_with_options)
             .service(handlers::file_groups::api_create_file_group)
             .service(handlers::file_groups::api_delete_file_group)
             .service(handlers::file_groups::api_delete_file_groups_by_conditions)
             // 组标签关联路由
+            .service(handlers::group_tags::api_list_group_tags_by_filter)
             .service(handlers::group_tags::api_list_group_tags_by_conditions)
             .service(handlers::group_tags::api_list_group_tags_by_conditions_with_options)
             .service(handlers::group_tags::api_create_group_tag)
             .service(handlers::group_tags::api_delete_group_tag)
             .service(handlers::group_tags::api_delete_group_tags_by_conditions)
             // 组关系路由
+            .service(handlers::group_relations::api_list_group_relations_by_filter)
             .service(handlers::group_relations::api_list_group_relations_by_conditions)
             .service(handlers::group_relations::api_list_group_relations_by_conditions_with_options)
             .service(handlers::group_relations::api_create_group_relation)

@@ -3,16 +3,48 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::FileGroupDTO;
 use file_classification_core::service::file_group::{
-	delete_file_groups_by_conditions, select_file_groups_by_conditions_with_options,
+	delete_file_groups_by_conditions, select_file_groups_by_conditions_with_options, select_file_groups_by_filter
 };
 use file_classification_core::{
-	model::models::FileGroupCondition,
+	model::models::{FileGroupCondition, FileGroupFilter},
 	service::file_group::{
 		create_file_group, delete_file_group_by_dto, select_file_groups_by_conditions,
 	}
 	,
 };
 use serde_json::json;
+
+/// 根据过滤条件获取文件组关联列表
+///
+/// 根据过滤条件获取文件组关联列表，默认最多返回100条记录
+///
+/// 请求路径: GET /api/file-groups/filter
+#[get("/api/file-groups/filter")]
+async fn api_list_file_groups_by_filter(
+	query: web::Query<FileGroupFilter>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 从连接池获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 调用服务层查询文件组关联列表
+	match select_file_groups_by_filter(&mut conn, query.into_inner(), 100) {
+		Ok(file_groups) => {
+			let count = file_groups.len();
+			// 构造成功响应
+			Ok(HttpResponse::Ok().json(ApiResponse {
+				success: true,
+				data: Some(file_groups),
+				message: None,
+				count: Some(count),
+			}))
+		}
+		// 错误处理
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
 
 /// 根据条件搜索文件组
 ///

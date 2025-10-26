@@ -709,7 +709,7 @@ function listFileGroupsByFilter() {
     if (fileId) params.append('file_id', fileId);
     if (groupId) params.append('group_id', groupId);
     
-    const url = `${BASE_URL}/api/file-groups/search/by-conditions?${params.toString()}`;
+    const url = `${BASE_URL}/api/file-groups/filter?${params.toString()}`;
     
     fetch(url)
         .then(response => response.json())
@@ -883,7 +883,7 @@ function listGroupTagsByFilter() {
     if (groupId) params.append('group_id', groupId);
     if (tagId) params.append('tag_id', tagId);
     
-    const url = `${BASE_URL}/api/group-tags/search/by-conditions?${params.toString()}`;
+    const url = `${BASE_URL}/api/group-tags/filter?${params.toString()}`;
     
     fetch(url)
         .then(response => response.json())
@@ -1059,7 +1059,7 @@ function listGroupRelationsByFilter() {
     if (secondId) params.append('second_group_id', secondId);
     if (relationType) params.append('relation_type', relationType);
     
-    const url = `${BASE_URL}/api/group-relations/search/by-conditions?${params.toString()}`;
+    const url = `${BASE_URL}/api/group-relations/filter?${params.toString()}`;
     
     fetch(url)
         .then(response => response.json())
@@ -1590,7 +1590,8 @@ function deleteFilesByConditions(conditions) {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json'
-        },
+        
+},
         body: JSON.stringify(conditions)
     })
     .then(response => response.json())
@@ -2227,27 +2228,34 @@ function openComplexSearchFileGroupDialog() {
 }
 
 function searchFileGroupsByConditions(conditions) {
-    const url = `${BASE_URL}/api/file-groups/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            renderFileGroupTable(data.data || []);
-        } else {
-            showMessage('文件组关联查询失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件组关联查询失败: ' + error.message, 'error');
+    // 构造查询选项
+    const options = {
+        limit: 100,
+        offset: 0
+    };
+    
+    // 构造查询参数
+    const params = new URLSearchParams({
+        conditions: JSON.stringify(conditions),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/file-groups/search/by-conditions-with-options?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal();
+                renderFileGroupTable(data.data || []);
+            } else {
+                showMessage('文件组关联查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件组关联查询失败: ' + error.message, 'error');
+        });
 }
 
 // 打开批量删除组标签对话框
@@ -2382,27 +2390,34 @@ function openComplexSearchGroupTagDialog() {
 }
 
 function searchGroupTagsByConditions(conditions) {
-    const url = `${BASE_URL}/api/group-tags/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            renderGroupTagTable(data.data || []);
-        } else {
-            showMessage('组标签关联查询失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组标签关联查询失败: ' + error.message, 'error');
+    // 构造查询选项
+    const options = {
+        limit: 100,
+        offset: 0
+    };
+    
+    // 构造查询参数
+    const params = new URLSearchParams({
+        conditions: JSON.stringify(conditions),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/group-tags/search/by-conditions-with-options?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal();
+                renderGroupTagTable(data.data || []);
+            } else {
+                showMessage('组标签关联查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组标签关联查询失败: ' + error.message, 'error');
+        });
 }
 
 // 打开批量删除组关系对话框
@@ -2538,25 +2553,32 @@ function openComplexSearchGroupRelationDialog() {
 }
 
 function searchGroupRelationsByConditions(conditions) {
-    const url = `${BASE_URL}/api/group-relations/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            renderGroupRelationTable(data.data || []);
-        } else {
-            showMessage('组关系查询失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组关系查询失败: ' + error.message, 'error');
+    // 构造查询选项
+    const options = {
+        limit: 100,
+        offset: 0
+    };
+    
+    // 构造查询参数
+    const params = new URLSearchParams({
+        conditions: JSON.stringify(conditions),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/group-relations/search/by-conditions-with-options?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal();
+                renderGroupRelationTable(data.data || []);
+            } else {
+                showMessage('组关系查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组关系查询失败: ' + error.message, 'error');
+        });
 }

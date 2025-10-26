@@ -3,15 +3,49 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::GroupRelation;
 use file_classification_core::service::group_relations::{
-	delete_group_relations_by_conditions, select_group_relations_by_conditions_with_options,
+	delete_group_relations_by_conditions, select_group_relations_by_conditions_with_options, select_group_relations_by_filter, select_group_relations_by_filter_with_options,
 };
 use file_classification_core::{
-	model::models::GroupRelationCondition,
+	model::models::{GroupRelationCondition, GroupRelationFilter},
 	service::group_relations::{
 		create_group_relation, delete_group_relation, select_group_relations_by_conditions,
 	},
 };
 use serde_json::json;
+
+/// 根据过滤条件搜索组关系
+///
+/// 接收查询参数，支持first_group_id、second_group_id和relation_type过滤条件
+///
+/// 请求路径: GET /api/group-relations/filter
+#[get("/api/group-relations/filter")]
+async fn api_list_group_relations_by_filter(
+	web::Query(filter): web::Query<GroupRelationFilter>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 从连接池获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 调用核心服务层的方法执行查询，并限制最大结果数为 100
+	match select_group_relations_by_filter(&mut conn, filter, 100) {
+		Ok(group_relations) => {
+			let count = group_relations.len();
+
+			// 构造成功的响应对象并返回
+			Ok(HttpResponse::Ok().json(ApiResponse {
+				success: true,
+				data: Some(group_relations),
+				message: None,
+				count: Some(count),
+			}))
+		}
+
+		// 如果出现错误，则构造失败的响应对象并返回
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
 
 /// 根据条件搜索组关系
 ///
