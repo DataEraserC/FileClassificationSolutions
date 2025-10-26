@@ -32,6 +32,28 @@
                 <!-- 文件管理 -->
                 <section id="files" class="tab-content">
                     <h2>文件管理</h2>
+                    <!-- 简单搜索表单 -->
+                    <div class="search-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="file-id">文件ID:</label>
+                                <input type="number" id="file-id" placeholder="请输入文件ID">
+                            </div>
+                            <div class="form-group">
+                                <label for="file-type">文件类型:</label>
+                                <input type="text" id="file-type" placeholder="请输入文件类型">
+                            </div>
+                            <div class="form-group">
+                                <label for="file-path">文件路径:</label>
+                                <input type="text" id="file-path" placeholder="请输入文件路径">
+                            </div>
+                            <div class="form-group">
+                                <button onclick="listFilesByFilter()">搜索</button>
+                                <button onclick="resetFileFilter()">重置</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="toolbar">
                         <button onclick="openCreateFileDialog()">新增文件</button>
                         <button onclick="openBatchDeleteFileDialog()">批量删除</button>
@@ -59,6 +81,24 @@
                 <!-- 组管理 -->
                 <section id="groups" class="tab-content" style="display: none;">
                     <h2>组管理</h2>
+                    <!-- 简单搜索表单 -->
+                    <div class="search-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="group-id">组ID:</label>
+                                <input type="number" id="group-id" placeholder="请输入组ID">
+                            </div>
+                            <div class="form-group">
+                                <label for="group-name">组名:</label>
+                                <input type="text" id="group-name" placeholder="请输入组名">
+                            </div>
+                            <div class="form-group">
+                                <button onclick="listGroupsByFilter()">搜索</button>
+                                <button onclick="resetGroupFilter()">重置</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="toolbar">
                         <button onclick="openCreateGroupDialog()">新增组</button>
                         <button onclick="openBatchDeleteGroupDialog()">批量删除</button>
@@ -86,6 +126,24 @@
                 <!-- 标签管理 -->
                 <section id="tags" class="tab-content" style="display: none;">
                     <h2>标签管理</h2>
+                    <!-- 简单搜索表单 -->
+                    <div class="search-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="tag-id">标签ID:</label>
+                                <input type="number" id="tag-id" placeholder="请输入标签ID">
+                            </div>
+                            <div class="form-group">
+                                <label for="tag-name">标签名:</label>
+                                <input type="text" id="tag-name" placeholder="请输入标签名">
+                            </div>
+                            <div class="form-group">
+                                <button onclick="listTagsByFilter()">搜索</button>
+                                <button onclick="resetTagFilter()">重置</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="toolbar">
                         <button onclick="openCreateTagDialog()">新增标签</button>
                         <button onclick="openBatchDeleteTagDialog()">批量删除</button>
@@ -229,16 +287,60 @@
                     
                     // 设置当前链接为活动状态
                     this.classList.add('active');
+                    
+                    // 页面刚打开时自动搜索一次
+                    autoSearch(target);
                 });
             });
             
-            // 默认显示第一个tab
+            // 默认显示第一个tab并自动搜索
             if (tabContents.length > 0) {
                 tabContents[0].style.display = 'block';
                 navLinks[0].classList.add('active');
                 openedTabs.add(navLinks[0].getAttribute('data-target'));
+                
+                // 自动执行首次搜索
+                autoSearch(navLinks[0].getAttribute('data-target'));
             }
         });
+        
+        // 根据当前tab自动执行搜索
+        function autoSearch(tabName) {
+            switch(tabName) {
+                case 'files':
+                    listFilesByFilter();
+                    break;
+                case 'groups':
+                    listGroupsByFilter();
+                    break;
+                case 'tags':
+                    listTagsByFilter();
+                    break;
+                // 其他tab可以根据需要添加自动搜索
+            }
+        }
+        
+        // 重置文件搜索表单
+        function resetFileFilter() {
+            document.getElementById('file-id').value = '';
+            document.getElementById('file-type').value = '';
+            document.getElementById('file-path').value = '';
+            listFilesByFilter(); // 重置后重新搜索
+        }
+        
+        // 重置组搜索表单
+        function resetGroupFilter() {
+            document.getElementById('group-id').value = '';
+            document.getElementById('group-name').value = '';
+            listGroupsByFilter(); // 重置后重新搜索
+        }
+        
+        // 重置标签搜索表单
+        function resetTagFilter() {
+            document.getElementById('tag-id').value = '';
+            document.getElementById('tag-name').value = '';
+            listTagsByFilter(); // 重置后重新搜索
+        }
     </script>
 </body>
 </html>

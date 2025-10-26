@@ -71,7 +71,7 @@ function renderFileTable(files) {
             <td>${file.reference_count}</td>
             <td>${file.group_id}</td>
             <td>
-                <button class="action-button edit" onclick="editFile(${file.id})">修改</button>
+                <button class="action-button edit" onclick="openEditFileDialog(${file.id})">修改</button>
                 <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
             </td>
         `;
@@ -143,6 +143,48 @@ function createFile() {
     });
 }
 
+function updateFile() {
+    const fileId = getInputValue('edit-file-id');
+    const fileType = getInputValue('edit-file-type');
+    const filePath = getInputValue('edit-file-path');
+    const groupId = getInputValue('edit-file-group-id');
+    
+    if (!fileId || !fileType || !filePath || !groupId) {
+        alert('请填写完整的文件信息');
+        return;
+    }
+    
+    const updateData = {
+        type_: fileType,
+        path: filePath,
+        group_id: parseInt(groupId)
+    };
+    
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('文件更新成功');
+            closeModal();
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            alert('文件更新失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('文件更新失败: ' + error.message);
+    });
+}
+
 function deleteFile(fileId) {
     if (!confirm('确定要删除该文件吗？')) {
         return;
@@ -166,11 +208,6 @@ function deleteFile(fileId) {
         console.error('Error:', error);
         alert('文件删除失败: ' + error.message);
     });
-}
-
-function editFile(fileId) {
-    // 这里可以实现编辑功能
-    alert('编辑功能待实现，文件ID: ' + fileId);
 }
 
 // ==================== 组管理相关函数 ====================
@@ -210,7 +247,7 @@ function renderGroupTable(groups) {
             <td>${group.reference_count}</td>
             <td>${group.parent_group_id}</td>
             <td>
-                <button class="action-button edit" onclick="editGroup(${group.id})">修改</button>
+                <button class="action-button edit" onclick="openEditGroupDialog(${group.id})">修改</button>
                 <button class="action-button delete" onclick="deleteGroup(${group.id})">删除</button>
             </td>
         `;
@@ -257,6 +294,46 @@ function createGroup() {
     });
 }
 
+function updateGroup() {
+    const groupId = getInputValue('edit-group-id');
+    const groupName = getInputValue('edit-group-name');
+    const groupDescription = getInputValue('edit-group-description');
+    
+    if (!groupId || !groupName) {
+        alert('请填写完整的组信息');
+        return;
+    }
+    
+    const updateData = {
+        name: groupName,
+        description: groupDescription || ''
+    };
+    
+    const url = `${BASE_URL}/api/groups/${groupId}`;
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('组更新成功');
+            closeModal();
+            // 重新加载组列表
+            listGroupsByFilter();
+        } else {
+            alert('组更新失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('组更新失败: ' + error.message);
+    });
+}
+
 function deleteGroup(groupId) {
     if (!confirm('确定要删除该组吗？')) {
         return;
@@ -280,11 +357,6 @@ function deleteGroup(groupId) {
         console.error('Error:', error);
         alert('组删除失败: ' + error.message);
     });
-}
-
-function editGroup(groupId) {
-    // 这里可以实现编辑功能
-    alert('编辑功能待实现，组ID: ' + groupId);
 }
 
 // ==================== 标签管理相关函数 ====================
@@ -323,7 +395,7 @@ function renderTagTable(tags) {
             <td>${tag.description}</td>
             <td>${tag.reference_count}</td>
             <td>
-                <button class="action-button edit" onclick="editTag(${tag.id})">修改</button>
+                <button class="action-button edit" onclick="openEditTagDialog(${tag.id})">修改</button>
                 <button class="action-button delete" onclick="deleteTag(${tag.id})">删除</button>
             </td>
         `;
@@ -370,6 +442,46 @@ function createTag() {
     });
 }
 
+function updateTag() {
+    const tagId = getInputValue('edit-tag-id');
+    const tagName = getInputValue('edit-tag-name');
+    const tagDescription = getInputValue('edit-tag-description');
+    
+    if (!tagId || !tagName) {
+        alert('请填写完整的标签信息');
+        return;
+    }
+    
+    const updateData = {
+        name: tagName,
+        description: tagDescription || ''
+    };
+    
+    const url = `${BASE_URL}/api/tags/${tagId}`;
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('标签更新成功');
+            closeModal();
+            // 重新加载标签列表
+            listTagsByFilter();
+        } else {
+            alert('标签更新失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('标签更新失败: ' + error.message);
+    });
+}
+
 function deleteTag(tagId) {
     if (!confirm('确定要删除该标签吗？')) {
         return;
@@ -393,11 +505,6 @@ function deleteTag(tagId) {
         console.error('Error:', error);
         alert('标签删除失败: ' + error.message);
     });
-}
-
-function editTag(tagId) {
-    // 这里可以实现编辑功能
-    alert('编辑功能待实现，标签ID: ' + tagId);
 }
 
 // ==================== 文件组关联相关函数 ====================
@@ -425,6 +532,7 @@ function openCreateFileDialog() {
                 <input type="number" id="create-file-group-id" required>
             </div>
             <button type="submit">创建</button>
+            <button type="button" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -435,6 +543,57 @@ function openCreateFileDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 打开编辑文件对话框
+function openEditFileDialog(fileId) {
+    // 首先获取文件信息
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const file = data.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>编辑文件</h2>
+                    <form id="edit-file-form">
+                        <div class="form-group">
+                            <label for="edit-file-id">文件ID:</label>
+                            <input type="number" id="edit-file-id" value="${file.id}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-type">文件类型:</label>
+                            <input type="text" id="edit-file-type" value="${file.type_}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-path">文件路径:</label>
+                            <input type="text" id="edit-file-path" value="${file.path}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-group-id">组ID:</label>
+                            <input type="number" id="edit-file-group-id" value="${file.group_id}" required>
+                        </div>
+                        <button type="submit">更新</button>
+                        <button type="button" onclick="closeModal()">取消</button>
+                    </form>
+                `;
+                
+                // 绑定表单提交事件
+                document.getElementById('edit-file-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    updateFile();
+                });
+                
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                alert('获取文件信息失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('获取文件信息失败: ' + error.message);
+        });
 }
 
 // 打开创建组对话框
@@ -452,6 +611,7 @@ function openCreateGroupDialog() {
                 <input type="text" id="create-group-description">
             </div>
             <button type="submit">创建</button>
+            <button type="button" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -462,6 +622,53 @@ function openCreateGroupDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 打开编辑组对话框
+function openEditGroupDialog(groupId) {
+    // 首先获取组信息
+    const url = `${BASE_URL}/api/groups/${groupId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const group = data.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>编辑组</h2>
+                    <form id="edit-group-form">
+                        <div class="form-group">
+                            <label for="edit-group-id">组ID:</label>
+                            <input type="number" id="edit-group-id" value="${group.id}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-group-name">组名:</label>
+                            <input type="text" id="edit-group-name" value="${group.name}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-group-description">描述:</label>
+                            <input type="text" id="edit-group-description" value="${group.description || ''}">
+                        </div>
+                        <button type="submit">更新</button>
+                        <button type="button" onclick="closeModal()">取消</button>
+                    </form>
+                `;
+                
+                // 绑定表单提交事件
+                document.getElementById('edit-group-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    updateGroup();
+                });
+                
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                alert('获取组信息失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('获取组信息失败: ' + error.message);
+        });
 }
 
 // 打开创建标签对话框
@@ -479,6 +686,7 @@ function openCreateTagDialog() {
                 <input type="text" id="create-tag-description">
             </div>
             <button type="submit">创建</button>
+            <button type="button" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -489,6 +697,53 @@ function openCreateTagDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 打开编辑标签对话框
+function openEditTagDialog(tagId) {
+    // 首先获取标签信息
+    const url = `${BASE_URL}/api/tags/${tagId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const tag = data.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>编辑标签</h2>
+                    <form id="edit-tag-form">
+                        <div class="form-group">
+                            <label for="edit-tag-id">标签ID:</label>
+                            <input type="number" id="edit-tag-id" value="${tag.id}" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-tag-name">标签名:</label>
+                            <input type="text" id="edit-tag-name" value="${tag.name}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-tag-description">描述:</label>
+                            <input type="text" id="edit-tag-description" value="${tag.description || ''}">
+                        </div>
+                        <button type="submit">更新</button>
+                        <button type="button" onclick="closeModal()">取消</button>
+                    </form>
+                `;
+                
+                // 绑定表单提交事件
+                document.getElementById('edit-tag-form').addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    updateTag();
+                });
+                
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                alert('获取标签信息失败: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('获取标签信息失败: ' + error.message);
+        });
 }
 
 // 打开批量删除文件对话框
@@ -502,6 +757,7 @@ function openBatchDeleteFileDialog() {
                 <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
             </div>
             <button type="submit">删除</button>
+            <button type="button" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -556,17 +812,59 @@ function openComplexSearchFileDialog() {
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = `
         <h2>复杂查询文件</h2>
-        <form id="complex-search-file-form">
-            <div class="form-group">
-                <label for="complex-search-file-conditions">查询条件 (JSON格式):</label>
-                <textarea id="complex-search-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
-            </div>
-            <button type="submit">查询</button>
-        </form>
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchComplexSearchTab('visual')">可视化查询</button>
+            <button class="tab-button" onclick="switchComplexSearchTab('json')">JSON查询</button>
+        </div>
+        <div id="visual-search" class="tab-content active">
+            <form id="visual-file-search-form">
+                <div class="form-group">
+                    <label for="visual-search-field">查询字段:</label>
+                    <select id="visual-search-field">
+                        <option value="Id">ID</option>
+                        <option value="Type">类型</option>
+                        <option value="Path">路径</option>
+                        <option value="ReferenceCount">引用计数</option>
+                        <option value="GroupId">组ID</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-operator">操作符:</label>
+                    <select id="visual-search-operator">
+                        <option value="equal">等于</option>
+                        <option value="like">包含</option>
+                        <option value="greater">大于</option>
+                        <option value="less">小于</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-value">值:</label>
+                    <input type="text" id="visual-search-value">
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
+                </div>
+                <div class="form-group">
+                    <label>已添加的条件:</label>
+                    <div id="visual-search-conditions"></div>
+                </div>
+                <button type="button" onclick="performVisualSearch()">查询</button>
+            </form>
+        </div>
+        <div id="json-search" class="tab-content" style="display: none;">
+            <form id="json-file-search-form">
+                <div class="form-group">
+                    <label for="complex-search-file-conditions">查询条件 (JSON格式):</label>
+                    <textarea id="complex-search-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+                </div>
+                <button type="submit">查询</button>
+            </form>
+        </div>
+        <button type="button" onclick="closeModal()">取消</button>
     `;
     
     // 绑定表单提交事件
-    document.getElementById('complex-search-file-form').addEventListener('submit', function(e) {
+    document.getElementById('json-file-search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const conditionsJson = document.getElementById('complex-search-file-conditions').value;
         if (!conditionsJson) {
@@ -583,6 +881,70 @@ function openComplexSearchFileDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 切换复杂查询标签
+function switchComplexSearchTab(tab) {
+    // 更新标签按钮状态
+    document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // 显示对应的标签内容
+    if (tab === 'visual') {
+        document.getElementById('visual-search').style.display = 'block';
+        document.getElementById('json-search').style.display = 'none';
+    } else {
+        document.getElementById('visual-search').style.display = 'none';
+        document.getElementById('json-search').style.display = 'block';
+    }
+}
+
+// 添加可视化查询条件
+function addVisualSearchCondition() {
+    const field = document.getElementById('visual-search-field').value;
+    const operator = document.getElementById('visual-search-operator').value;
+    const value = document.getElementById('visual-search-value').value;
+    
+    if (!value) {
+        alert('请输入值');
+        return;
+    }
+    
+    const conditionsContainer = document.getElementById('visual-search-conditions');
+    const conditionElement = document.createElement('div');
+    conditionElement.className = 'condition-item';
+    conditionElement.innerHTML = `
+        <span>${field} ${operator} ${value}</span>
+        <button type="button" onclick="this.parentElement.remove()">删除</button>
+        <input type="hidden" class="condition-data" value='{"${field}": "${value}"}'>
+    `;
+    conditionsContainer.appendChild(conditionElement);
+    
+    // 清空输入
+    document.getElementById('visual-search-value').value = '';
+}
+
+// 执行可视化查询
+function performVisualSearch() {
+    const conditionElements = document.querySelectorAll('.condition-data');
+    const conditions = [];
+    
+    conditionElements.forEach(element => {
+        try {
+            const condition = JSON.parse(element.value);
+            conditions.push(condition);
+        } catch (e) {
+            console.error('Error parsing condition:', e);
+        }
+    });
+    
+    if (conditions.length > 0) {
+        searchFilesByConditions(conditions);
+    } else {
+        alert('请添加至少一个查询条件');
+    }
 }
 
 function searchFilesByConditions(conditions) {
@@ -620,6 +982,7 @@ function openBatchDeleteGroupDialog() {
                 <textarea id="batch-delete-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
             </div>
             <button type="submit">删除</button>
+            <button type="button" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -674,17 +1037,59 @@ function openComplexSearchGroupDialog() {
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = `
         <h2>复杂查询组</h2>
-        <form id="complex-search-group-form">
-            <div class="form-group">
-                <label for="complex-search-group-conditions">查询条件 (JSON格式):</label>
-                <textarea id="complex-search-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
-            </div>
-            <button type="submit">查询</button>
-        </form>
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchComplexSearchTab('visual')">可视化查询</button>
+            <button class="tab-button" onclick="switchComplexSearchTab('json')">JSON查询</button>
+        </div>
+        <div id="visual-search" class="tab-content active">
+            <form id="visual-group-search-form">
+                <div class="form-group">
+                    <label for="visual-search-field">查询字段:</label>
+                    <select id="visual-search-field">
+                        <option value="Id">ID</option>
+                        <option value="Name">名称</option>
+                        <option value="Description">描述</option>
+                        <option value="ReferenceCount">引用计数</option>
+                        <option value="ParentGroupId">父组ID</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-operator">操作符:</label>
+                    <select id="visual-search-operator">
+                        <option value="equal">等于</option>
+                        <option value="like">包含</option>
+                        <option value="greater">大于</option>
+                        <option value="less">小于</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-value">值:</label>
+                    <input type="text" id="visual-search-value">
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
+                </div>
+                <div class="form-group">
+                    <label>已添加的条件:</label>
+                    <div id="visual-search-conditions"></div>
+                </div>
+                <button type="button" onclick="performVisualSearch()">查询</button>
+            </form>
+        </div>
+        <div id="json-search" class="tab-content" style="display: none;">
+            <form id="json-group-search-form">
+                <div class="form-group">
+                    <label for="complex-search-group-conditions">查询条件 (JSON格式):</label>
+                    <textarea id="complex-search-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+                </div>
+                <button type="submit">查询</button>
+            </form>
+        </div>
+        <button type="button" onclick="closeModal()">取消</button>
     `;
     
     // 绑定表单提交事件
-    document.getElementById('complex-search-group-form').addEventListener('submit', function(e) {
+    document.getElementById('json-group-search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const conditionsJson = document.getElementById('complex-search-group-conditions').value;
         if (!conditionsJson) {
@@ -738,6 +1143,7 @@ function openBatchDeleteTagDialog() {
                 <textarea id="batch-delete-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
             </div>
             <button type="submit">删除</button>
+            <button type="button" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -792,17 +1198,58 @@ function openComplexSearchTagDialog() {
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = `
         <h2>复杂查询标签</h2>
-        <form id="complex-search-tag-form">
-            <div class="form-group">
-                <label for="complex-search-tag-conditions">查询条件 (JSON格式):</label>
-                <textarea id="complex-search-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
-            </div>
-            <button type="submit">查询</button>
-        </form>
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchComplexSearchTab('visual')">可视化查询</button>
+            <button class="tab-button" onclick="switchComplexSearchTab('json')">JSON查询</button>
+        </div>
+        <div id="visual-search" class="tab-content active">
+            <form id="visual-tag-search-form">
+                <div class="form-group">
+                    <label for="visual-search-field">查询字段:</label>
+                    <select id="visual-search-field">
+                        <option value="Id">ID</option>
+                        <option value="Name">名称</option>
+                        <option value="Description">描述</option>
+                        <option value="ReferenceCount">引用计数</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-operator">操作符:</label>
+                    <select id="visual-search-operator">
+                        <option value="equal">等于</option>
+                        <option value="like">包含</option>
+                        <option value="greater">大于</option>
+                        <option value="less">小于</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="visual-search-value">值:</label>
+                    <input type="text" id="visual-search-value">
+                </div>
+                <div class="form-group">
+                    <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
+                </div>
+                <div class="form-group">
+                    <label>已添加的条件:</label>
+                    <div id="visual-search-conditions"></div>
+                </div>
+                <button type="button" onclick="performVisualSearch()">查询</button>
+            </form>
+        </div>
+        <div id="json-search" class="tab-content" style="display: none;">
+            <form id="json-tag-search-form">
+                <div class="form-group">
+                    <label for="complex-search-tag-conditions">查询条件 (JSON格式):</label>
+                    <textarea id="complex-search-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+                </div>
+                <button type="submit">查询</button>
+            </form>
+        </div>
+        <button type="button" onclick="closeModal()">取消</button>
     `;
     
     // 绑定表单提交事件
-    document.getElementById('complex-search-tag-form').addEventListener('submit', function(e) {
+    document.getElementById('json-tag-search-form').addEventListener('submit', function(e) {
         e.preventDefault();
         const conditionsJson = document.getElementById('complex-search-tag-conditions').value;
         if (!conditionsJson) {

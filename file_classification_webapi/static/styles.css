@@ -87,6 +87,67 @@ header h1 {
     color: #333;
 }
 
+/* 搜索表单样式 */
+.search-form {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.search-form .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -0.5rem;
+}
+
+.search-form .form-group {
+    flex: 1;
+    min-width: 150px;
+    padding: 0 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.search-form .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    color: #555;
+}
+
+.search-form .form-group input,
+.search-form .form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+.search-form .form-group input:focus,
+.search-form .form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+.search-form .form-group button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin: 0.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+}
+
+.search-form .form-group button:hover {
+    background-color: #0056b3;
+}
+
 /* 工具栏样式 */
 .toolbar {
     margin-bottom: 1rem;
@@ -228,6 +289,7 @@ table tr:hover {
     border-radius: 4px;
     cursor: pointer;
     font-size: 1rem;
+    margin-right: 0.5rem;
 }
 
 .form-group button:hover {
@@ -259,6 +321,14 @@ table tr:hover {
         border-bottom: 1px solid #495057;
         border-left: none;
         text-align: center;
+    }
+    
+    .search-form .form-row {
+        flex-direction: column;
+    }
+    
+    .search-form .form-group {
+        min-width: 100%;
     }
     
     .form-row {
