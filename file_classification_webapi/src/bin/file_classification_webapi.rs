@@ -2,8 +2,10 @@ use actix_web::{middleware::Logger, web, App, HttpServer};
 mod handlers;
 mod utils;
 
+use actix_files as fs;
 use file_classification_core::utils::database::establish_connection;
 use file_classification_core::utils::database::run_pending_migrations;
+use std::path::Path;
 use utils::database::establish_connection_pool;
 
 #[actix_web::main]
@@ -21,11 +23,23 @@ async fn main() -> std::io::Result<()> {
 
 	let pool = establish_connection_pool();
 
+	// 获取可执行文件的目录
+	let current_dir = std::env::current_dir()?;
+	let static_dir = current_dir.join("static");
+	
+	// 检查 static 目录是否存在
+	if !Path::new(&static_dir).exists() {
+		eprintln!("静态文件目录不存在: {:?}", static_dir);
+		return Err(std::io::Error::new(std::io::ErrorKind::NotFound, "静态文件目录不存在"));
+	}
+
 	// 在HttpServer::new中添加新的路由
 	HttpServer::new(move || {
 		App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
+            // 静态文件服务
+            .service(fs::Files::new("/", &static_dir).index_file("index.html"))
             // 文件相关路由
             .service(handlers::files::api_list_files_by_filter)
             .service(handlers::files::api_get_file_by_id)
@@ -49,6 +63,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::groups::api_update_group_by_id)
             .service(handlers::groups::api_delete_group_by_id)
             .service(handlers::groups::api_delete_groups_by_conditions)
+            .service(handlers::groups::api_get_group_tree)
             // 标签相关路由
             .service(handlers::tags::api_list_tags_by_filter)
             .service(handlers::tags::api_get_tag_by_id)
