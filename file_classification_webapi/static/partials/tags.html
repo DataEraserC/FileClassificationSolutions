@@ -1,0 +1,44 @@
+<!-- 标签管理 -->
+<section id="tags" class="tab-content">
+    <h2>标签管理</h2>
+    <!-- 简单搜索表单 -->
+    <div class="search-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="tag-id">标签ID:</label>
+                <input type="number" id="tag-id" placeholder="请输入标签ID">
+            </div>
+            <div class="form-group">
+                <label for="tag-name">标签名:</label>
+                <input type="text" id="tag-name" placeholder="请输入标签名">
+            </div>
+            <div class="form-group">
+                <button onclick="listTagsByFilter()">搜索</button>
+                <button onclick="resetTagFilter()">重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toolbar">
+        <button onclick="openCreateTagDialog()">新增标签</button>
+        <button onclick="deleteSelectedTags()">批量删除</button>
+        <button onclick="openComplexSearchTagDialog()">复杂查询</button>
+    </div>
+    <div class="table-container">
+        <table id="tags-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="tags-select-all" onclick="toggleAllTags(this)"></th>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>描述</th>
+                    <th>引用计数</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</section>

@@ -1,0 +1,42 @@
+<!-- 组标签关联 -->
+<section id="group-tags" class="tab-content">
+    <h2>组标签关联</h2>
+    <!-- 简单搜索表单 -->
+    <div class="search-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="group-tag-group-id">组ID:</label>
+                <input type="number" id="group-tag-group-id" placeholder="请输入组ID">
+            </div>
+            <div class="form-group">
+                <label for="group-tag-tag-id">标签ID:</label>
+                <input type="number" id="group-tag-tag-id" placeholder="请输入标签ID">
+            </div>
+            <div class="form-group">
+                <button onclick="listGroupTagsByFilter()">搜索</button>
+                <button onclick="resetGroupTagFilter()">重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toolbar">
+        <button onclick="openCreateGroupTagDialog()">新增关联</button>
+        <button onclick="deleteSelectedGroupTags()">批量删除</button>
+        <button onclick="openComplexSearchGroupTagDialog()">复杂查询</button>
+    </div>
+    <div class="table-container">
+        <table id="group-tags-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="group-tags-select-all" onclick="toggleAllGroupTags(this)"></th>
+                    <th>组ID</th>
+                    <th>标签ID</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</section>

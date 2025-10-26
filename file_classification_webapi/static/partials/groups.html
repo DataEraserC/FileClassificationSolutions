@@ -1,0 +1,45 @@
+<!-- 组管理 -->
+<section id="groups" class="tab-content">
+    <h2>组管理</h2>
+    <!-- 简单搜索表单 -->
+    <div class="search-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="group-id">组ID:</label>
+                <input type="number" id="group-id" placeholder="请输入组ID">
+            </div>
+            <div class="form-group">
+                <label for="group-name">组名:</label>
+                <input type="text" id="group-name" placeholder="请输入组名">
+            </div>
+            <div class="form-group">
+                <button onclick="listGroupsByFilter()">搜索</button>
+                <button onclick="resetGroupFilter()">重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toolbar">
+        <button onclick="openCreateGroupDialog()">新增组</button>
+        <button onclick="deleteSelectedGroups()">批量删除</button>
+        <button onclick="openComplexSearchGroupDialog()">复杂查询</button>
+    </div>
+    <div class="table-container">
+        <table id="groups-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="groups-select-all" onclick="toggleAllGroups(this)"></th>
+                    <th>ID</th>
+                    <th>名称</th>
+                    <th>描述</th>
+                    <th>引用计数</th>
+                    <th>父组ID</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</section>

@@ -1,0 +1,47 @@
+<!-- 组关系管理 -->
+<section id="group-relations" class="tab-content">
+    <h2>组关系管理</h2>
+    <!-- 简单搜索表单 -->
+    <div class="search-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="group-relation-first-id">第一组ID:</label>
+                <input type="number" id="group-relation-first-id" placeholder="请输入第一组ID">
+            </div>
+            <div class="form-group">
+                <label for="group-relation-second-id">第二组ID:</label>
+                <input type="number" id="group-relation-second-id" placeholder="请输入第二组ID">
+            </div>
+            <div class="form-group">
+                <label for="group-relation-type">关系类型:</label>
+                <input type="text" id="group-relation-type" placeholder="请输入关系类型">
+            </div>
+            <div class="form-group">
+                <button onclick="listGroupRelationsByFilter()">搜索</button>
+                <button onclick="resetGroupRelationFilter()">重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toolbar">
+        <button onclick="openCreateGroupRelationDialog()">新增关系</button>
+        <button onclick="deleteSelectedGroupRelations()">批量删除</button>
+        <button onclick="openComplexSearchGroupRelationDialog()">复杂查询</button>
+    </div>
+    <div class="table-container">
+        <table id="group-relations-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="group-relations-select-all" onclick="toggleAllGroupRelations(this)"></th>
+                    <th>第一组ID</th>
+                    <th>第二组ID</th>
+                    <th>关系类型</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</section>

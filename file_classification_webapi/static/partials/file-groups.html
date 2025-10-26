@@ -1,0 +1,42 @@
+<!-- 文件组关联 -->
+<section id="file-groups" class="tab-content">
+    <h2>文件组关联</h2>
+    <!-- 简单搜索表单 -->
+    <div class="search-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="file-group-file-id">文件ID:</label>
+                <input type="number" id="file-group-file-id" placeholder="请输入文件ID">
+            </div>
+            <div class="form-group">
+                <label for="file-group-group-id">组ID:</label>
+                <input type="number" id="file-group-group-id" placeholder="请输入组ID">
+            </div>
+            <div class="form-group">
+                <button onclick="listFileGroupsByFilter()">搜索</button>
+                <button onclick="resetFileGroupFilter()">重置</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="toolbar">
+        <button onclick="openCreateFileGroupDialog()">新增关联</button>
+        <button onclick="deleteSelectedFileGroups()">批量删除</button>
+        <button onclick="openComplexSearchFileGroupDialog()">复杂查询</button>
+    </div>
+    <div class="table-container">
+        <table id="file-groups-table">
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="file-groups-select-all" onclick="toggleAllFileGroups(this)"></th>
+                    <th>文件ID</th>
+                    <th>组ID</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- 数据将通过JavaScript动态填充 -->
+            </tbody>
+        </table>
+    </div>
+</section>

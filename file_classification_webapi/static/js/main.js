@@ -2,6 +2,11 @@
 
 // Tab切换功能
 document.addEventListener('DOMContentLoaded', function() {
+    // 延迟初始化，确保部分页面已加载完成
+    setTimeout(initTabs, 100);
+});
+
+function initTabs() {
     const navLinks = document.querySelectorAll('.nav-link');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -28,7 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // 显示当前tab内容
-            document.getElementById(target).style.display = 'block';
+            const targetElement = document.getElementById(target);
+            if (targetElement) {
+                targetElement.style.display = 'block';
+            }
             
             // 设置当前链接为活动状态
             this.classList.add('active');
@@ -37,38 +45,40 @@ document.addEventListener('DOMContentLoaded', function() {
             autoSearch(target);
         });
     });
-    
-    // 默认显示第一个tab并自动搜索
-    if (tabContents.length > 0) {
-        tabContents[0].style.display = 'block';
-        navLinks[0].classList.add('active');
-        openedTabs.add(navLinks[0].getAttribute('data-target'));
-        
-        // 自动执行首次搜索
-        autoSearch(navLinks[0].getAttribute('data-target'));
-    }
-});
+}
 
 // 根据当前tab自动执行搜索
 function autoSearch(tabName) {
     switch(tabName) {
         case 'files':
-            listFilesByFilter();
+            if (typeof listFilesByFilter === 'function') {
+                listFilesByFilter();
+            }
             break;
         case 'groups':
-            listGroupsByFilter();
+            if (typeof listGroupsByFilter === 'function') {
+                listGroupsByFilter();
+            }
             break;
         case 'tags':
-            listTagsByFilter();
+            if (typeof listTagsByFilter === 'function') {
+                listTagsByFilter();
+            }
             break;
         case 'file-groups':
-            listFileGroupsByFilter();
+            if (typeof listFileGroupsByFilter === 'function') {
+                listFileGroupsByFilter();
+            }
             break;
         case 'group-tags':
-            listGroupTagsByFilter();
+            if (typeof listGroupTagsByFilter === 'function') {
+                listGroupTagsByFilter();
+            }
             break;
         case 'group-relations':
-            listGroupRelationsByFilter();
+            if (typeof listGroupRelationsByFilter === 'function') {
+                listGroupRelationsByFilter();
+            }
             break;
     }
 }
