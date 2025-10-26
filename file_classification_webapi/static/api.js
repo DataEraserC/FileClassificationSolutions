@@ -27,17 +27,22 @@ function setTextValue(id, value) {
     document.getElementById(id).value = value;
 }
 
+// 关闭模态框
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+}
+
 // ==================== 文件管理相关函数 ====================
 
 function listFilesByFilter() {
     const fileId = getInputValue('file-id');
-    const fileName = getInputValue('file-name');
+    const fileType = getInputValue('file-type');
     const filePath = getInputValue('file-path');
     
     // 构造查询参数
     let params = new URLSearchParams();
     if (fileId) params.append('id', fileId);
-    if (fileName) params.append('name', fileName);
+    if (fileType) params.append('type_', fileType);
     if (filePath) params.append('path', filePath);
     
     const url = `${BASE_URL}/api/files/filter?${params.toString()}`;
@@ -45,17 +50,39 @@ function listFilesByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            displayResult('files-result', data);
+            renderFileTable(data.data || []);
         })
         .catch(error => {
-            displayResult('files-result', { error: error.message });
+            console.error('Error:', error);
+            alert('查询文件失败: ' + error.message);
         });
+}
+
+function renderFileTable(files) {
+    const tableBody = document.querySelector('#files-table tbody');
+    tableBody.innerHTML = '';
+    
+    files.forEach(file => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${file.id}</td>
+            <td>${file.type_}</td>
+            <td>${file.path}</td>
+            <td>${file.reference_count}</td>
+            <td>${file.group_id}</td>
+            <td>
+                <button class="action-button edit" onclick="editFile(${file.id})">修改</button>
+                <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
 }
 
 function getFileById() {
     const fileId = getInputValue('file-id');
     if (!fileId) {
-        displayResult('files-result', { error: '请输入文件ID' });
+        alert('请输入文件ID');
         return;
     }
     
@@ -63,75 +90,32 @@ function getFileById() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            displayResult('files-result', data);
+            if (data.success) {
+                renderFileTable([data.data]);
+            } else {
+                alert('获取文件失败: ' + data.message);
+            }
         })
         .catch(error => {
-            displayResult('files-result', { error: error.message });
-        });
-}
-
-function listFilesByConditions() {
-    const conditionsJson = getTextValue('file-conditions');
-    if (!conditionsJson) {
-        displayResult('files-result', { error: '请输入查询条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('files-result', { error: '查询条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/files/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('files-result', data);
-    })
-    .catch(error => {
-        displayResult('files-result', { error: error.message });
-    });
-}
-
-function listFilesByGroupId() {
-    const groupId = getInputValue('file-group-id');
-    if (!groupId) {
-        displayResult('files-result', { error: '请输入组ID' });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/files/group/${groupId}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('files-result', data);
-        })
-        .catch(error => {
-            displayResult('files-result', { error: error.message });
+            console.error('Error:', error);
+            alert('获取文件失败: ' + error.message);
         });
 }
 
 function createFile() {
-    const fileName = getInputValue('file-name');
-    const filePath = getInputValue('file-path');
+    const fileType = getInputValue('create-file-type');
+    const filePath = getInputValue('create-file-path');
+    const groupId = getInputValue('create-file-group-id');
     
-    if (!fileName || !filePath) {
-        displayResult('files-result', { error: '请输入文件名和文件路径' });
+    if (!fileType || !filePath || !groupId) {
+        alert('请填写完整的文件信息');
         return;
     }
     
     const fileData = {
-        name: fileName,
-        path: filePath
+        type_: fileType,
+        path: filePath,
+        group_id: parseInt(groupId)
     };
     
     const url = `${BASE_URL}/api/files`;
@@ -144,78 +128,49 @@ function createFile() {
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('files-result', data);
+        if (data.success) {
+            alert('文件创建成功');
+            closeModal();
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            alert('文件创建失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('files-result', { error: error.message });
+        console.error('Error:', error);
+        alert('文件创建失败: ' + error.message);
     });
 }
 
-function updateFilesByConditions() {
-    const conditionsJson = getTextValue('file-conditions');
-    const updateDataJson = getTextValue('file-update-data');
-    
-    if (!conditionsJson || !updateDataJson) {
-        displayResult('files-result', { error: '请输入查询条件和更新数据' });
+function deleteFile(fileId) {
+    if (!confirm('确定要删除该文件吗？')) {
         return;
     }
     
-    let conditions, updateData;
-    try {
-        conditions = JSON.parse(conditionsJson);
-        updateData = JSON.parse(updateDataJson);
-    } catch (e) {
-        displayResult('files-result', { error: 'JSON格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/files/update/by-conditions`;
+    const url = `${BASE_URL}/api/files/${fileId}`;
     fetch(url, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify([conditions, updateData])
+        method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('files-result', data);
+        if (data.success) {
+            alert('文件删除成功');
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            alert('文件删除失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('files-result', { error: error.message });
+        console.error('Error:', error);
+        alert('文件删除失败: ' + error.message);
     });
 }
 
-function deleteFilesByConditions() {
-    const conditionsJson = getTextValue('file-conditions');
-    if (!conditionsJson) {
-        displayResult('files-result', { error: '请输入删除条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('files-result', { error: '删除条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/files/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('files-result', data);
-    })
-    .catch(error => {
-        displayResult('files-result', { error: error.message });
-    });
+function editFile(fileId) {
+    // 这里可以实现编辑功能
+    alert('编辑功能待实现，文件ID: ' + fileId);
 }
 
 // ==================== 组管理相关函数 ====================
@@ -223,118 +178,52 @@ function deleteFilesByConditions() {
 function listGroupsByFilter() {
     const groupId = getInputValue('group-id');
     const groupName = getInputValue('group-name');
-    const groupDescription = getInputValue('group-description');
     
     // 构造查询参数
     let params = new URLSearchParams();
     if (groupId) params.append('id', groupId);
     if (groupName) params.append('name', groupName);
-    if (groupDescription) params.append('description', groupDescription);
     
     const url = `${BASE_URL}/api/groups/filter?${params.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            displayResult('groups-result', data);
+            renderGroupTable(data.data || []);
         })
         .catch(error => {
-            displayResult('groups-result', { error: error.message });
+            console.error('Error:', error);
+            alert('查询组失败: ' + error.message);
         });
 }
 
-function getGroupById() {
-    const groupId = getInputValue('group-id');
-    if (!groupId) {
-        displayResult('groups-result', { error: '请输入组ID' });
-        return;
-    }
+function renderGroupTable(groups) {
+    const tableBody = document.querySelector('#groups-table tbody');
+    tableBody.innerHTML = '';
     
-    const url = `${BASE_URL}/api/groups/${groupId}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('groups-result', data);
-        })
-        .catch(error => {
-            displayResult('groups-result', { error: error.message });
-        });
-}
-
-function listGroupsByConditions() {
-    const conditionsJson = getTextValue('group-conditions');
-    if (!conditionsJson) {
-        displayResult('groups-result', { error: '请输入查询条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('groups-result', { error: '查询条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('groups-result', data);
-    })
-    .catch(error => {
-        displayResult('groups-result', { error: error.message });
+    groups.forEach(group => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${group.id}</td>
+            <td>${group.name}</td>
+            <td>${group.description}</td>
+            <td>${group.reference_count}</td>
+            <td>${group.parent_group_id}</td>
+            <td>
+                <button class="action-button edit" onclick="editGroup(${group.id})">修改</button>
+                <button class="action-button delete" onclick="deleteGroup(${group.id})">删除</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
     });
 }
 
-function listGroupsByFileId() {
-    const fileId = getInputValue('group-file-id');
-    if (!fileId) {
-        displayResult('groups-result', { error: '请输入文件ID' });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/file/${fileId}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('groups-result', data);
-        })
-        .catch(error => {
-            displayResult('groups-result', { error: error.message });
-        });
-}
-
-function listGroupsByTagId() {
-    const tagId = getInputValue('group-tag-id');
-    if (!tagId) {
-        displayResult('groups-result', { error: '请输入标签ID' });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/tag/${tagId}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('groups-result', data);
-        })
-        .catch(error => {
-            displayResult('groups-result', { error: error.message });
-        });
-}
-
 function createGroup() {
-    const groupName = getInputValue('group-name');
-    const groupDescription = getInputValue('group-description');
+    const groupName = getInputValue('create-group-name');
+    const groupDescription = getInputValue('create-group-description');
     
     if (!groupName) {
-        displayResult('groups-result', { error: '请输入组名' });
+        alert('请输入组名');
         return;
     }
     
@@ -353,96 +242,49 @@ function createGroup() {
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('groups-result', data);
+        if (data.success) {
+            alert('组创建成功');
+            closeModal();
+            // 重新加载组列表
+            listGroupsByFilter();
+        } else {
+            alert('组创建失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('groups-result', { error: error.message });
+        console.error('Error:', error);
+        alert('组创建失败: ' + error.message);
     });
 }
 
-function updateGroupsByConditions() {
-    const conditionsJson = getTextValue('group-conditions');
-    const updateDataJson = getTextValue('group-update-data');
-    
-    if (!conditionsJson || !updateDataJson) {
-        displayResult('groups-result', { error: '请输入查询条件和更新数据' });
+function deleteGroup(groupId) {
+    if (!confirm('确定要删除该组吗？')) {
         return;
     }
     
-    let conditions, updateData;
-    try {
-        conditions = JSON.parse(conditionsJson);
-        updateData = JSON.parse(updateDataJson);
-    } catch (e) {
-        displayResult('groups-result', { error: 'JSON格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/update/by-conditions`;
+    const url = `${BASE_URL}/api/groups/${groupId}`;
     fetch(url, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify([conditions, updateData])
+        method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('groups-result', data);
+        if (data.success) {
+            alert('组删除成功');
+            // 重新加载组列表
+            listGroupsByFilter();
+        } else {
+            alert('组删除失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('groups-result', { error: error.message });
+        console.error('Error:', error);
+        alert('组删除失败: ' + error.message);
     });
 }
 
-function deleteGroupsByConditions() {
-    const conditionsJson = getTextValue('group-conditions');
-    if (!conditionsJson) {
-        displayResult('groups-result', { error: '请输入删除条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('groups-result', { error: '删除条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('groups-result', data);
-    })
-    .catch(error => {
-        displayResult('groups-result', { error: error.message });
-    });
-}
-
-function getGroupTree() {
-    const groupId = getInputValue('group-id');
-    if (!groupId) {
-        displayResult('groups-result', { error: '请输入组ID' });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/${groupId}/tree`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('groups-result', data);
-        })
-        .catch(error => {
-            displayResult('groups-result', { error: error.message });
-        });
+function editGroup(groupId) {
+    // 这里可以实现编辑功能
+    alert('编辑功能待实现，组ID: ' + groupId);
 }
 
 // ==================== 标签管理相关函数 ====================
@@ -450,100 +292,51 @@ function getGroupTree() {
 function listTagsByFilter() {
     const tagId = getInputValue('tag-id');
     const tagName = getInputValue('tag-name');
-    const tagDescription = getInputValue('tag-description');
     
     // 构造查询参数
     let params = new URLSearchParams();
     if (tagId) params.append('id', tagId);
     if (tagName) params.append('name', tagName);
-    if (tagDescription) params.append('description', tagDescription);
     
     const url = `${BASE_URL}/api/tags/filter?${params.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            displayResult('tags-result', data);
+            renderTagTable(data.data || []);
         })
         .catch(error => {
-            displayResult('tags-result', { error: error.message });
+            console.error('Error:', error);
+            alert('查询标签失败: ' + error.message);
         });
 }
 
-function getTagById() {
-    const tagId = getInputValue('tag-id');
-    if (!tagId) {
-        displayResult('tags-result', { error: '请输入标签ID' });
-        return;
-    }
+function renderTagTable(tags) {
+    const tableBody = document.querySelector('#tags-table tbody');
+    tableBody.innerHTML = '';
     
-    const url = `${BASE_URL}/api/tags/${tagId}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('tags-result', data);
-        })
-        .catch(error => {
-            displayResult('tags-result', { error: error.message });
-        });
-}
-
-function listTagsByConditions() {
-    const conditionsJson = getTextValue('tag-conditions');
-    if (!conditionsJson) {
-        displayResult('tags-result', { error: '请输入查询条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('tags-result', { error: '查询条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/tags/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('tags-result', data);
-    })
-    .catch(error => {
-        displayResult('tags-result', { error: error.message });
+    tags.forEach(tag => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${tag.id}</td>
+            <td>${tag.name}</td>
+            <td>${tag.description}</td>
+            <td>${tag.reference_count}</td>
+            <td>
+                <button class="action-button edit" onclick="editTag(${tag.id})">修改</button>
+                <button class="action-button delete" onclick="deleteTag(${tag.id})">删除</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
     });
 }
 
-function listTagsByGroupId() {
-    const groupId = getInputValue('tag-group-id');
-    if (!groupId) {
-        displayResult('tags-result', { error: '请输入组ID' });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/tags/group/${groupId}`;
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            displayResult('tags-result', data);
-        })
-        .catch(error => {
-            displayResult('tags-result', { error: error.message });
-        });
-}
-
 function createTag() {
-    const tagName = getInputValue('tag-name');
-    const tagDescription = getInputValue('tag-description');
+    const tagName = getInputValue('create-tag-name');
+    const tagDescription = getInputValue('create-tag-description');
     
     if (!tagName) {
-        displayResult('tags-result', { error: '请输入标签名' });
+        alert('请输入标签名');
         return;
     }
     
@@ -562,63 +355,413 @@ function createTag() {
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('tags-result', data);
+        if (data.success) {
+            alert('标签创建成功');
+            closeModal();
+            // 重新加载标签列表
+            listTagsByFilter();
+        } else {
+            alert('标签创建失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('tags-result', { error: error.message });
+        console.error('Error:', error);
+        alert('标签创建失败: ' + error.message);
     });
 }
 
-function updateTagsByConditions() {
-    const conditionsJson = getTextValue('tag-conditions');
-    const updateDataJson = getTextValue('tag-update-data');
-    
-    if (!conditionsJson || !updateDataJson) {
-        displayResult('tags-result', { error: '请输入查询条件和更新数据' });
+function deleteTag(tagId) {
+    if (!confirm('确定要删除该标签吗？')) {
         return;
     }
     
-    let conditions, updateData;
-    try {
-        conditions = JSON.parse(conditionsJson);
-        updateData = JSON.parse(updateDataJson);
-    } catch (e) {
-        displayResult('tags-result', { error: 'JSON格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/tags/update/by-conditions`;
+    const url = `${BASE_URL}/api/tags/${tagId}`;
     fetch(url, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify([conditions, updateData])
+        method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('tags-result', data);
+        if (data.success) {
+            alert('标签删除成功');
+            // 重新加载标签列表
+            listTagsByFilter();
+        } else {
+            alert('标签删除失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('tags-result', { error: error.message });
+        console.error('Error:', error);
+        alert('标签删除失败: ' + error.message);
     });
 }
 
-function deleteTagsByConditions() {
-    const conditionsJson = getTextValue('tag-conditions');
-    if (!conditionsJson) {
-        displayResult('tags-result', { error: '请输入删除条件' });
-        return;
-    }
+function editTag(tagId) {
+    // 这里可以实现编辑功能
+    alert('编辑功能待实现，标签ID: ' + tagId);
+}
+
+// ==================== 文件组关联相关函数 ====================
+
+// ==================== 组标签关联相关函数 ====================
+
+// ==================== 组关系管理相关函数 ====================
+
+// 打开创建文件对话框
+function openCreateFileDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>新增文件</h2>
+        <form id="create-file-form">
+            <div class="form-group">
+                <label for="create-file-type">文件类型:</label>
+                <input type="text" id="create-file-type" required>
+            </div>
+            <div class="form-group">
+                <label for="create-file-path">文件路径:</label>
+                <input type="text" id="create-file-path" required>
+            </div>
+            <div class="form-group">
+                <label for="create-file-group-id">组ID:</label>
+                <input type="number" id="create-file-group-id" required>
+            </div>
+            <button type="submit">创建</button>
+        </form>
+    `;
     
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('tags-result', { error: '删除条件格式错误: ' + e.message });
-        return;
-    }
+    // 绑定表单提交事件
+    document.getElementById('create-file-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createFile();
+    });
     
+    document.getElementById('modal').style.display = 'block';
+}
+
+// 打开创建组对话框
+function openCreateGroupDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>新增组</h2>
+        <form id="create-group-form">
+            <div class="form-group">
+                <label for="create-group-name">组名:</label>
+                <input type="text" id="create-group-name" required>
+            </div>
+            <div class="form-group">
+                <label for="create-group-description">描述:</label>
+                <input type="text" id="create-group-description">
+            </div>
+            <button type="submit">创建</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('create-group-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createGroup();
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+// 打开创建标签对话框
+function openCreateTagDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>新增标签</h2>
+        <form id="create-tag-form">
+            <div class="form-group">
+                <label for="create-tag-name">标签名:</label>
+                <input type="text" id="create-tag-name" required>
+            </div>
+            <div class="form-group">
+                <label for="create-tag-description">描述:</label>
+                <input type="text" id="create-tag-description">
+            </div>
+            <button type="submit">创建</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('create-tag-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createTag();
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+// 打开批量删除文件对话框
+function openBatchDeleteFileDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>批量删除文件</h2>
+        <form id="batch-delete-file-form">
+            <div class="form-group">
+                <label for="batch-delete-file-conditions">删除条件 (JSON格式):</label>
+                <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+            </div>
+            <button type="submit">删除</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('batch-delete-file-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('batch-delete-file-conditions').value;
+        if (!conditionsJson) {
+            alert('请输入删除条件');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            deleteFilesByConditions(conditions);
+        } catch (e) {
+            alert('JSON格式错误: ' + e.message);
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function deleteFilesByConditions(conditions) {
+    const url = `${BASE_URL}/api/files/delete/by-conditions`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('文件批量删除成功');
+            closeModal();
+            // 重新加载文件列表
+            listFilesByFilter();
+        } else {
+            alert('文件批量删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('文件批量删除失败: ' + error.message);
+    });
+}
+
+// 打开复杂查询文件对话框
+function openComplexSearchFileDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>复杂查询文件</h2>
+        <form id="complex-search-file-form">
+            <div class="form-group">
+                <label for="complex-search-file-conditions">查询条件 (JSON格式):</label>
+                <textarea id="complex-search-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+            </div>
+            <button type="submit">查询</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('complex-search-file-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('complex-search-file-conditions').value;
+        if (!conditionsJson) {
+            alert('请输入查询条件');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            searchFilesByConditions(conditions);
+        } catch (e) {
+            alert('JSON格式错误: ' + e.message);
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function searchFilesByConditions(conditions) {
+    const url = `${BASE_URL}/api/files/search/by-conditions`;
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal();
+            renderFileTable(data.data || []);
+        } else {
+            alert('文件查询失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('文件查询失败: ' + error.message);
+    });
+}
+
+// 打开批量删除组对话框
+function openBatchDeleteGroupDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>批量删除组</h2>
+        <form id="batch-delete-group-form">
+            <div class="form-group">
+                <label for="batch-delete-group-conditions">删除条件 (JSON格式):</label>
+                <textarea id="batch-delete-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+            </div>
+            <button type="submit">删除</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('batch-delete-group-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('batch-delete-group-conditions').value;
+        if (!conditionsJson) {
+            alert('请输入删除条件');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            deleteGroupsByConditions(conditions);
+        } catch (e) {
+            alert('JSON格式错误: ' + e.message);
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function deleteGroupsByConditions(conditions) {
+    const url = `${BASE_URL}/api/groups/delete/by-conditions`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('组批量删除成功');
+            closeModal();
+            // 重新加载组列表
+            listGroupsByFilter();
+        } else {
+            alert('组批量删除失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('组批量删除失败: ' + error.message);
+    });
+}
+
+// 打开复杂查询组对话框
+function openComplexSearchGroupDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>复杂查询组</h2>
+        <form id="complex-search-group-form">
+            <div class="form-group">
+                <label for="complex-search-group-conditions">查询条件 (JSON格式):</label>
+                <textarea id="complex-search-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+            </div>
+            <button type="submit">查询</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('complex-search-group-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('complex-search-group-conditions').value;
+        if (!conditionsJson) {
+            alert('请输入查询条件');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            searchGroupsByConditions(conditions);
+        } catch (e) {
+            alert('JSON格式错误: ' + e.message);
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function searchGroupsByConditions(conditions) {
+    const url = `${BASE_URL}/api/groups/search/by-conditions`;
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeModal();
+            renderGroupTable(data.data || []);
+        } else {
+            alert('组查询失败: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('组查询失败: ' + error.message);
+    });
+}
+
+// 打开批量删除标签对话框
+function openBatchDeleteTagDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>批量删除标签</h2>
+        <form id="batch-delete-tag-form">
+            <div class="form-group">
+                <label for="batch-delete-tag-conditions">删除条件 (JSON格式):</label>
+                <textarea id="batch-delete-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+            </div>
+            <button type="submit">删除</button>
+        </form>
+    `;
+    
+    // 绑定表单提交事件
+    document.getElementById('batch-delete-tag-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('batch-delete-tag-conditions').value;
+        if (!conditionsJson) {
+            alert('请输入删除条件');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            deleteTagsByConditions(conditions);
+        } catch (e) {
+            alert('JSON格式错误: ' + e.message);
+        }
+    });
+    
+    document.getElementById('modal').style.display = 'block';
+}
+
+function deleteTagsByConditions(conditions) {
     const url = `${BASE_URL}/api/tags/delete/by-conditions`;
     fetch(url, {
         method: 'DELETE',
@@ -629,397 +772,75 @@ function deleteTagsByConditions() {
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('tags-result', data);
+        if (data.success) {
+            alert('标签批量删除成功');
+            closeModal();
+            // 重新加载标签列表
+            listTagsByFilter();
+        } else {
+            alert('标签批量删除失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('tags-result', { error: error.message });
+        console.error('Error:', error);
+        alert('标签批量删除失败: ' + error.message);
     });
 }
 
-// ==================== 文件组关联相关函数 ====================
-
-function listFileGroupsByConditions() {
-    const conditionsJson = getTextValue('file-group-conditions');
-    if (!conditionsJson) {
-        displayResult('file-groups-result', { error: '请输入查询条件' });
-        return;
-    }
+// 打开复杂查询标签对话框
+function openComplexSearchTagDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>复杂查询标签</h2>
+        <form id="complex-search-tag-form">
+            <div class="form-group">
+                <label for="complex-search-tag-conditions">查询条件 (JSON格式):</label>
+                <textarea id="complex-search-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+            </div>
+            <button type="submit">查询</button>
+        </form>
+    `;
     
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('file-groups-result', { error: '查询条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/file-groups/search/by-conditions`;
-    fetch(url, {
-        method: 'POST', // 修正：应该使用POST方法而不是GET
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('file-groups-result', data);
-    })
-    .catch(error => {
-        displayResult('file-groups-result', { error: error.message });
+    // 绑定表单提交事件
+    document.getElementById('complex-search-tag-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('complex-search-tag-conditions').value;
+        if (!conditionsJson) {
+            alert('请输入查询条件');
+            return;
+        }
+        
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            searchTagsByConditions(conditions);
+        } catch (e) {
+            alert('JSON格式错误: ' + e.message);
+        }
     });
+    
+    document.getElementById('modal').style.display = 'block';
 }
 
-function createFileGroup() {
-    const fileId = getInputValue('file-group-file-id');
-    const groupId = getInputValue('file-group-group-id');
-    
-    if (!fileId || !groupId) {
-        displayResult('file-groups-result', { error: '请输入文件ID和组ID' });
-        return;
-    }
-    
-    const fileGroupData = {
-        file_id: parseInt(fileId),
-        group_id: parseInt(groupId)
-    };
-    
-    const url = `${BASE_URL}/api/file-groups`;
+function searchTagsByConditions(conditions) {
+    const url = `${BASE_URL}/api/tags/search/by-conditions`;
     fetch(url, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(fileGroupData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('file-groups-result', data);
-    })
-    .catch(error => {
-        displayResult('file-groups-result', { error: error.message });
-    });
-}
-
-function deleteFileGroup() {
-    const fileId = getInputValue('file-group-file-id');
-    const groupId = getInputValue('file-group-group-id');
-    
-    if (!fileId || !groupId) {
-        displayResult('file-groups-result', { error: '请输入文件ID和组ID' });
-        return;
-    }
-    
-    const fileGroupData = {
-        file_id: parseInt(fileId),
-        group_id: parseInt(groupId)
-    };
-    
-    const url = `${BASE_URL}/api/file-groups`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(fileGroupData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('file-groups-result', data);
-    })
-    .catch(error => {
-        displayResult('file-groups-result', { error: error.message });
-    });
-}
-
-function deleteFileGroupsByConditions() {
-    const conditionsJson = getTextValue('file-group-conditions');
-    if (!conditionsJson) {
-        displayResult('file-groups-result', { error: '请输入删除条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('file-groups-result', { error: '删除条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/file-groups/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
         body: JSON.stringify(conditions)
     })
     .then(response => response.json())
     .then(data => {
-        displayResult('file-groups-result', data);
+        if (data.success) {
+            closeModal();
+            renderTagTable(data.data || []);
+        } else {
+            alert('标签查询失败: ' + data.message);
+        }
     })
     .catch(error => {
-        displayResult('file-groups-result', { error: error.message });
-    });
-}
-
-// ==================== 组标签关联相关函数 ====================
-
-function listGroupTagsByConditions() {
-    const conditionsJson = getTextValue('group-tag-conditions');
-    if (!conditionsJson) {
-        displayResult('group-tags-result', { error: '请输入查询条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('group-tags-result', { error: '查询条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/group-tags/search/by-conditions`;
-    fetch(url, {
-        method: 'POST', // 修正：应该使用POST方法而不是GET
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-tags-result', data);
-    })
-    .catch(error => {
-        displayResult('group-tags-result', { error: error.message });
-    });
-}
-
-function createGroupTag() {
-    const groupId = getInputValue('group-tag-group-id');
-    const tagId = getInputValue('group-tag-tag-id');
-    
-    if (!groupId || !tagId) {
-        displayResult('group-tags-result', { error: '请输入组ID和标签ID' });
-        return;
-    }
-    
-    const groupTagData = {
-        group_id: parseInt(groupId),
-        tag_id: parseInt(tagId)
-    };
-    
-    const url = `${BASE_URL}/api/group-tags`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(groupTagData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-tags-result', data);
-    })
-    .catch(error => {
-        displayResult('group-tags-result', { error: error.message });
-    });
-}
-
-function deleteGroupTag() {
-    const groupId = getInputValue('group-tag-group-id');
-    const tagId = getInputValue('group-tag-tag-id');
-    
-    if (!groupId || !tagId) {
-        displayResult('group-tags-result', { error: '请输入组ID和标签ID' });
-        return;
-    }
-    
-    const groupTagData = {
-        group_id: parseInt(groupId),
-        tag_id: parseInt(tagId)
-    };
-    
-    const url = `${BASE_URL}/api/group-tags`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(groupTagData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-tags-result', data);
-    })
-    .catch(error => {
-        displayResult('group-tags-result', { error: error.message });
-    });
-}
-
-function deleteGroupTagsByConditions() {
-    const conditionsJson = getTextValue('group-tag-conditions');
-    if (!conditionsJson) {
-        displayResult('group-tags-result', { error: '请输入删除条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('group-tags-result', { error: '删除条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/group-tags/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-tags-result', data);
-    })
-    .catch(error => {
-        displayResult('group-tags-result', { error: error.message });
-    });
-}
-
-// ==================== 组关系管理相关函数 ====================
-
-function listGroupRelationsByConditions() {
-    const conditionsJson = getTextValue('group-relation-conditions');
-    if (!conditionsJson) {
-        displayResult('group-relations-result', { error: '请输入查询条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('group-relations-result', { error: '查询条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/group-relations/search/by-conditions`;
-    fetch(url, {
-        method: 'POST', // 修正：应该使用POST方法而不是GET
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-relations-result', data);
-    })
-    .catch(error => {
-        displayResult('group-relations-result', { error: error.message });
-    });
-}
-
-function createGroupRelation() {
-    const firstGroupId = getInputValue('group-relation-first-id');
-    const secondGroupId = getInputValue('group-relation-second-id');
-    const relationType = getInputValue('group-relation-type');
-    
-    if (!firstGroupId || !secondGroupId) {
-        displayResult('group-relations-result', { error: '请输入第一组ID和第二组ID' });
-        return;
-    }
-    
-    const groupRelationData = {
-        first_group_id: parseInt(firstGroupId),
-        second_group_id: parseInt(secondGroupId),
-        relation_type: relationType || ''
-    };
-    
-    const url = `${BASE_URL}/api/group-relations`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(groupRelationData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-relations-result', data);
-    })
-    .catch(error => {
-        displayResult('group-relations-result', { error: error.message });
-    });
-}
-
-function deleteGroupRelation() {
-    const firstGroupId = getInputValue('group-relation-first-id');
-    const secondGroupId = getInputValue('group-relation-second-id');
-    const relationType = getInputValue('group-relation-type');
-    
-    if (!firstGroupId || !secondGroupId) {
-        displayResult('group-relations-result', { error: '请输入第一组ID和第二组ID' });
-        return;
-    }
-    
-    const groupRelationData = {
-        first_group_id: parseInt(firstGroupId),
-        second_group_id: parseInt(secondGroupId),
-        relation_type: relationType || ''
-    };
-    
-    const url = `${BASE_URL}/api/group-relations`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(groupRelationData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-relations-result', data);
-    })
-    .catch(error => {
-        displayResult('group-relations-result', { error: error.message });
-    });
-}
-
-function deleteGroupRelationsByConditions() {
-    const conditionsJson = getTextValue('group-relation-conditions');
-    if (!conditionsJson) {
-        displayResult('group-relations-result', { error: '请输入删除条件' });
-        return;
-    }
-    
-    let conditions;
-    try {
-        conditions = JSON.parse(conditionsJson);
-    } catch (e) {
-        displayResult('group-relations-result', { error: '删除条件格式错误: ' + e.message });
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/group-relations/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        displayResult('group-relations-result', data);
-    })
-    .catch(error => {
-        displayResult('group-relations-result', { error: error.message });
+        console.error('Error:', error);
+        alert('标签查询失败: ' + error.message);
     });
 }

@@ -17,12 +17,12 @@
             <aside class="sidebar">
                 <nav>
                     <ul>
-                        <li><a href="#files" class="nav-link">文件管理</a></li>
-                        <li><a href="#groups" class="nav-link">组管理</a></li>
-                        <li><a href="#tags" class="nav-link">标签管理</a></li>
-                        <li><a href="#file-groups" class="nav-link">文件组关联</a></li>
-                        <li><a href="#group-tags" class="nav-link">组标签关联</a></li>
-                        <li><a href="#group-relations" class="nav-link">组关系管理</a></li>
+                        <li><a href="#files" class="nav-link" data-target="files">文件管理</a></li>
+                        <li><a href="#groups" class="nav-link" data-target="groups">组管理</a></li>
+                        <li><a href="#tags" class="nav-link" data-target="tags">标签管理</a></li>
+                        <li><a href="#file-groups" class="nav-link" data-target="file-groups">文件组关联</a></li>
+                        <li><a href="#group-tags" class="nav-link" data-target="group-tags">组标签关联</a></li>
+                        <li><a href="#group-relations" class="nav-link" data-target="group-relations">组关系管理</a></li>
                     </ul>
                 </nav>
             </aside>
@@ -32,312 +32,166 @@
                 <!-- 文件管理 -->
                 <section id="files" class="tab-content">
                     <h2>文件管理</h2>
-                    <div class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="file-id">文件ID:</label>
-                                <input type="number" id="file-id" placeholder="请输入文件ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="file-name">文件名:</label>
-                                <input type="text" id="file-name" placeholder="请输入文件名">
-                            </div>
-                            <div class="form-group">
-                                <label for="file-path">文件路径:</label>
-                                <input type="text" id="file-path" placeholder="请输入文件路径">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="file-group-id">组ID:</label>
-                                <input type="number" id="file-group-id" placeholder="请输入组ID">
-                            </div>
-                            <div class="form-group">
-                                <button onclick="listFilesByFilter()">查询文件</button>
-                                <button onclick="getFileById()">根据ID获取文件</button>
-                                <button onclick="listFilesByGroupId()">根据组ID获取文件</button>
-                                <button onclick="createFile()">创建文件</button>
-                            </div>
-                        </div>
+                    <div class="toolbar">
+                        <button onclick="openCreateFileDialog()">新增文件</button>
+                        <button onclick="openBatchDeleteFileDialog()">批量删除</button>
+                        <button onclick="openComplexSearchFileDialog()">复杂查询</button>
                     </div>
-                    <div class="form-container">
-                        <h3>批量操作</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="file-conditions">查询条件 (JSON):</label>
-                                <textarea id="file-conditions" rows="3" placeholder='[{"Id": 1}, {"Name": "example.txt"}]'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="file-update-data">更新数据 (JSON):</label>
-                                <textarea id="file-update-data" rows="3" placeholder='{"name": "new_name.txt", "path": "/new/path"}'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="listFilesByConditions()">条件查询</button>
-                                <button onclick="updateFilesByConditions()">批量更新</button>
-                                <button onclick="deleteFilesByConditions()">批量删除</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-container">
-                        <h3>查询结果</h3>
-                        <div class="result" id="files-result"></div>
+                    <div class="table-container">
+                        <table id="files-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>类型</th>
+                                    <th>路径</th>
+                                    <th>引用计数</th>
+                                    <th>组ID</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
                 <!-- 组管理 -->
                 <section id="groups" class="tab-content" style="display: none;">
                     <h2>组管理</h2>
-                    <div class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-id">组ID:</label>
-                                <input type="number" id="group-id" placeholder="请输入组ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="group-name">组名:</label>
-                                <input type="text" id="group-name" placeholder="请输入组名">
-                            </div>
-                            <div class="form-group">
-                                <label for="group-description">组描述:</label>
-                                <input type="text" id="group-description" placeholder="请输入组描述">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-file-id">文件ID:</label>
-                                <input type="number" id="group-file-id" placeholder="请输入文件ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="group-tag-id">标签ID:</label>
-                                <input type="number" id="group-tag-id" placeholder="请输入标签ID">
-                            </div>
-                            <div class="form-group">
-                                <button onclick="listGroupsByFilter()">查询组</button>
-                                <button onclick="getGroupById()">根据ID获取组</button>
-                                <button onclick="listGroupsByFileId()">根据文件ID获取组</button>
-                                <button onclick="listGroupsByTagId()">根据标签ID获取组</button>
-                                <button onclick="createGroup()">创建组</button>
-                            </div>
-                        </div>
+                    <div class="toolbar">
+                        <button onclick="openCreateGroupDialog()">新增组</button>
+                        <button onclick="openBatchDeleteGroupDialog()">批量删除</button>
+                        <button onclick="openComplexSearchGroupDialog()">复杂查询</button>
                     </div>
-                    <div class="form-container">
-                        <h3>批量操作</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-conditions">查询条件 (JSON):</label>
-                                <textarea id="group-conditions" rows="3" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-update-data">更新数据 (JSON):</label>
-                                <textarea id="group-update-data" rows="3" placeholder='{"name": "new_name", "description": "new description"}'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="listGroupsByConditions()">条件查询</button>
-                                <button onclick="updateGroupsByConditions()">批量更新</button>
-                                <button onclick="deleteGroupsByConditions()">批量删除</button>
-                                <button onclick="getGroupTree()">获取组树</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-container">
-                        <h3>查询结果</h3>
-                        <div class="result" id="groups-result"></div>
+                    <div class="table-container">
+                        <table id="groups-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名称</th>
+                                    <th>描述</th>
+                                    <th>引用计数</th>
+                                    <th>父组ID</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
                 <!-- 标签管理 -->
                 <section id="tags" class="tab-content" style="display: none;">
                     <h2>标签管理</h2>
-                    <div class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="tag-id">标签ID:</label>
-                                <input type="number" id="tag-id" placeholder="请输入标签ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="tag-name">标签名:</label>
-                                <input type="text" id="tag-name" placeholder="请输入标签名">
-                            </div>
-                            <div class="form-group">
-                                <label for="tag-description">标签描述:</label>
-                                <input type="text" id="tag-description" placeholder="请输入标签描述">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="tag-group-id">组ID:</label>
-                                <input type="number" id="tag-group-id" placeholder="请输入组ID">
-                            </div>
-                            <div class="form-group">
-                                <button onclick="listTagsByFilter()">查询标签</button>
-                                <button onclick="getTagById()">根据ID获取标签</button>
-                                <button onclick="listTagsByGroupId()">根据组ID获取标签</button>
-                                <button onclick="createTag()">创建标签</button>
-                            </div>
-                        </div>
+                    <div class="toolbar">
+                        <button onclick="openCreateTagDialog()">新增标签</button>
+                        <button onclick="openBatchDeleteTagDialog()">批量删除</button>
+                        <button onclick="openComplexSearchTagDialog()">复杂查询</button>
                     </div>
-                    <div class="form-container">
-                        <h3>批量操作</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="tag-conditions">查询条件 (JSON):</label>
-                                <textarea id="tag-conditions" rows="3" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="tag-update-data">更新数据 (JSON):</label>
-                                <textarea id="tag-update-data" rows="3" placeholder='{"name": "new_name", "description": "new description"}'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="listTagsByConditions()">条件查询</button>
-                                <button onclick="updateTagsByConditions()">批量更新</button>
-                                <button onclick="deleteTagsByConditions()">批量删除</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-container">
-                        <h3>查询结果</h3>
-                        <div class="result" id="tags-result"></div>
+                    <div class="table-container">
+                        <table id="tags-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>名称</th>
+                                    <th>描述</th>
+                                    <th>引用计数</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
                 <!-- 文件组关联 -->
                 <section id="file-groups" class="tab-content" style="display: none;">
                     <h2>文件组关联</h2>
-                    <div class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="file-group-file-id">文件ID:</label>
-                                <input type="number" id="file-group-file-id" placeholder="请输入文件ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="file-group-group-id">组ID:</label>
-                                <input type="number" id="file-group-group-id" placeholder="请输入组ID">
-                            </div>
-                            <div class="form-group">
-                                <button onclick="createFileGroup()">创建关联</button>
-                                <button onclick="deleteFileGroup()">删除关联</button>
-                            </div>
-                        </div>
+                    <div class="toolbar">
+                        <button onclick="openCreateFileGroupDialog()">新增关联</button>
+                        <button onclick="openBatchDeleteFileGroupDialog()">批量删除</button>
+                        <button onclick="openComplexSearchFileGroupDialog()">复杂查询</button>
                     </div>
-                    <div class="form-container">
-                        <h3>批量操作</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="file-group-conditions">查询条件 (JSON):</label>
-                                <textarea id="file-group-conditions" rows="3" placeholder='[{"FileId": 1}, {"GroupId": 1}]'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="listFileGroupsByConditions()">条件查询</button>
-                                <button onclick="deleteFileGroupsByConditions()">批量删除</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-container">
-                        <h3>查询结果</h3>
-                        <div class="result" id="file-groups-result"></div>
+                    <div class="table-container">
+                        <table id="file-groups-table">
+                            <thead>
+                                <tr>
+                                    <th>文件ID</th>
+                                    <th>组ID</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
                 <!-- 组标签关联 -->
                 <section id="group-tags" class="tab-content" style="display: none;">
                     <h2>组标签关联</h2>
-                    <div class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-tag-group-id">组ID:</label>
-                                <input type="number" id="group-tag-group-id" placeholder="请输入组ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="group-tag-tag-id">标签ID:</label>
-                                <input type="number" id="group-tag-tag-id" placeholder="请输入标签ID">
-                            </div>
-                            <div class="form-group">
-                                <button onclick="createGroupTag()">创建关联</button>
-                                <button onclick="deleteGroupTag()">删除关联</button>
-                            </div>
-                        </div>
+                    <div class="toolbar">
+                        <button onclick="openCreateGroupTagDialog()">新增关联</button>
+                        <button onclick="openBatchDeleteGroupTagDialog()">批量删除</button>
+                        <button onclick="openComplexSearchGroupTagDialog()">复杂查询</button>
                     </div>
-                    <div class="form-container">
-                        <h3>批量操作</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-tag-conditions">查询条件 (JSON):</label>
-                                <textarea id="group-tag-conditions" rows="3" placeholder='[{"GroupId": 1}, {"TagId": 1}]'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="listGroupTagsByConditions()">条件查询</button>
-                                <button onclick="deleteGroupTagsByConditions()">批量删除</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-container">
-                        <h3>查询结果</h3>
-                        <div class="result" id="group-tags-result"></div>
+                    <div class="table-container">
+                        <table id="group-tags-table">
+                            <thead>
+                                <tr>
+                                    <th>组ID</th>
+                                    <th>标签ID</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
                 <!-- 组关系管理 -->
                 <section id="group-relations" class="tab-content" style="display: none;">
                     <h2>组关系管理</h2>
-                    <div class="form-container">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-relation-first-id">第一组ID:</label>
-                                <input type="number" id="group-relation-first-id" placeholder="请输入第一组ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="group-relation-second-id">第二组ID:</label>
-                                <input type="number" id="group-relation-second-id" placeholder="请输入第二组ID">
-                            </div>
-                            <div class="form-group">
-                                <label for="group-relation-type">关系类型:</label>
-                                <input type="text" id="group-relation-type" placeholder="请输入关系类型">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="createGroupRelation()">创建关系</button>
-                                <button onclick="deleteGroupRelation()">删除关系</button>
-                            </div>
-                        </div>
+                    <div class="toolbar">
+                        <button onclick="openCreateGroupRelationDialog()">新增关系</button>
+                        <button onclick="openBatchDeleteGroupRelationDialog()">批量删除</button>
+                        <button onclick="openComplexSearchGroupRelationDialog()">复杂查询</button>
                     </div>
-                    <div class="form-container">
-                        <h3>批量操作</h3>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="group-relation-conditions">查询条件 (JSON):</label>
-                                <textarea id="group-relation-conditions" rows="3" placeholder='[{"FirstGroupId": 1}, {"SecondGroupId": 2}]'></textarea>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <button onclick="listGroupRelationsByConditions()">条件查询</button>
-                                <button onclick="deleteGroupRelationsByConditions()">批量删除</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="result-container">
-                        <h3>查询结果</h3>
-                        <div class="result" id="group-relations-result"></div>
+                    <div class="table-container">
+                        <table id="group-relations-table">
+                            <thead>
+                                <tr>
+                                    <th>第一组ID</th>
+                                    <th>第二组ID</th>
+                                    <th>关系类型</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- 数据将通过JavaScript动态填充 -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
             </main>
+        </div>
+    </div>
+
+    <!-- 弹窗模态框 -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modal-body">
+                <!-- 弹窗内容将通过JavaScript动态填充 -->
+            </div>
         </div>
     </div>
 
@@ -348,9 +202,17 @@
             const navLinks = document.querySelectorAll('.nav-link');
             const tabContents = document.querySelectorAll('.tab-content');
             
+            // 存储已打开的标签页
+            const openedTabs = new Set();
+            
             navLinks.forEach(link => {
                 link.addEventListener('click', function(e) {
                     e.preventDefault();
+                    
+                    const target = this.getAttribute('data-target');
+                    
+                    // 添加到已打开标签页集合
+                    openedTabs.add(target);
                     
                     // 隐藏所有tab内容
                     tabContents.forEach(content => {
@@ -363,8 +225,7 @@
                     });
                     
                     // 显示当前tab内容
-                    const target = this.getAttribute('href');
-                    document.querySelector(target).style.display = 'block';
+                    document.getElementById(target).style.display = 'block';
                     
                     // 设置当前链接为活动状态
                     this.classList.add('active');
@@ -375,6 +236,7 @@
             if (tabContents.length > 0) {
                 tabContents[0].style.display = 'block';
                 navLinks[0].classList.add('active');
+                openedTabs.add(navLinks[0].getAttribute('data-target'));
             }
         });
     </script>
