@@ -36,6 +36,7 @@ function renderGroupTable(groups) {
             <td>${group.reference_count}</td>
             <td>${group.parent_group_id}</td>
             <td>
+                <button class="action-button view-tree" onclick="showGroupTree(${group.id})">查看树</button>
                 <button class="action-button edit" onclick="openEditGroupDialog(${group.id})">修改</button>
                 <button class="action-button delete" onclick="deleteGroup(${group.id})">删除</button>
             </td>
@@ -423,4 +424,57 @@ function searchGroupsByConditions(conditions) {
         console.error('Error:', error);
         showMessage('组查询失败: ' + error.message, 'error');
     });
+}
+
+// 显示组的树状结构
+function showGroupTree(groupId) {
+    const url = `${BASE_URL}/api/groups/${groupId}/tree`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderGroupTree(data.data);
+                document.getElementById('group-tree-modal').style.display = 'block';
+            } else {
+                showMessage('获取组树失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取组树失败: ' + error.message, 'error');
+        });
+}
+
+// 渲染组树状结构
+function renderGroupTree(treeNode, container = null, level = 0) {
+    if (!container) {
+        container = document.getElementById('group-tree-container');
+        container.innerHTML = '';
+    }
+    
+    const nodeElement = document.createElement('div');
+    nodeElement.className = 'tree-node';
+    nodeElement.style.marginLeft = (level * 20) + 'px';
+    
+    nodeElement.innerHTML = `
+        <div class="tree-node-content">
+            <span class="tree-node-name">${treeNode.group.name}</span>
+            <span class="tree-node-info">(ID: ${treeNode.group.id})</span>
+        </div>
+    `;
+    
+    container.appendChild(nodeElement);
+    
+    // 递归渲染子节点
+    if (treeNode.children && treeNode.children.length > 0) {
+        treeNode.children.forEach(child => {
+            renderGroupTree(child, container, level + 1);
+        });
+    }
+}
+
+// 关闭组树模态框
+function closeGroupTreeModal() {
+    document.getElementById('group-tree-modal').style.display = 'none';
 }

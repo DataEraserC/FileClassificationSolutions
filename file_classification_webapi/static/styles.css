@@ -384,6 +384,10 @@ body.dark-mode table tr:hover {
     color: #212529;
 }
 
+.action-button.view-tree {
+    background-color: #6f42c1;
+}
+
 .action-button:hover {
     opacity: 0.8;
 }
@@ -554,6 +558,37 @@ body.dark-mode .form-group textarea:focus {
     10% { opacity: 1; transform: translateY(0); }
     90% { opacity: 1; transform: translateY(0); }
     100% { opacity: 0; transform: translateY(-20px); }
+}
+
+/* 组树状结构样式 */
+.tree-node {
+    margin: 5px 0;
+    padding: 5px;
+    border-left: 1px dashed #ccc;
+}
+
+.tree-node-content {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+}
+
+.tree-node-name {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.tree-node-info {
+    color: #666;
+    font-size: 0.9em;
+}
+
+body.dark-mode .tree-node {
+    border-left: 1px dashed #555;
+}
+
+body.dark-mode .tree-node-info {
+    color: #aaa;
 }
 
 /* 响应式设计 */
