@@ -67,6 +67,12 @@ pub fn create_group_relation(
 	// 使用事务处理数据插入
 	let result = conn.transaction::<GroupRelation, AppError, _>(|conn| {
 		group_relations_dao::insert_group_relation(conn, &group_relation)?;
+		
+		// 增加两个组的引用计数
+		groups_dao::increase_group_reference_count_by_ids(
+			conn, 
+			vec![group_relation.first_group_id, group_relation.second_group_id]
+		)?;
 
 		// 构造返回对象
 		let created_relation = GroupRelation {
@@ -96,6 +102,14 @@ pub fn delete_group_relation(
 	let result = conn.transaction::<_, AppError, _>(|conn| {
 		// 调用数据访问层执行删除操作
 		let deleted_count = group_relations_dao::delete_group_relation_by_dto(conn, &group_relation)?;
+		
+		// 如果删除成功，减少两个组的引用计数
+		if deleted_count > 0 {
+			groups_dao::decrease_group_reference_count_by_ids(
+				conn, 
+				vec![group_relation.first_group_id, group_relation.second_group_id]
+			)?;
+		}
 
 		Ok(deleted_count)
 	});
