@@ -82,7 +82,7 @@ pub fn create_file_group(
 ///    - 删除文件-分组关联记录
 pub fn delete_file_group_by_dto(
 	conn: &mut AnyConnection,
-	file_group_dto: FileGroupDTO,
+	file_group_dto: &FileGroupDTO,
 ) -> Result<usize, AppError> {
 	// 验证分组是否存在
 	let _group =
@@ -219,10 +219,35 @@ pub fn delete_file_groups_by_conditions(
 			};
 
 			// 调用单个删除函数，复用其业务逻辑和验证规则
-			let deleted_count = delete_file_group_by_dto(conn, file_group_dto)?;
+			let deleted_count = delete_file_group_by_dto(conn, &file_group_dto)?;
 			total_deleted += deleted_count;
 		}
 
+		Ok(total_deleted)
+	})
+}
+
+/// 根据DTO列表批量删除文件组关联
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `dtos`: 要删除的文件组关联DTO列表
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+pub fn delete_file_groups_by_dtos(
+	conn: &mut AnyConnection,
+	dtos: Vec<FileGroupDTO>,
+) -> Result<usize, Error> {
+	let mut total_deleted = 0;
+	
+	// 使用事务确保数据一致性
+	conn.transaction::<_, Error, _>(|conn| {
+		for dto in &dtos {
+			// 调用单个删除函数，复用其业务逻辑和验证规则
+			let deleted_count = delete_file_group_by_dto(conn, dto)?;
+			total_deleted += deleted_count;
+		}
 		Ok(total_deleted)
 	})
 }

@@ -374,3 +374,28 @@ pub fn get_group_tree(conn: &mut AnyConnection, group_id: i32) -> Result<GroupTr
 
 	Ok(GroupTreeNode { group, children })
 }
+
+/// 根据分组ID列表批量删除分组
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_ids`: 要删除的分组ID列表
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+pub fn delete_groups_by_ids(
+	conn: &mut AnyConnection,
+	group_ids: Vec<i32>,
+) -> Result<usize, Error> {
+	let mut total_deleted = 0;
+	
+	// 使用事务确保数据一致性
+	conn.transaction::<_, Error, _>(|conn| {
+		for &group_id in &group_ids {
+			// 调用单个分组删除函数，复用其业务逻辑
+			let deleted_count = delete_group(conn, group_id)?;
+			total_deleted += deleted_count;
+		}
+		Ok(total_deleted)
+	})
+}

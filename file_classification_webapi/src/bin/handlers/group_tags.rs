@@ -3,7 +3,7 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::GroupTagDTO;
 use file_classification_core::service::group_tag::{
-	delete_group_tags_by_conditions, select_group_tags_by_conditions_with_options, select_group_tags_by_filter, select_group_tags_by_filter_with_options,
+	delete_group_tags_by_conditions, delete_group_tags_by_dtos, select_group_tags_by_conditions_with_options, select_group_tags_by_filter, select_group_tags_by_filter_with_options,
 };
 use file_classification_core::{
 	model::models::{GroupTagCondition, GroupTagFilter},
@@ -128,7 +128,7 @@ async fn api_delete_group_tag(
 	let mut conn = pool.get().expect("Failed to get connection from pool");
 
 	// 调用服务层删除记录
-	match delete_group_tag_by_dto(&mut conn, group_tag_dto.into_inner()) {
+	match delete_group_tag_by_dto(&mut conn, &group_tag_dto.into_inner()) {
 		Ok(_) =>
 		// 成功时返回 OK 状态码及确认消息
 		{
@@ -211,6 +211,37 @@ async fn api_list_group_tags_by_conditions_with_options(
 		}
 
 		// 处理错误情况
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 根据DTO列表批量删除组标签关联
+///
+/// 根据组标签关联DTO列表批量删除指定关联
+///
+/// 请求路径: DELETE /api/group-tags/delete/by-dtos
+#[delete("/api/group-tags/delete/by-dtos")]
+async fn api_delete_group_tags_by_dtos(
+	dtos: web::Json<Vec<GroupTagDTO>>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 从连接池获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 调用服务层根据DTO列表批量删除组标签关联
+	match delete_group_tags_by_dtos(&mut conn, dtos.into_inner()) {
+		Ok(count) =>
+		// 构造成功响应，包含删除记录数
+		{
+			Ok(HttpResponse::Ok().json(json!({
+					"success": true,
+					"message": format!("成功删除 {} 条记录", count),
+					"count": count
+			})))
+		}
+		// 错误处理
 		Err(e) => Ok(
 			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
 		),

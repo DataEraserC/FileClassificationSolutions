@@ -3,7 +3,7 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::FileGroupDTO;
 use file_classification_core::service::file_group::{
-	delete_file_groups_by_conditions, select_file_groups_by_conditions_with_options, select_file_groups_by_filter
+	delete_file_groups_by_conditions, delete_file_groups_by_dtos, select_file_groups_by_conditions_with_options, select_file_groups_by_filter
 };
 use file_classification_core::{
 	model::models::{FileGroupCondition, FileGroupFilter},
@@ -166,7 +166,7 @@ async fn api_delete_file_group(
 	let mut conn = pool.get().expect("Failed to get connection from pool");
 
 	// 调用服务层删除记录
-	match delete_file_group_by_dto(&mut conn, file_group_dto.into_inner()) {
+	match delete_file_group_by_dto(&mut conn, &file_group_dto.into_inner()) {
 		Ok(_) =>
 		// 成功时返回 OK 状态码及确认消息
 		{
@@ -208,6 +208,37 @@ async fn api_delete_file_groups_by_conditions(
 			})))
 		}
 
+		// 错误处理
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 根据DTO列表批量删除文件组关联
+///
+/// 根据文件组关联DTO列表批量删除指定关联
+///
+/// 请求路径: DELETE /api/file-groups/delete/by-dtos
+#[delete("/api/file-groups/delete/by-dtos")]
+async fn api_delete_file_groups_by_dtos(
+	dtos: web::Json<Vec<FileGroupDTO>>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 从连接池获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 调用服务层根据DTO列表批量删除文件组关联
+	match delete_file_groups_by_dtos(&mut conn, dtos.into_inner()) {
+		Ok(count) =>
+		// 构造成功响应，包含删除记录数
+		{
+			Ok(HttpResponse::Ok().json(json!({
+					"success": true,
+					"message": format!("成功删除 {} 条记录", count),
+					"count": count
+			})))
+		}
 		// 错误处理
 		Err(e) => Ok(
 			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),

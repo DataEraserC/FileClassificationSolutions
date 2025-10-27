@@ -2,7 +2,7 @@ use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
 use file_classification_core::service::groups::{
-	delete_groups_by_conditions, select_group_by_file_id, select_group_by_tag_id,
+	delete_groups_by_conditions, delete_groups_by_ids, select_group_by_file_id, select_group_by_tag_id,
 	select_groups_by_conditions_with_options,
 };
 use file_classification_core::{
@@ -425,6 +425,37 @@ async fn api_list_groups_by_conditions_with_options(
 		}
 
 		// 处理错误情况
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 根据ID列表批量删除组
+///
+/// 根据组ID列表批量删除指定组
+///
+/// 请求路径: DELETE /api/groups/delete/by-ids
+#[delete("/api/groups/delete/by-ids")]
+async fn api_delete_groups_by_ids(
+	group_ids: web::Json<Vec<i32>>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 从连接池获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 调用服务层根据ID列表批量删除组
+	match delete_groups_by_ids(&mut conn, group_ids.into_inner()) {
+		Ok(count) =>
+		// 构造成功响应，包含删除记录数
+		{
+			Ok(HttpResponse::Ok().json(json!({
+					"success": true,
+					"message": format!("成功删除 {} 条记录", count),
+					"count": count
+			})))
+		}
+		// 错误处理
 		Err(e) => Ok(
 			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
 		),

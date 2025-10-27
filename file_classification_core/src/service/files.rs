@@ -348,3 +348,28 @@ pub fn update_file_by_id(
 ) -> Result<usize, diesel::result::Error> {
 	files_dao::update_file_by_id(conn, file_id, update_set)
 }
+
+/// 根据文件ID列表批量删除文件
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `file_ids`: 要删除的文件ID列表
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+pub fn delete_files_by_ids(
+	conn: &mut AnyConnection,
+	file_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+	let mut total_deleted = 0;
+	
+	// 使用事务确保数据一致性
+	conn.transaction::<_, diesel::result::Error, _>(|conn| {
+		for &file_id in &file_ids {
+			// 调用单个文件删除函数，复用其业务逻辑
+			delete_file(conn, file_id)?;
+			total_deleted += 1;
+		}
+		Ok(total_deleted)
+	})
+}

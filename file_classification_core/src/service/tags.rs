@@ -258,3 +258,28 @@ pub fn update_tag_by_id(
 ) -> Result<usize, diesel::result::Error> {
 	tags_dao::update_tag_by_id(conn, tag_id, update_set)
 }
+
+/// 根据标签ID列表批量删除标签
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `tag_ids`: 要删除的标签ID列表
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+pub fn delete_tags_by_ids(
+	conn: &mut AnyConnection,
+	tag_ids: Vec<i32>,
+) -> Result<usize, diesel::result::Error> {
+	let mut total_deleted = 0;
+	
+	// 使用事务确保数据一致性
+	conn.transaction::<_, diesel::result::Error, _>(|conn| {
+		for &tag_id in &tag_ids {
+			// 调用单个标签删除函数，复用其业务逻辑
+			let deleted_count = delete_tag(conn, tag_id)?;
+			total_deleted += deleted_count;
+		}
+		Ok(total_deleted)
+	})
+}

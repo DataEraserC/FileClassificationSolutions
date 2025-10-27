@@ -725,7 +725,7 @@ fn handle_file_group_action(
 				file_id, group_id
 			)) {
 				let dto = models::FileGroupDTO { file_id, group_id, relation_type: 1 };
-				match service::file_group::delete_file_group_by_dto(conn, dto) {
+				match service::file_group::delete_file_group_by_dto(conn, &dto) {
 					Ok(count) => println!("成功删除 {} 个文件组关联", count),
 					Err(e) => eprintln!("删除文件组关联失败: {:?}", e),
 				}
@@ -806,7 +806,7 @@ fn handle_group_tag_action(
 				group_id, tag_id
 			)) {
 				let dto = models::GroupTagDTO { group_id, tag_id };
-				match service::group_tag::delete_group_tag_by_dto(conn, dto) {
+				match service::group_tag::delete_group_tag_by_dto(conn, &dto) {
 					Ok(count) => println!("成功删除 {} 个组标签关联", count),
 					Err(e) => eprintln!("删除组标签关联失败: {:?}", e),
 				}
@@ -888,7 +888,7 @@ fn handle_group_relation_action(
 			)) {
 				let dto = models::GroupRelation { first_group_id, second_group_id, relation_type };
 
-				match service::group_relations::delete_group_relation(conn, dto) {
+				match service::group_relations::delete_group_relation(conn, &dto) {
 					Ok(count) => println!("成功删除 {} 个组关系", count),
 					Err(e) => eprintln!("删除组关系失败: {:?}", e),
 				}

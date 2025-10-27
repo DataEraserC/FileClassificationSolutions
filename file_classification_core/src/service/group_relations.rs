@@ -97,7 +97,7 @@ pub fn create_group_relation(
 /// 成功时返回删除的记录数，失败时返回相应的错误
 pub fn delete_group_relation(
 	conn: &mut AnyConnection,
-	group_relation: GroupRelation,
+	group_relation: &GroupRelation,
 ) -> Result<usize, AppError> {
 	let result = conn.transaction::<_, AppError, _>(|conn| {
 		// 调用数据访问层执行删除操作
@@ -217,10 +217,35 @@ pub fn delete_group_relations_by_conditions(
 			};
 
 			// 调用单个删除函数，复用其业务逻辑和验证规则
-			let deleted_count = delete_group_relation(conn, relation_dto)?;
+			let deleted_count = delete_group_relation(conn, &relation_dto)?;
 			total_deleted += deleted_count;
 		}
 
+		Ok(total_deleted)
+	})
+}
+
+/// 根据DTO列表批量删除组关系
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `dtos`: 要删除的组关系DTO列表
+///
+/// 返回值:
+/// 成功删除的记录数或数据库错误
+pub fn delete_group_relations_by_dtos(
+	conn: &mut AnyConnection,
+	dtos: Vec<GroupRelation>,
+) -> Result<usize, Error> {
+	let mut total_deleted = 0;
+	
+	// 使用事务确保数据一致性
+	conn.transaction::<_, Error, _>(|conn| {
+		for dto in &dtos {
+			// 调用单个删除函数，复用其业务逻辑和验证规则
+			let deleted_count = delete_group_relation(conn, dto)?;
+			total_deleted += deleted_count;
+		}
 		Ok(total_deleted)
 	})
 }
