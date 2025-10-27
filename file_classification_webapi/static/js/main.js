@@ -17,10 +17,24 @@ function waitForThemeToggle() {
     }
 }
 
+// 等待侧边栏切换按钮加载完成后再初始化
+function waitForSidebarToggle() {
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    if (sidebarToggle) {
+        initSidebarToggle();
+    } else {
+        // 如果还没找到元素，稍后再试
+        setTimeout(waitForSidebarToggle, 100);
+    }
+}
+
 // 监听页面内容加载完成事件
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化主题切换功能
     waitForThemeToggle();
+    
+    // 初始化侧边栏切换功能
+    waitForSidebarToggle();
 });
 
 function initTabs() {
@@ -125,6 +139,30 @@ function initThemeToggle() {
         } else {
             themeToggle.textContent = '🌙';
             localStorage.setItem('theme', 'light');
+        }
+    });
+}
+
+// 初始化侧边栏切换功能
+function initSidebarToggle() {
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    // 检查本地存储中的侧边栏状态
+    const savedSidebarState = localStorage.getItem('sidebarState');
+    if (savedSidebarState === 'collapsed') {
+        sidebar.classList.add('collapsed');
+    }
+    
+    // 添加点击事件监听器
+    sidebarToggle.addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+        
+        // 保存状态到本地存储
+        if (sidebar.classList.contains('collapsed')) {
+            localStorage.setItem('sidebarState', 'collapsed');
+        } else {
+            localStorage.setItem('sidebarState', 'expanded');
         }
     });
 }
