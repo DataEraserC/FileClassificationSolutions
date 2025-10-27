@@ -161,31 +161,8 @@ function deleteSelectedTags() {
     
     const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
     
-    // 构造删除条件
-    const conditions = ids.map(id => ({ Id: id }));
-    
-    const url = `${BASE_URL}/api/tags/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(`成功删除 ${data.count} 个标签`, 'success');
-            // 重新加载标签列表
-            listTagsByFilter();
-        } else {
-            showMessage('标签批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签批量删除失败: ' + error.message, 'error');
-    });
+    // 使用新的delete by ids接口
+    deleteTagsByIds(ids);
 }
 
 // 打开创建标签对话框
@@ -266,21 +243,51 @@ function openEditTagDialog(tagId) {
 // 打开批量删除标签对话框
 function openBatchDeleteTagDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除标签</h2>
-        <form id="batch-delete-tag-form">
-            <div class="form-group">
-                <label for="batch-delete-tag-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" onclick="closeModal()">取消</button>
-        </form>
-    `;
+    
+    // 获取当前选中的标签ID
+    const selectedTagCheckboxes = document.querySelectorAll('.tag-checkbox:checked');
+    const selectedTagIds = Array.from(selectedTagCheckboxes).map(cb => parseInt(cb.value));
+    
+    let formContent;
+    if (selectedTagIds.length > 0) {
+        formContent = `
+            <h2>批量删除标签</h2>
+            <p>已选择 ${selectedTagIds.length} 个标签</p>
+            <form id="batch-delete-tag-form">
+                <input type="hidden" id="selected-tag-ids" value='${JSON.stringify(selectedTagIds)}'>
+                <button type="submit">删除选中标签</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除标签</h2>
+            <form id="batch-delete-tag-form">
+                <div class="form-group">
+                    <label for="batch-delete-tag-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+    
+    modalBody.innerHTML = formContent;
     
     // 绑定表单提交事件
     document.getElementById('batch-delete-tag-form').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // 如果有选中的标签ID，使用delete by ids
+        const selectedIdsInput = document.getElementById('selected-tag-ids');
+        if (selectedIdsInput) {
+            const tagIds = JSON.parse(selectedIdsInput.value);
+            deleteTagsByIds(tagIds);
+            return;
+        }
+        
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-tag-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -296,6 +303,33 @@ function openBatchDeleteTagDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 批量删除标签（根据ID列表）
+function deleteTagsByIds(tagIds) {
+    const url = `${BASE_URL}/api/tags/delete/by-ids`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(tagIds)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('标签批量删除成功', 'success');
+            closeModal();
+            // 重新加载标签列表
+            listTagsByFilter();
+        } else {
+            showMessage('标签批量删除失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('标签批量删除失败: ' + error.message, 'error');
+    });
 }
 
 function deleteTagsByConditions(conditions) {

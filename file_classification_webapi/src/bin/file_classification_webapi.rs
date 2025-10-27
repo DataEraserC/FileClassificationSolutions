@@ -296,6 +296,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::files::api_update_files_by_conditions)
             .service(handlers::files::api_update_file_by_id)
             .service(handlers::files::api_delete_file_by_id)
+            .service(handlers::files::api_delete_files_by_ids)
             .service(handlers::files::api_delete_files_by_conditions)
             // 组相关路由
             .service(handlers::groups::api_list_groups_by_filter)
@@ -308,6 +309,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::groups::api_update_groups_by_conditions)
             .service(handlers::groups::api_update_group_by_id)
             .service(handlers::groups::api_delete_group_by_id)
+            .service(handlers::groups::api_delete_groups_by_ids)
             .service(handlers::groups::api_delete_groups_by_conditions)
             .service(handlers::groups::api_get_group_tree)
             // 标签相关路由
@@ -320,6 +322,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::tags::api_update_tags_by_conditions)
             .service(handlers::tags::api_update_tag_by_id)
             .service(handlers::tags::api_delete_tag_by_id)
+            .service(handlers::tags::api_delete_tags_by_ids)
             .service(handlers::tags::api_delete_tags_by_conditions)
             // 文件组关联路由
             .service(handlers::file_groups::api_list_file_groups_by_filter)
@@ -327,6 +330,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::file_groups::api_list_file_groups_by_conditions_with_options)
             .service(handlers::file_groups::api_create_file_group)
             .service(handlers::file_groups::api_delete_file_group)
+            .service(handlers::file_groups::api_delete_file_groups_by_dtos)
             .service(handlers::file_groups::api_delete_file_groups_by_conditions)
             // 组标签关联路由
             .service(handlers::group_tags::api_list_group_tags_by_filter)
@@ -334,6 +338,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::group_tags::api_list_group_tags_by_conditions_with_options)
             .service(handlers::group_tags::api_create_group_tag)
             .service(handlers::group_tags::api_delete_group_tag)
+            .service(handlers::group_tags::api_delete_group_tags_by_dtos)
             .service(handlers::group_tags::api_delete_group_tags_by_conditions)
             // 组关系路由
             .service(handlers::group_relations::api_list_group_relations_by_filter)
@@ -341,6 +346,7 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::group_relations::api_list_group_relations_by_conditions_with_options)
             .service(handlers::group_relations::api_create_group_relation)
             .service(handlers::group_relations::api_delete_group_relation)
+            .service(handlers::group_relations::api_delete_group_relations_by_dtos)
             .service(handlers::group_relations::api_delete_group_relations_by_conditions)
             // 静态文件服务 - 使用嵌入的资源
             .route("/", web::get().to(index_handler))

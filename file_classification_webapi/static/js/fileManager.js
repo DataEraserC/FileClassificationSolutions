@@ -191,31 +191,8 @@ function deleteSelectedFiles() {
     
     const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
     
-    // 构造删除条件
-    const conditions = ids.map(id => ({ Id: id }));
-    
-    const url = `${BASE_URL}/api/files/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(`成功删除 ${data.count} 个文件`, 'success');
-            // 重新加载文件列表
-            listFilesByFilter();
-        } else {
-            showMessage('文件批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件批量删除失败: ' + error.message, 'error');
-    });
+    // 使用新的delete by ids接口
+    deleteFilesByIds(ids);
 }
 
 // 打开创建文件对话框
@@ -304,21 +281,51 @@ function openEditFileDialog(fileId) {
 // 打开批量删除文件对话框
 function openBatchDeleteFileDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除文件</h2>
-        <form id="batch-delete-file-form">
-            <div class="form-group">
-                <label for="batch-delete-file-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" onclick="closeModal()">取消</button>
-        </form>
-    `;
+    
+    // 获取当前选中的文件ID
+    const selectedFileCheckboxes = document.querySelectorAll('.file-checkbox:checked');
+    const selectedFileIds = Array.from(selectedFileCheckboxes).map(cb => parseInt(cb.value));
+    
+    let formContent;
+    if (selectedFileIds.length > 0) {
+        formContent = `
+            <h2>批量删除文件</h2>
+            <p>已选择 ${selectedFileIds.length} 个文件</p>
+            <form id="batch-delete-file-form">
+                <input type="hidden" id="selected-file-ids" value='${JSON.stringify(selectedFileIds)}'>
+                <button type="submit">删除选中文件</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除文件</h2>
+            <form id="batch-delete-file-form">
+                <div class="form-group">
+                    <label for="batch-delete-file-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+    
+    modalBody.innerHTML = formContent;
     
     // 绑定表单提交事件
     document.getElementById('batch-delete-file-form').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // 如果有选中的文件ID，使用delete by ids
+        const selectedIdsInput = document.getElementById('selected-file-ids');
+        if (selectedIdsInput) {
+            const fileIds = JSON.parse(selectedIdsInput.value);
+            deleteFilesByIds(fileIds);
+            return;
+        }
+        
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-file-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -336,14 +343,15 @@ function openBatchDeleteFileDialog() {
     document.getElementById('modal').style.display = 'block';
 }
 
-function deleteFilesByConditions(conditions) {
-    const url = `${BASE_URL}/api/files/delete/by-conditions`;
+// 批量删除文件（根据ID列表）
+function deleteFilesByIds(fileIds) {
+    const url = `${BASE_URL}/api/files/delete/by-ids`;
     fetch(url, {
         method: 'DELETE',
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify(conditions)
+        body: JSON.stringify(fileIds)
     })
     .then(response => response.json())
     .then(data => {

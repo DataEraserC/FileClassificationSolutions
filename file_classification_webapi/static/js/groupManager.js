@@ -163,31 +163,8 @@ function deleteSelectedGroups() {
     
     const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
     
-    // 构造删除条件
-    const conditions = ids.map(id => ({ Id: id }));
-    
-    const url = `${BASE_URL}/api/groups/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(`成功删除 ${data.count} 个组`, 'success');
-            // 重新加载组列表
-            listGroupsByFilter();
-        } else {
-            showMessage('组批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组批量删除失败: ' + error.message, 'error');
-    });
+    // 使用新的delete by ids接口
+    deleteGroupsByIds(ids);
 }
 
 // 打开创建组对话框
@@ -268,21 +245,51 @@ function openEditGroupDialog(groupId) {
 // 打开批量删除组对话框
 function openBatchDeleteGroupDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除组</h2>
-        <form id="batch-delete-group-form">
-            <div class="form-group">
-                <label for="batch-delete-group-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" onclick="closeModal()">取消</button>
-        </form>
-    `;
+    
+    // 获取当前选中的组ID
+    const selectedGroupCheckboxes = document.querySelectorAll('.group-checkbox:checked');
+    const selectedGroupIds = Array.from(selectedGroupCheckboxes).map(cb => parseInt(cb.value));
+    
+    let formContent;
+    if (selectedGroupIds.length > 0) {
+        formContent = `
+            <h2>批量删除组</h2>
+            <p>已选择 ${selectedGroupIds.length} 个组</p>
+            <form id="batch-delete-group-form">
+                <input type="hidden" id="selected-group-ids" value='${JSON.stringify(selectedGroupIds)}'>
+                <button type="submit">删除选中组</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除组</h2>
+            <form id="batch-delete-group-form">
+                <div class="form-group">
+                    <label for="batch-delete-group-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+    
+    modalBody.innerHTML = formContent;
     
     // 绑定表单提交事件
     document.getElementById('batch-delete-group-form').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // 如果有选中的组ID，使用delete by ids
+        const selectedIdsInput = document.getElementById('selected-group-ids');
+        if (selectedIdsInput) {
+            const groupIds = JSON.parse(selectedIdsInput.value);
+            deleteGroupsByIds(groupIds);
+            return;
+        }
+        
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-group-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -298,6 +305,33 @@ function openBatchDeleteGroupDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 批量删除组（根据ID列表）
+function deleteGroupsByIds(groupIds) {
+    const url = `${BASE_URL}/api/groups/delete/by-ids`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(groupIds)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('组批量删除成功', 'success');
+            closeModal();
+            // 重新加载组列表
+            listGroupsByFilter();
+        } else {
+            showMessage('组批量删除失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('组批量删除失败: ' + error.message, 'error');
+    });
 }
 
 function deleteGroupsByConditions(conditions) {

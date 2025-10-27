@@ -131,37 +131,17 @@ function deleteSelectedGroupRelations() {
         return;
     }
     
-    // 构造删除条件
-    const conditions = Array.from(selectedCheckboxes).map(cb => {
+    // 构造删除DTO列表
+    const dtos = Array.from(selectedCheckboxes).map(cb => {
         return {
-            FirstGroupId: parseInt(cb.getAttribute('data-first-id')),
-            SecondGroupId: parseInt(cb.getAttribute('data-second-id')),
-            RelationType: cb.getAttribute('data-relation-type')
+            first_group_id: parseInt(cb.getAttribute('data-first-id')),
+            second_group_id: parseInt(cb.getAttribute('data-second-id')),
+            relation_type: cb.getAttribute('data-relation-type')
         };
     });
     
-    const url = `${BASE_URL}/api/group-relations/delete/by-conditions`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage(`成功删除 ${data.count} 个组关系`, 'success');
-            // 重新加载组关系列表
-            listGroupRelationsByFilter();
-        } else {
-            showMessage('组关系批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组关系批量删除失败: ' + error.message, 'error');
-    });
+    // 使用新的delete by dtos接口
+    deleteGroupRelationsByDtos(dtos);
 }
 
 // 打开创建组关系对话框
@@ -199,21 +179,55 @@ function openCreateGroupRelationDialog() {
 // 打开批量删除组关系对话框
 function openBatchDeleteGroupRelationDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除组关系</h2>
-        <form id="batch-delete-group-relation-form">
-            <div class="form-group">
-                <label for="batch-delete-group-relation-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1, "SecondGroupId": 2, "RelationType": "parent"}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" onclick="closeModal()">取消</button>
-        </form>
-    `;
+    
+    // 获取当前选中的组关系
+    const selectedGroupRelationCheckboxes = document.querySelectorAll('.group-relation-checkbox:checked');
+    const selectedGroupRelationDtos = Array.from(selectedGroupRelationCheckboxes).map(cb => ({
+        first_group_id: parseInt(cb.getAttribute('data-first-id')),
+        second_group_id: parseInt(cb.getAttribute('data-second-id')),
+        relation_type: cb.getAttribute('data-relation-type')
+    }));
+    
+    let formContent;
+    if (selectedGroupRelationDtos.length > 0) {
+        formContent = `
+            <h2>批量删除组关系</h2>
+            <p>已选择 ${selectedGroupRelationDtos.length} 个组关系</p>
+            <form id="batch-delete-group-relation-form">
+                <input type="hidden" id="selected-group-relation-dtos" value='${JSON.stringify(selectedGroupRelationDtos)}'>
+                <button type="submit">删除选中组关系</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除组关系</h2>
+            <form id="batch-delete-group-relation-form">
+                <div class="form-group">
+                    <label for="batch-delete-group-relation-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1, "SecondGroupId": 2, "RelationType": "parent"}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+    
+    modalBody.innerHTML = formContent;
     
     // 绑定表单提交事件
     document.getElementById('batch-delete-group-relation-form').addEventListener('submit', function(e) {
         e.preventDefault();
+        
+        // 如果有选中的组关系，使用delete by dtos
+        const selectedDtosInput = document.getElementById('selected-group-relation-dtos');
+        if (selectedDtosInput) {
+            const dtos = JSON.parse(selectedDtosInput.value);
+            deleteGroupRelationsByDtos(dtos);
+            return;
+        }
+        
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-group-relation-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -229,6 +243,33 @@ function openBatchDeleteGroupRelationDialog() {
     });
     
     document.getElementById('modal').style.display = 'block';
+}
+
+// 批量删除组关系（根据DTO列表）
+function deleteGroupRelationsByDtos(dtos) {
+    const url = `${BASE_URL}/api/group-relations/delete/by-dtos`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dtos)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showMessage('组关系批量删除成功', 'success');
+            closeModal();
+            // 重新加载组关系列表
+            listGroupRelationsByFilter();
+        } else {
+            showMessage('组关系批量删除失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('组关系批量删除失败: ' + error.message, 'error');
+    });
 }
 
 function deleteGroupRelationsByConditions(conditions) {
