@@ -12,6 +12,8 @@ use utils::database::establish_connection_pool;
 use log;
 use fern;
 use chrono;
+use dotenvy::dotenv;
+use std::env;
 
 // 嵌入静态资源
 #[derive(RustEmbed)]
@@ -146,6 +148,9 @@ async fn static_handler(path: web::Path<String>) -> HttpResponse {
 
 /// 初始化日志系统，同时输出到终端和文件
 fn setup_logger() -> Result<(), fern::InitError> {
+    // 加载 .env 文件
+    let _ = dotenv();
+    
     // 创建 logs 目录（如果不存在）
     std::fs::create_dir_all("logs")?;
     
@@ -154,12 +159,20 @@ fn setup_logger() -> Result<(), fern::InitError> {
     let date_str = local_time.format("%Y-%m-%d").to_string();
     let log_file_path = format!("logs/{}.log", date_str);
     
-    let log_level = std::env::var("RUST_LOG")
+    // 获取终端日志等级
+    let console_log_level = env::var("RUST_LOG")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(log::LevelFilter::Info);
+        
+    // 文件日志等级默认为 Debug
+    let file_log_level = env::var("RUST_LOG_FILE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(log::LevelFilter::Debug);
 
-    fern::Dispatch::new()
+    // 创建日志分发器
+    let dispatch = fern::Dispatch::new()
         .format(|out, message, record| {
             out.finish(format_args!(
                 "[{}][{}][{}] {}",
@@ -168,12 +181,23 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 record.target(),
                 message
             ))
-        })
-        // 同时输出到终端和文件
-        .chain(std::io::stdout())
-        .chain(fern::log_file(log_file_path)?)
-        .level(log_level)
-        .apply()?;
+        });
+        
+    // 添加控制台输出
+    let dispatch = dispatch.chain(
+        fern::Dispatch::new()
+            .level(console_log_level)
+            .chain(std::io::stdout())
+    );
+    
+    // 添加文件输出
+    let dispatch = dispatch.chain(
+        fern::Dispatch::new()
+            .level(file_log_level)
+            .chain(fern::log_file(log_file_path)?)
+    );
+    
+    dispatch.apply()?;
         
     Ok(())
 }
@@ -184,8 +208,10 @@ async fn main() -> std::io::Result<()> {
     setup_logger().expect("日志系统初始化失败");
     
     // 输出日志等级信息
-    let log_level = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
-    log::info!("日志等级设置为: {}", log_level);
+    let console_log_level = env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+    let file_log_level = env::var("RUST_LOG_FILE").unwrap_or_else(|_| "debug".to_string());
+    log::info!("终端日志等级设置为: {}", console_log_level);
+    log::info!("文件日志等级设置为: {}", file_log_level);
 
     log::info!("正在启动文件分类 Web API...");
 
