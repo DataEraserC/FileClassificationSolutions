@@ -269,37 +269,38 @@ function createFileGroup() {
 }
 
 function deleteFileGroup(fileId, groupId) {
-    if (!confirm(`确定要删除文件组关联 [文件ID: ${fileId}, 组ID: ${groupId}] 吗？`)) {
-        return;
-    }
-    
-    const fileGroupData = {
-        file_id: fileId,
-        group_id: groupId,
-        relation_type: 1
-    };
-    
-    const url = `${BASE_URL}/api/file-groups`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(fileGroupData)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('文件组关联删除成功', 'success');
-            // 重新加载文件组列表
-            listFileGroupsByFilter();
-        } else {
-            showMessage('文件组关联删除失败: ' + data.message, 'error');
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除文件组关联 [文件ID: ${fileId}, 组ID: ${groupId}] 吗？`, function(result) {
+        if (result) {
+            const fileGroupData = {
+                file_id: fileId,
+                group_id: groupId,
+                relation_type: 1
+            };
+
+            const url = `${BASE_URL}/api/file-groups`;
+            fetch(url, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(fileGroupData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('文件组关联删除成功', 'success');
+                    // 重新加载文件组列表
+                    listFileGroupsByFilter();
+                } else {
+                    showMessage('文件组关联删除失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('文件组关联删除失败: ' + error.message, 'error');
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件组关联删除失败: ' + error.message, 'error');
     });
 }
 
@@ -310,21 +311,22 @@ function deleteSelectedFileGroups() {
         showMessage('请至少选择一个文件组关联进行删除', 'warning');
         return;
     }
-    
-    if (!confirm(`确定要删除这 ${selectedCheckboxes.length} 个文件组关联吗？`)) {
-        return;
-    }
-    
-    const fileGroups = Array.from(selectedCheckboxes).map(cb => {
-        return {
-            file_id: parseInt(cb.getAttribute('data-file-id')),
-            group_id: parseInt(cb.getAttribute('data-group-id')),
-            relation_type: 1
-        };
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个文件组关联吗？`, function(result) {
+        if (result) {
+            const fileGroups = Array.from(selectedCheckboxes).map(cb => {
+                return {
+                    file_id: parseInt(cb.getAttribute('data-file-id')),
+                    group_id: parseInt(cb.getAttribute('data-group-id')),
+                    relation_type: 1
+                };
+            });
+
+            // 使用新的delete by dtos接口
+            deleteFileGroupsByDtos(fileGroups);
+        }
     });
-    
-    // 使用新的delete by dtos接口
-    deleteFileGroupsByDtos(fileGroups);
 }
 
 // 打开创建文件组关联对话框
@@ -341,8 +343,8 @@ function openCreateFileGroupDialog() {
                 <label for="create-file-group-group-id">组ID:</label>
                 <input type="number" id="create-file-group-group-id" required>
             </div>
-            <button type="submit">创建</button>
-            <button type="button" onclick="closeModal()">取消</button>
+            <button type="submit" class="btn-primary">创建</button>
+            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -440,8 +442,8 @@ function openComplexSearchFileGroupDialog() {
                     <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
                 </div>
                 <div id="visual-search-conditions"></div>
-                <button type="submit">查询</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="submit" class="btn-primary">查询</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         </div>
         <div id="json-search" class="tab-content">
@@ -450,8 +452,8 @@ function openComplexSearchFileGroupDialog() {
                     <label for="complex-search-file-group-conditions">查询条件 (JSON格式):</label>
                     <textarea id="complex-search-file-group-conditions" rows="5" placeholder='[{"FileId": 1}]'></textarea>
                 </div>
-                <button type="submit">查询</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="submit" class="btn-primary">查询</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         </div>
     `;

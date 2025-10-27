@@ -245,27 +245,28 @@ function updateGroup() {
 }
 
 function deleteGroup(groupId) {
-    if (!confirm('确定要删除该组吗？')) {
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/groups/${groupId}`;
-    fetch(url, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('组删除成功', 'success');
-            // 重新加载组列表
-            listGroupsByFilter();
-        } else {
-            showMessage('组删除失败: ' + data.message, 'error');
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', '确定要删除该组吗？', function(result) {
+        if (result) {
+            const url = `${BASE_URL}/api/groups/${groupId}`;
+            fetch(url, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('组删除成功', 'success');
+                    // 重新加载组列表
+                    listGroupsByFilter();
+                } else {
+                    showMessage('组删除失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('组删除失败: ' + error.message, 'error');
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组删除失败: ' + error.message, 'error');
     });
 }
 
@@ -276,15 +277,16 @@ function deleteSelectedGroups() {
         showMessage('请至少选择一个组进行删除', 'warning');
         return;
     }
-    
-    if (!confirm(`确定要删除这 ${selectedCheckboxes.length} 个组吗？`)) {
-        return;
-    }
-    
-    const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
-    
-    // 使用新的delete by ids接口
-    deleteGroupsByIds(ids);
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组吗？`, function(result) {
+        if (result) {
+            const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
+            
+            // 使用新的delete by ids接口
+            deleteGroupsByIds(ids);
+        }
+    });
 }
 
 // 打开创建组对话框
@@ -301,8 +303,8 @@ function openCreateGroupDialog() {
                 <label for="create-group-description">描述:</label>
                 <input type="text" id="create-group-description">
             </div>
-            <button type="submit">创建</button>
-            <button type="button" onclick="closeModal()">取消</button>
+            <button type="submit" class="btn-primary">创建</button>
+            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -340,8 +342,8 @@ function openEditGroupDialog(groupId) {
                             <label for="edit-group-description">描述:</label>
                             <input type="text" id="edit-group-description" value="${group.description || ''}">
                         </div>
-                        <button type="submit">更新</button>
-                        <button type="button" onclick="closeModal()">取消</button>
+                        <button type="submit" class="btn-primary">更新</button>
+                        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
                     </form>
                 `;
                 

@@ -1,5 +1,5 @@
 <!-- 弹窗模态框 -->
-<div id="modal" class="modal">
+<div id="modal" class="modal" onclick="if(event.target.id === 'modal') closeModal()">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
         <div id="modal-body">
@@ -9,7 +9,7 @@
 </div>
 
 <!-- 组树模态框 -->
-<div id="group-tree-modal" class="modal">
+<div id="group-tree-modal" class="modal" onclick="if(event.target.id === 'group-tree-modal') closeGroupTreeModal()">
     <div class="modal-content">
         <span class="close" onclick="closeGroupTreeModal()">&times;</span>
         <h2>组树状结构</h2>

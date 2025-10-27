@@ -273,27 +273,28 @@ function updateFile() {
 }
 
 function deleteFile(fileId) {
-    if (!confirm('确定要删除该文件吗？')) {
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/files/${fileId}`;
-    fetch(url, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('文件删除成功', 'success');
-            // 重新加载文件列表
-            listFilesByFilter();
-        } else {
-            showMessage('文件删除失败: ' + data.message, 'error');
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', '确定要删除该文件吗？', function(result) {
+        if (result) {
+            const url = `${BASE_URL}/api/files/${fileId}`;
+            fetch(url, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('文件删除成功', 'success');
+                    // 重新加载文件列表
+                    listFilesByFilter();
+                } else {
+                    showMessage('文件删除失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('文件删除失败: ' + error.message, 'error');
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件删除失败: ' + error.message, 'error');
     });
 }
 
@@ -304,15 +305,16 @@ function deleteSelectedFiles() {
         showMessage('请至少选择一个文件进行删除', 'warning');
         return;
     }
-    
-    if (!confirm(`确定要删除这 ${selectedCheckboxes.length} 个文件吗？`)) {
-        return;
-    }
-    
-    const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
-    
-    // 使用新的delete by ids接口
-    deleteFilesByIds(ids);
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个文件吗？`, function(result) {
+        if (result) {
+            const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
+            
+            // 使用新的delete by ids接口
+            deleteFilesByIds(ids);
+        }
+    });
 }
 
 // 打开创建文件对话框
@@ -333,8 +335,8 @@ function openCreateFileDialog() {
                 <label for="create-file-group-id">组ID:</label>
                 <input type="number" id="create-file-group-id" required>
             </div>
-            <button type="submit">创建</button>
-            <button type="button" onclick="closeModal()">取消</button>
+            <button type="submit" class="btn-primary">创建</button>
+            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -376,8 +378,8 @@ function openEditFileDialog(fileId) {
                             <label for="edit-file-group-id">组ID:</label>
                             <input type="number" id="edit-file-group-id" value="${file.group_id}" required>
                         </div>
-                        <button type="submit">更新</button>
-                        <button type="button" onclick="closeModal()">取消</button>
+                        <button type="submit" class="btn-primary">更新</button>
+                        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
                     </form>
                 `;
                 

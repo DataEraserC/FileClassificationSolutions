@@ -243,27 +243,28 @@ function updateTag() {
 }
 
 function deleteTag(tagId) {
-    if (!confirm('确定要删除该标签吗？')) {
-        return;
-    }
-    
-    const url = `${BASE_URL}/api/tags/${tagId}`;
-    fetch(url, {
-        method: 'DELETE'
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('标签删除成功', 'success');
-            // 重新加载标签列表
-            listTagsByFilter();
-        } else {
-            showMessage('标签删除失败: ' + data.message, 'error');
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', '确定要删除该标签吗？', function(result) {
+        if (result) {
+            const url = `${BASE_URL}/api/tags/${tagId}`;
+            fetch(url, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showMessage('标签删除成功', 'success');
+                    // 重新加载标签列表
+                    listTagsByFilter();
+                } else {
+                    showMessage('标签删除失败: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showMessage('标签删除失败: ' + error.message, 'error');
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签删除失败: ' + error.message, 'error');
     });
 }
 
@@ -274,15 +275,16 @@ function deleteSelectedTags() {
         showMessage('请至少选择一个标签进行删除', 'warning');
         return;
     }
-    
-    if (!confirm(`确定要删除这 ${selectedCheckboxes.length} 个标签吗？`)) {
-        return;
-    }
-    
-    const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
-    
-    // 使用新的delete by ids接口
-    deleteTagsByIds(ids);
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个标签吗？`, function(result) {
+        if (result) {
+            const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
+            
+            // 使用新的delete by ids接口
+            deleteTagsByIds(ids);
+        }
+    });
 }
 
 // 打开创建标签对话框
@@ -299,8 +301,8 @@ function openCreateTagDialog() {
                 <label for="create-tag-description">描述:</label>
                 <input type="text" id="create-tag-description">
             </div>
-            <button type="submit">创建</button>
-            <button type="button" onclick="closeModal()">取消</button>
+            <button type="submit" class="btn-primary">创建</button>
+            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
     
@@ -338,8 +340,8 @@ function openEditTagDialog(tagId) {
                             <label for="edit-tag-description">描述:</label>
                             <input type="text" id="edit-tag-description" value="${tag.description || ''}">
                         </div>
-                        <button type="submit">更新</button>
-                        <button type="button" onclick="closeModal()">取消</button>
+                        <button type="submit" class="btn-primary">更新</button>
+                        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
                     </form>
                 `;
                 
@@ -375,8 +377,8 @@ function openBatchDeleteTagDialog() {
             <p>已选择 ${selectedTagIds.length} 个标签</p>
             <form id="batch-delete-tag-form">
                 <input type="hidden" id="selected-tag-ids" value='${JSON.stringify(selectedTagIds)}'>
-                <button type="submit">删除选中标签</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="submit" class="btn-primary">删除选中标签</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
     } else {
@@ -387,8 +389,8 @@ function openBatchDeleteTagDialog() {
                     <label for="batch-delete-tag-conditions">删除条件 (JSON格式):</label>
                     <textarea id="batch-delete-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
                 </div>
-                <button type="submit">删除</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="submit" class="btn-primary">删除</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
     }
@@ -520,7 +522,7 @@ function openComplexSearchTagDialog() {
                     <label>已添加的条件:</label>
                     <div id="visual-search-conditions"></div>
                 </div>
-                <button type="button" onclick="performVisualSearch()">查询</button>
+                <button type="button" class="btn-primary" onclick="performVisualSearch()">查询</button>
             </form>
         </div>
         <div id="json-search" class="tab-content" style="display: none;">
@@ -529,10 +531,10 @@ function openComplexSearchTagDialog() {
                     <label for="complex-search-tag-conditions">查询条件 (JSON格式):</label>
                     <textarea id="complex-search-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
                 </div>
-                <button type="submit">查询</button>
+                <button type="submit" class="btn-primary">查询</button>
             </form>
         </div>
-        <button type="button" onclick="closeModal()">取消</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
     
     // 绑定表单提交事件

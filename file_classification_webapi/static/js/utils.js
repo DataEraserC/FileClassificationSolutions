@@ -192,3 +192,40 @@ function performVisualSearch() {
     // 这里应该根据添加的条件构造查询条件并执行搜索
     showMessage('可视化搜索功能待实现', 'info');
 }
+
+// 显示确认对话框
+function showConfirmDialog(title, message, callback) {
+    const modalBody = document.getElementById('modal-body');
+    if (modalBody) {
+        modalBody.innerHTML = `
+            <h2>${title}</h2>
+            <div class="confirm-dialog">
+                <p>${message}</p>
+                <div class="confirm-buttons">
+                    <button type="button" class="btn-primary" onclick="handleConfirm(true)">确定</button>
+                    <button type="button" class="btn-secondary" onclick="handleConfirm(false)">取消</button>
+                </div>
+            </div>
+        `;
+        
+        // 保存回调函数
+        window.confirmCallback = callback;
+        
+        // 打开模态框
+        openModal();
+    }
+}
+
+// 处理确认对话框的结果
+function handleConfirm(result) {
+    // 关闭模态框
+    closeModal();
+    
+    // 执行回调函数
+    if (window.confirmCallback && typeof window.confirmCallback === 'function') {
+        window.confirmCallback(result);
+    }
+    
+    // 清除回调函数
+    window.confirmCallback = null;
+}

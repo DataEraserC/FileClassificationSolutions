@@ -4,6 +4,38 @@
 document.addEventListener('DOMContentLoaded', function() {
     // 延迟初始化，确保部分页面已加载完成
     setTimeout(initTabs, 100);
+    
+    // 添加ESC键关闭模态框功能
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            // 尝试关闭主模态框
+            const modal = document.getElementById('modal');
+            if (modal && modal.style.display === 'block') {
+                modal.style.display = 'none';
+            }
+            
+            // 尝试关闭组树模态框
+            const groupTreeModal = document.getElementById('group-tree-modal');
+            if (groupTreeModal && groupTreeModal.style.display === 'block') {
+                groupTreeModal.style.display = 'none';
+            }
+        }
+    });
+    
+    // 添加点击模态框背景关闭功能
+    document.addEventListener('click', function(event) {
+        // 处理主模态框
+        const modal = document.getElementById('modal');
+        if (modal && event.target === modal) {
+            modal.style.display = 'none';
+        }
+        
+        // 处理组树模态框
+        const groupTreeModal = document.getElementById('group-tree-modal');
+        if (groupTreeModal && event.target === groupTreeModal) {
+            groupTreeModal.style.display = 'none';
+        }
+    });
 });
 
 // 等待主题切换按钮加载完成后再初始化
