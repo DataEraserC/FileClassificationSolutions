@@ -5,11 +5,10 @@
 
 use super::models::GroupCondition;
 use super::models::{CreateGroupDTO, Group, GroupFilter};
-use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO};
+use crate::model::models::{GroupOrderBy, GroupQueryOptions, OrderDirection, UpdateGroupDTO, PaginationResult};
 use crate::model::schema::groups;
 use crate::model::schema::groups::dsl::*;
 use crate::utils::database::AnyConnection;
-use diesel::dsl::not;
 use diesel::prelude::*;
 use diesel::sql_types::Bool;
 
@@ -355,7 +354,7 @@ fn build_group_condition(
 		}
 		GroupCondition::Not(condition) => {
 			let expr = build_group_condition(*condition);
-			Box::new(not(expr))
+			Box::new(diesel::dsl::not(expr))
 		}
 	}
 }
@@ -462,6 +461,96 @@ pub fn select_groups_by_conditions_with_options(
 	}
 
 	query.select(Group::as_select()).load(conn)
+}
+
+/// 根据多个条件和高级选项查询分组记录（支持分页）
+///
+/// 支持分页、排序等复杂查询需求，返回分页结果
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `options`: 查询选项，包括分页和排序配置
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+#[allow(dead_code)]
+pub fn select_groups_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupCondition>,
+	options: GroupQueryOptions,
+) -> Result<PaginationResult<Group>, diesel::result::Error> {
+	let mut query = groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+	let mut count_query = groups::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+
+	// 对每个条件应用 AND 逻辑
+	for condition in &conditions {
+		let boxed_condition = build_group_condition(condition.clone());
+		query = query.filter(boxed_condition);
+		// 修复：为 count_query 重新构建条件而不是克隆
+		let count_condition = build_group_condition(condition.clone());
+		count_query = count_query.filter(count_condition);
+	}
+
+	// 计算总记录数
+	let total = count_query.count().get_result::<i64>(conn)?;
+
+	// 处理分页参数
+	let (limit, offset) = if let (Some(page), Some(page_size)) = (options.page, options.page_size) {
+		let offset = (page - 1) * page_size;
+		(page_size, offset)
+	} else {
+		(options.limit.unwrap_or(10), options.offset.unwrap_or(0))
+	};
+
+	// 应用查询选项（排序、限制等）
+	query = query.limit(limit).offset(offset);
+
+	// 应用排序
+	for order_by in options.order_by {
+		query = match order_by {
+			GroupOrderBy::Id(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::id.asc()),
+				OrderDirection::Desc => query.order(groups::id.desc()),
+			},
+			GroupOrderBy::Name(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::name.asc()),
+				OrderDirection::Desc => query.order(groups::name.desc()),
+			},
+			GroupOrderBy::ReferenceCount(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::reference_count.asc()),
+				OrderDirection::Desc => query.order(groups::reference_count.desc()),
+			},
+			GroupOrderBy::IsPrimary(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::is_primary.asc()),
+				OrderDirection::Desc => query.order(groups::is_primary.desc()),
+			},
+			GroupOrderBy::ClickCount(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::click_count.asc()),
+				OrderDirection::Desc => query.order(groups::click_count.desc()),
+			},
+			GroupOrderBy::ShareCount(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::share_count.asc()),
+				OrderDirection::Desc => query.order(groups::share_count.desc()),
+			},
+			GroupOrderBy::CreateTime(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::create_time.asc()),
+				OrderDirection::Desc => query.order(groups::create_time.desc()),
+			},
+			GroupOrderBy::ModifyTime(direction) => match direction {
+				OrderDirection::Asc => query.order(groups::modify_time.asc()),
+				OrderDirection::Desc => query.order(groups::modify_time.desc()),
+			},
+		};
+	}
+
+	let data = query.select(Group::as_select()).load(conn)?;
+	
+	// 构造分页结果
+	let page = if options.page.is_some() { options.page.unwrap() } else { offset / limit + 1 };
+	let page_size = if options.page_size.is_some() { options.page_size.unwrap() } else { limit };
+	
+	Ok(PaginationResult::new(data, page, page_size, total))
 }
 
 /// 根据给定条件批量更新分组记录

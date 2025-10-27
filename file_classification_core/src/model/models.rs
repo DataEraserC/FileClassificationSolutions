@@ -125,6 +125,10 @@ pub struct FileQueryOptions {
 	pub offset: Option<i64>,
 	/// 排序条件列表
 	pub order_by: Vec<FileOrderBy>,
+	/// 分页参数（页码，从1开始）
+	pub page: Option<i64>,
+	/// 分页参数（每页记录数）
+	pub page_size: Option<i64>,
 }
 
 /// 文件排序字段枚举
@@ -344,6 +348,10 @@ pub struct GroupQueryOptions {
 	pub offset: Option<i64>,
 	/// 排序条件列表
 	pub order_by: Vec<GroupOrderBy>,
+	/// 分页参数（页码，从1开始）
+	pub page: Option<i64>,
+	/// 分页参数（每页记录数）
+	pub page_size: Option<i64>,
 }
 
 /// 分组排序字段枚举
@@ -549,6 +557,10 @@ pub struct TagQueryOptions {
 	pub offset: Option<i64>,
 	/// 排序条件列表
 	pub order_by: Vec<TagOrderBy>,
+	/// 分页参数（页码，从1开始）
+	pub page: Option<i64>,
+	/// 分页参数（每页记录数）
+	pub page_size: Option<i64>,
 }
 
 /// 标签排序字段枚举
@@ -692,6 +704,10 @@ pub struct FileGroupQueryOptions {
 	pub offset: Option<i64>,
 	/// 排序条件列表
 	pub order_by: Vec<FileGroupOrderBy>,
+	/// 分页参数（页码，从1开始）
+	pub page: Option<i64>,
+	/// 分页参数（每页记录数）
+	pub page_size: Option<i64>,
 }
 
 /// 文件-分组关联排序字段枚举
@@ -787,6 +803,10 @@ pub struct GroupTagQueryOptions {
 	pub offset: Option<i64>,
 	/// 排序条件列表
 	pub order_by: Vec<GroupTagOrderBy>,
+	/// 分页参数（页码，从1开始）
+	pub page: Option<i64>,
+	/// 分页参数（每页记录数）
+	pub page_size: Option<i64>,
 }
 
 /// 分组-标签关联排序字段枚举
@@ -898,6 +918,10 @@ pub struct GroupRelationQueryOptions {
 	pub offset: Option<i64>,
 	/// 排序条件列表
 	pub order_by: Vec<GroupRelationOrderBy>,
+	/// 分页参数（页码，从1开始）
+	pub page: Option<i64>,
+	/// 分页参数（每页记录数）
+	pub page_size: Option<i64>,
 }
 
 /// 组关系排序字段枚举
@@ -924,6 +948,37 @@ pub struct GroupRelationFilter {
 	pub second_group_id: Option<i32>,
 	/// 关系类型过滤条件
 	pub relation_type: Option<i32>,
+}
+
+/// 分页结果结构体
+///
+/// 用于包装分页查询的结果，包含数据和分页信息
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PaginationResult<T> {
+	/// 查询结果数据
+	pub data: Vec<T>,
+	/// 当前页码（从1开始）
+	pub page: i64,
+	/// 每页记录数
+	pub page_size: i64,
+	/// 总记录数
+	pub total: i64,
+	/// 总页数
+	pub total_pages: i64,
+}
+
+impl<T> PaginationResult<T> {
+	/// 创建新的分页结果
+	pub fn new(data: Vec<T>, page: i64, page_size: i64, total: i64) -> Self {
+		let total_pages = (total + page_size - 1) / page_size; // 向上取整计算总页数
+		PaginationResult {
+			data,
+			page,
+			page_size,
+			total,
+			total_pages,
+		}
+	}
 }
 
 /// 树节点结构，用于表示组的层级结构

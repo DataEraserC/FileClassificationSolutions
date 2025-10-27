@@ -13,7 +13,7 @@ use crate::internal::tags as tags_dao;
 use crate::model::models::RELATION_TYPE_PARENT_CHILD;
 use crate::model::models::{
 	CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO,
-	FileQueryOptions, GroupTagCondition, UpdateFileDTO,
+	FileQueryOptions, GroupTagCondition, UpdateFileDTO, PaginationResult,
 };
 use crate::service::AppError;
 use crate::service::file_group as file_group_service;
@@ -228,7 +228,7 @@ pub fn select_files_by_conditions(
 	files_dao::select_files_by_conditions(conn, condition, limit)
 }
 
-/// 根据条件和选项查询文件列表
+/// 根据条件和选项查询文件列表（支持分页）
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -243,6 +243,23 @@ pub fn select_files_by_conditions_with_options(
 	options: FileQueryOptions,
 ) -> Result<Vec<File>, diesel::result::Error> {
 	files_dao::select_files_by_conditions_with_options(conn, conditions, options)
+}
+
+/// 根据条件和选项查询文件列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_files_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<FileCondition>,
+	options: FileQueryOptions,
+) -> Result<PaginationResult<File>, diesel::result::Error> {
+	files_dao::select_files_by_conditions_with_pagination(conn, conditions, options)
 }
 
 /// 根据条件批量更新文件

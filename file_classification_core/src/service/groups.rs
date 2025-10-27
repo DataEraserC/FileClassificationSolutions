@@ -9,11 +9,7 @@ use crate::internal::files as files_dao;
 use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
-use crate::model::models::{CreateGroupDTO, Group, GroupFilter};
-use crate::model::models::{
-    FileGroupCondition, FileGroupDTO, GroupCondition, GroupQueryOptions, GroupTagCondition,
-    GroupTreeNode, UpdateGroupDTO,
-};
+use crate::model::models::{FileGroupCondition, FileGroupDTO, Group, GroupCondition, GroupFilter, GroupQueryOptions, GroupTagCondition, GroupTreeNode, UpdateGroupDTO, PaginationResult, CreateGroupDTO};
 use crate::service::group_relations as group_relations_service;
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
@@ -224,6 +220,23 @@ pub fn select_groups_by_conditions_with_options(
 	options: GroupQueryOptions,
 ) -> Result<Vec<Group>, diesel::result::Error> {
 	groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)
+}
+
+/// 根据条件和选项查询分组列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_groups_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupCondition>,
+	options: GroupQueryOptions,
+) -> Result<PaginationResult<Group>, diesel::result::Error> {
+	groups_dao::select_groups_by_conditions_with_pagination(conn, conditions, options)
 }
 
 /// 根据条件批量更新分组

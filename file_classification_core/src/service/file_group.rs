@@ -7,7 +7,7 @@
 use crate::internal::file_group as file_group_dao;
 use crate::internal::files as files_dao;
 use crate::internal::groups as groups_dao;
-use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupFilter, FileGroupQueryOptions};
+use crate::model::models::{FileGroupCondition, FileGroupDTO, FileGroupFilter, FileGroupQueryOptions, PaginationResult};
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
 use diesel::result::Error;
@@ -176,6 +176,23 @@ pub fn select_file_groups_by_conditions_with_options(
 	options: FileGroupQueryOptions,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
 	file_group_dao::select_file_groups_by_conditions_with_options(conn, conditions, options)
+}
+
+/// 根据条件和选项查询文件-分组关联记录（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_file_groups_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<FileGroupCondition>,
+	options: FileGroupQueryOptions,
+) -> Result<PaginationResult<FileGroupDTO>, diesel::result::Error> {
+	file_group_dao::select_file_groups_by_conditions_with_pagination(conn, conditions, options)
 }
 
 /// 根据条件批量删除文件-分组关联记录（级联删除相关资源）

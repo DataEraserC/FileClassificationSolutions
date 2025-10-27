@@ -6,7 +6,7 @@
 use super::models::GroupRelation;
 use super::models::GroupRelationCondition;
 use crate::model::models::{
-	GroupRelationFilter, GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD,
+	GroupRelationFilter, GroupRelationOrderBy, GroupRelationQueryOptions, OrderDirection, RELATION_TYPE_PARENT_CHILD, PaginationResult,
 };
 use crate::model::schema::group_relations;
 use crate::utils::database::AnyConnection;
@@ -310,6 +310,76 @@ pub fn select_group_relations_by_conditions_with_options(
 	}
 
 	query.select(GroupRelation::as_select()).load::<GroupRelation>(conn)
+}
+
+/// 根据多个条件和高级选项查询组关系记录（支持分页）
+///
+/// 支持分页、排序等复杂查询需求，返回分页结果
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件集合，各条件之间采用 AND 连接
+/// - `options`: 查询选项，包括分页和排序配置
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+#[allow(dead_code)]
+pub fn select_group_relations_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupRelationCondition>,
+	options: GroupRelationQueryOptions,
+) -> Result<PaginationResult<GroupRelation>, diesel::result::Error> {
+	let mut query = group_relations::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+	let mut count_query = group_relations::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+
+	// 对每个条件应用 AND 逻辑
+	for condition in &conditions {
+		let boxed_condition = build_group_relation_condition(condition.clone());
+		query = query.filter(boxed_condition);
+		// 修复：为 count_query 重新构建条件而不是克隆
+		let count_condition = build_group_relation_condition(condition.clone());
+		count_query = count_query.filter(count_condition);
+	}
+
+	// 计算总记录数
+	let total = count_query.count().get_result::<i64>(conn)?;
+
+	// 处理分页参数
+	let (limit, offset) = if let (Some(page), Some(page_size)) = (options.page, options.page_size) {
+		let offset = (page - 1) * page_size;
+		(page_size, offset)
+	} else {
+		(options.limit.unwrap_or(10), options.offset.unwrap_or(0))
+	};
+
+	// 应用查询选项（排序、限制等）
+	query = query.limit(limit).offset(offset);
+
+	// 应用排序
+	for order_by in options.order_by {
+		query = match order_by {
+			GroupRelationOrderBy::FirstGroupId(direction) => match direction {
+				OrderDirection::Asc => query.order(group_relations::first_group_id.asc()),
+				OrderDirection::Desc => query.order(group_relations::first_group_id.desc()),
+			},
+			GroupRelationOrderBy::SecondGroupId(direction) => match direction {
+				OrderDirection::Asc => query.order(group_relations::second_group_id.asc()),
+				OrderDirection::Desc => query.order(group_relations::second_group_id.desc()),
+			},
+			GroupRelationOrderBy::RelationType(direction) => match direction {
+				OrderDirection::Asc => query.order(group_relations::relation_type.asc()),
+				OrderDirection::Desc => query.order(group_relations::relation_type.desc()),
+			},
+		};
+	}
+
+	let data = query.select(GroupRelation::as_select()).load(conn)?;
+	
+	// 构造分页结果
+	let page = if options.page.is_some() { options.page.unwrap() } else { offset / limit + 1 };
+	let page_size = if options.page_size.is_some() { options.page_size.unwrap() } else { limit };
+	
+	Ok(PaginationResult::new(data, page, page_size, total))
 }
 
 /// 检查两个组之间是否存在指定类型的关系

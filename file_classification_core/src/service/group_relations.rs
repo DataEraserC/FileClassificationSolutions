@@ -7,7 +7,7 @@
 use crate::internal::group_relations as group_relations_dao;
 use crate::internal::groups as groups_dao;
 use crate::model::models::{
-	GroupRelation, GroupRelationCondition, GroupRelationFilter, GroupRelationQueryOptions, RELATION_TYPE_PARENT_CHILD,
+	GroupRelation, GroupRelationCondition, GroupRelationFilter, GroupRelationQueryOptions, RELATION_TYPE_PARENT_CHILD, PaginationResult,
 };
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
@@ -183,6 +183,23 @@ pub fn select_group_relations_by_conditions_with_options(
 	options: GroupRelationQueryOptions,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
 	group_relations_dao::select_group_relations_by_conditions_with_options(conn, conditions, options)
+}
+
+/// 根据条件和选项查询组关系记录（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_group_relations_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<GroupRelationCondition>,
+	options: GroupRelationQueryOptions,
+) -> Result<PaginationResult<GroupRelation>, diesel::result::Error> {
+	group_relations_dao::select_group_relations_by_conditions_with_pagination(conn, conditions, options)
 }
 
 /// 根据条件批量删除组关系记录

@@ -8,7 +8,7 @@ use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
 use crate::model::models::{CreateTagDTO, Tag, TagFilter};
-use crate::model::models::{GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO};
+use crate::model::models::{GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO, PaginationResult};
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
 
@@ -156,6 +156,23 @@ pub fn select_tags_by_conditions_with_options(
 	options: TagQueryOptions,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
 	tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
+}
+
+/// 根据条件和选项查询标签列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `conditions`: 查询条件向量
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_tags_by_conditions_with_pagination(
+	conn: &mut AnyConnection,
+	conditions: Vec<TagCondition>,
+	options: TagQueryOptions,
+) -> Result<PaginationResult<Tag>, diesel::result::Error> {
+	tags_dao::select_tags_by_conditions_with_pagination(conn, conditions, options)
 }
 
 /// 根据条件批量更新标签
