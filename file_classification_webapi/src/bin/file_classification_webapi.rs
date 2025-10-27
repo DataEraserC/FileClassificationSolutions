@@ -14,6 +14,7 @@ use fern;
 use chrono;
 use dotenvy::dotenv;
 use std::env;
+use actix_cors::Cors;
 
 // 嵌入静态资源
 #[derive(RustEmbed)]
@@ -202,6 +203,37 @@ fn setup_logger() -> Result<(), fern::InitError> {
     Ok(())
 }
 
+/// 创建 CORS 配置
+fn create_cors() -> Cors {
+    // 从环境变量获取 CORS 配置
+    let cors_enabled = env::var("CORS_ENABLED")
+        .ok()
+        .and_then(|s| s.parse::<bool>().ok())
+        .unwrap_or(true); // 默认启用 CORS
+        
+    let cors_origin = env::var("CORS_ORIGIN")
+        .ok()
+        .unwrap_or_else(|| "http://localhost:8082".to_string());
+
+    if cors_enabled {
+        log::info!("CORS 已启用，允许来源: {}", cors_origin);
+        Cors::default()
+            .allowed_origin(&cors_origin)
+            .allowed_origin("http://127.0.0.1:8082")
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![
+                actix_web::http::header::AUTHORIZATION,
+                actix_web::http::header::ACCEPT,
+                actix_web::http::header::CONTENT_TYPE,
+            ])
+            .supports_credentials()
+            .max_age(3600)
+    } else {
+        log::info!("CORS 已禁用");
+        Cors::default()
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // 初始化日志记录器
@@ -234,11 +266,25 @@ async fn main() -> std::io::Result<()> {
         log::info!("可执行文件路径: {:?}", exe_path);
     }
 
+    // 获取服务器绑定配置
+    let bind_address = env::var("BIND_ADDRESS").unwrap_or_else(|_| "127.0.0.1".to_string());
+    let bind_port = env::var("BIND_PORT")
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(8082u16);
+        
+    let bind_info = format!("{}:{}", bind_address, bind_port);
+    log::info!("服务器将绑定到: {}", bind_info);
+
     // 在HttpServer::new中添加新的路由
     HttpServer::new(move || {
+        // 创建 CORS 中间件
+        let cors = create_cors();
+        
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
+            .wrap(cors)
             // API路由 - 放在静态文件服务之前以确保优先匹配
             // 文件相关路由
             .service(handlers::files::api_list_files_by_filter)
@@ -300,7 +346,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(index_handler))
             .route("/{filename:.*}", web::get().to(static_handler))
     })
-    .bind("127.0.0.1:8082")?
+    .bind(&bind_info)?
     .run()
     .await
 }
