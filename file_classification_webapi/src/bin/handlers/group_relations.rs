@@ -3,10 +3,10 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::GroupRelation;
 use file_classification_core::service::group_relations::{
-	delete_group_relations_by_conditions, delete_group_relations_by_dtos, select_group_relations_by_conditions_with_options, select_group_relations_by_filter, select_group_relations_by_filter_with_options,
+	delete_group_relations_by_conditions, delete_group_relations_by_dtos, select_group_relations_by_conditions_with_options, select_group_relations_by_filter, select_group_relations_by_filter_with_options, select_group_relations_by_filter_with_pagination, select_group_relations_by_conditions_with_pagination,
 };
 use file_classification_core::{
-	model::models::{GroupRelationCondition, GroupRelationFilter},
+	model::models::{GroupRelationCondition, GroupRelationFilter, PaginationResult},
 	service::group_relations::{
 		create_group_relation, delete_group_relation, select_group_relations_by_conditions,
 	},
@@ -112,6 +112,127 @@ async fn api_list_group_relations_by_conditions_with_options(
 				data: Some(group_relations),
 				message: None,
 				count: Some(count),
+			}))
+		}
+
+		// 处理错误情况
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 带选项地根据过滤条件搜索组关系
+///
+/// 此接口允许客户端传递额外的查询选项（例如排序规则），以更灵活的方式检索数据。
+///
+/// 请求路径: GET /api/group-relations/search/by-filter-with-options
+#[get("/api/group-relations/search/by-filter-with-options")]
+async fn api_list_group_relations_by_filter_with_options(
+	query: web::Query<(GroupRelationFilter, file_classification_core::model::models::GroupRelationQueryOptions)>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 解析查询参数
+	let (filter, options) = query.into_inner();
+
+	// 获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 执行带选项的查询
+	match select_group_relations_by_filter_with_options(&mut conn, filter, options) {
+		Ok(group_relations) => {
+			let count = group_relations.len();
+
+			// 返回成功响应
+			Ok(HttpResponse::Ok().json(ApiResponse {
+				success: true,
+				data: Some(group_relations),
+				message: None,
+				count: Some(count),
+			}))
+		}
+
+		// 处理错误情况
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 根据过滤条件分页搜索组关系
+///
+/// 此接口允许客户端传递分页参数，以分页方式检索数据
+///
+/// 请求路径: GET /api/group-relations/search/by-filter-with-pagination
+#[get("/api/group-relations/search/by-filter-with-pagination")]
+async fn api_list_group_relations_by_filter_with_pagination(
+	query: web::Query<std::collections::HashMap<String, String>>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 解析查询参数
+	let query_map = query.into_inner();
+	let filter_str = query_map.get("filter").cloned().unwrap_or_default();
+	let options_str = query_map.get("options").cloned().unwrap_or_default();
+
+	let filter: GroupRelationFilter = serde_json::from_str(&filter_str).unwrap_or_else(|_| GroupRelationFilter {
+	    first_group_id: None,
+	    second_group_id: None,
+	    relation_type: None,
+	});
+	let options: file_classification_core::model::models::GroupRelationQueryOptions = serde_json::from_str(&options_str)?;
+
+	// 获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 执行分页查询
+	match select_group_relations_by_filter_with_pagination(&mut conn, filter, options) {
+		Ok(result) => {
+			// 返回成功响应
+			Ok(HttpResponse::Ok().json(ApiResponse {
+				success: true,
+				data: Some(result.clone()),
+				message: None,
+				count: Some(result.data.len()),
+			}))
+		}
+
+		// 处理错误情况
+		Err(e) => Ok(
+			HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+		),
+	}
+}
+
+/// 根据条件分页搜索组关系
+///
+/// 此接口允许客户端传递条件和分页参数，以分页方式检索数据
+///
+/// 请求路径: GET /api/group-relations/search/by-conditions-with-pagination
+#[get("/api/group-relations/search/by-conditions-with-pagination")]
+async fn api_list_group_relations_by_conditions_with_pagination(
+	query: web::Query<std::collections::HashMap<String, String>>,
+	pool: web::Data<DbPool>,
+) -> Result<HttpResponse> {
+	// 解析查询参数
+	let query_map = query.into_inner();
+	let conditions_str = query_map.get("conditions").cloned().unwrap_or_default();
+	let options_str = query_map.get("options").cloned().unwrap_or_default();
+
+	let conditions: Vec<GroupRelationCondition> = serde_json::from_str(&conditions_str).unwrap_or_else(|_| Vec::new());
+	let options: file_classification_core::model::models::GroupRelationQueryOptions = serde_json::from_str(&options_str)?;
+
+	// 获取数据库连接
+	let mut conn = pool.get().expect("Failed to get connection from pool");
+
+	// 执行分页查询
+	match select_group_relations_by_conditions_with_pagination(&mut conn, conditions, options) {
+		Ok(result) => {
+			// 返回成功响应
+			Ok(HttpResponse::Ok().json(ApiResponse {
+				success: true,
+				data: Some(result.clone()),
+				message: None,
+				count: Some(result.data.len()),
 			}))
 		}
 

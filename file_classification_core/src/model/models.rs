@@ -124,10 +124,13 @@ pub struct FileQueryOptions {
 	/// 查询结果偏移量（用于分页）
 	pub offset: Option<i64>,
 	/// 排序条件列表
+	#[serde(default)]
 	pub order_by: Vec<FileOrderBy>,
 	/// 分页参数（页码，从1开始）
+	#[serde(rename = "page")]
 	pub page: Option<i64>,
 	/// 分页参数（每页记录数）
+	#[serde(rename = "page_size")]
 	pub page_size: Option<i64>,
 }
 
@@ -167,7 +170,7 @@ pub struct UpdateFileDTO {
 /// 文件过滤条件结构体
 ///
 /// 用于简单文件查询的过滤条件，各字段都是可选的
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Default)]
 pub struct FileFilter {
 	/// 文件ID过滤条件
 	pub id: Option<i32>,
@@ -347,10 +350,13 @@ pub struct GroupQueryOptions {
 	/// 查询结果偏移量（用于分页）
 	pub offset: Option<i64>,
 	/// 排序条件列表
+	#[serde(default)]
 	pub order_by: Vec<GroupOrderBy>,
 	/// 分页参数（页码，从1开始）
+	#[serde(rename = "page")]
 	pub page: Option<i64>,
 	/// 分页参数（每页记录数）
+	#[serde(rename = "page_size")]
 	pub page_size: Option<i64>,
 }
 
@@ -415,7 +421,7 @@ pub struct UpdateGroupDTO {
 /// 分组过滤条件结构体
 ///
 /// 用于简单分组查询的过滤条件，各字段都是可选的
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct GroupFilter {
 	/// 分组ID过滤条件
 	pub id: Option<i32>,
@@ -556,10 +562,13 @@ pub struct TagQueryOptions {
 	/// 查询结果偏移量（用于分页）
 	pub offset: Option<i64>,
 	/// 排序条件列表
+	#[serde(default)]
 	pub order_by: Vec<TagOrderBy>,
 	/// 分页参数（页码，从1开始）
+	#[serde(rename = "page")]
 	pub page: Option<i64>,
 	/// 分页参数（每页记录数）
+	#[serde(rename = "page_size")]
 	pub page_size: Option<i64>,
 }
 
@@ -591,7 +600,7 @@ pub struct UpdateTagDTO {
 /// 标签过滤条件结构体
 ///
 /// 用于简单标签查询的过滤条件，各字段都是可选的
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct TagFilter {
 	/// 标签ID过滤条件
 	pub id: Option<i32>,
@@ -628,7 +637,7 @@ pub struct UpdateTag {
 /// 文件-分组关联实体模型
 ///
 /// 对应数据库中的 `file_groups` 表，表示文件和分组之间的多对多关联关系
-#[derive(Queryable, Selectable, Insertable, Serialize, serde::Deserialize)]
+#[derive(Queryable, Selectable, Insertable, Serialize, serde::Deserialize, Clone)]
 #[diesel(table_name = file_groups)]
 pub struct FileGroupDTO {
 	/// 文件ID，外键关联 `files` 表
@@ -703,10 +712,13 @@ pub struct FileGroupQueryOptions {
 	/// 查询结果偏移量（用于分页）
 	pub offset: Option<i64>,
 	/// 排序条件列表
+	#[serde(default)]
 	pub order_by: Vec<FileGroupOrderBy>,
 	/// 分页参数（页码，从1开始）
+	#[serde(rename = "page")]
 	pub page: Option<i64>,
 	/// 分页参数（每页记录数）
+	#[serde(rename = "page_size")]
 	pub page_size: Option<i64>,
 }
 
@@ -724,7 +736,7 @@ pub enum FileGroupOrderBy {
 /// 文件-分组关联过滤条件结构体
 ///
 /// 用于简单文件-分组关联查询的过滤条件，各字段都是可选的
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct FileGroupFilter {
 	/// 文件ID过滤条件
 	pub file_id: Option<i32>,
@@ -741,7 +753,7 @@ pub struct FileGroupFilter {
 /// 分组-标签关联实体模型
 ///
 /// 对应数据库中的 `group_tags` 表，表示分组和标签之间的多对多关联关系
-#[derive(Queryable, Selectable, Insertable, Serialize, Deserialize)]
+#[derive(Queryable, Selectable, Insertable, Serialize, Deserialize, Clone)]
 #[diesel(table_name = group_tags)]
 pub struct GroupTagDTO {
 	/// 分组ID，外键关联 `groups` 表
@@ -802,10 +814,13 @@ pub struct GroupTagQueryOptions {
 	/// 查询结果偏移量（用于分页）
 	pub offset: Option<i64>,
 	/// 排序条件列表
+	#[serde(default)]
 	pub order_by: Vec<GroupTagOrderBy>,
 	/// 分页参数（页码，从1开始）
+	#[serde(rename = "page")]
 	pub page: Option<i64>,
 	/// 分页参数（每页记录数）
+	#[serde(rename = "page_size")]
 	pub page_size: Option<i64>,
 }
 
@@ -823,7 +838,7 @@ pub enum GroupTagOrderBy {
 /// 分组-标签关联过滤条件结构体
 ///
 /// 用于简单分组-标签关联查询的过滤条件，各字段都是可选的
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct GroupTagFilter {
 	/// 分组ID过滤条件
 	pub group_id: Option<i32>,
@@ -917,10 +932,13 @@ pub struct GroupRelationQueryOptions {
 	/// 查询结果偏移量（用于分页）
 	pub offset: Option<i64>,
 	/// 排序条件列表
+	#[serde(default)]
 	pub order_by: Vec<GroupRelationOrderBy>,
 	/// 分页参数（页码，从1开始）
+	#[serde(rename = "page")]
 	pub page: Option<i64>,
 	/// 分页参数（每页记录数）
+	#[serde(rename = "page_size")]
 	pub page_size: Option<i64>,
 }
 
@@ -940,7 +958,7 @@ pub enum GroupRelationOrderBy {
 /// 组关系过滤条件结构体
 ///
 /// 用于简单组关系查询的过滤条件，各字段都是可选的
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct GroupRelationFilter {
 	/// 第一个组ID过滤条件
 	pub first_group_id: Option<i32>,

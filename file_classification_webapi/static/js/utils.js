@@ -1,166 +1,148 @@
 // 工具函数
 
-function displayResult(elementId, data) {
-    const resultElement = document.getElementById(elementId);
-    resultElement.innerText = JSON.stringify(data, null, 2);
+// 获取输入框的值
+function getInputValue(elementId) {
+    const element = document.getElementById(elementId);
+    return element ? element.value.trim() : '';
 }
 
-// 工具函数：获取输入值
-function getInputValue(id) {
-    return document.getElementById(id).value;
-}
-
-// 工具函数：设置输入值
-function setInputValue(id, value) {
-    document.getElementById(id).value = value;
-}
-
-// 工具函数：获取文本域值
-function getTextValue(id) {
-    return document.getElementById(id).value;
-}
-
-// 工具函数：设置文本域值
-function setTextValue(id, value) {
-    document.getElementById(id).value = value;
-}
-
-// 显示通知消息
-function showMessage(message, type = 'success') {
-    // 创建通知元素
-    const messageElement = document.createElement('div');
-    messageElement.className = `notification ${type}`;
-    messageElement.innerText = message;
-    
-    // 添加样式
-    messageElement.style.position = 'fixed';
-    messageElement.style.top = '20px';
-    messageElement.style.right = '20px';
-    messageElement.style.padding = '15px 20px';
-    messageElement.style.borderRadius = '4px';
-    messageElement.style.color = 'white';
-    messageElement.style.fontWeight = 'bold';
-    messageElement.style.zIndex = '10000';
-    messageElement.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-    
-    // 根据类型设置背景色
-    if (type === 'success') {
-        messageElement.style.backgroundColor = '#28a745';
-    } else if (type === 'error') {
-        messageElement.style.backgroundColor = '#dc3545';
-    } else if (type === 'warning') {
-        messageElement.style.backgroundColor = '#ffc107';
-        messageElement.style.color = '#212529';
-    } else {
-        messageElement.style.backgroundColor = '#17a2b8';
+// 显示消息
+function showMessage(message, type = 'info') {
+    const messageContainer = document.getElementById('message-container');
+    if (messageContainer) {
+        messageContainer.innerHTML = `
+            <div class="message message-${type}">
+                ${message}
+                <button class="close-button" onclick="this.parentElement.style.display='none'">&times;</button>
+            </div>
+        `;
+        messageContainer.style.display = 'block';
+        
+        // 3秒后自动隐藏消息
+        setTimeout(() => {
+            messageContainer.style.display = 'none';
+        }, 3000);
     }
-    
-    // 添加到页面
-    document.body.appendChild(messageElement);
-    
-    // 3秒后自动移除
-    setTimeout(() => {
-        if (messageElement.parentNode) {
-            messageElement.parentNode.removeChild(messageElement);
-        }
-    }, 3000);
+}
+
+// 打开模态框
+function openModal() {
+    const modal = document.getElementById('modal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
 }
 
 // 关闭模态框
 function closeModal() {
-    document.getElementById('modal').style.display = 'none';
-}
-
-// 全选/取消全选文件
-function toggleAllFiles(source) {
-    const checkboxes = document.querySelectorAll('.file-checkbox');
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = source.checked;
+    const modal = document.getElementById('modal');
+    if (modal) {
+        modal.style.display = 'none';
     }
 }
 
-// 全选/取消全选组
-function toggleAllGroups(source) {
-    const checkboxes = document.querySelectorAll('.group-checkbox');
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = source.checked;
-    }
-}
-
-// 全选/取消全选标签
-function toggleAllTags(source) {
-    const checkboxes = document.querySelectorAll('.tag-checkbox');
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = source.checked;
-    }
-}
-
-// 全选/取消全选文件组关联
-function toggleAllFileGroups(source) {
-    const checkboxes = document.querySelectorAll('.file-group-checkbox');
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = source.checked;
-    }
-}
-
-// 全选/取消全选组标签关联
-function toggleAllGroupTags(source) {
-    const checkboxes = document.querySelectorAll('.group-tag-checkbox');
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = source.checked;
-    }
-}
-
-// 全选/取消全选组关系
-function toggleAllGroupRelations(source) {
-    const checkboxes = document.querySelectorAll('.group-relation-checkbox');
-    for (let i = 0; i < checkboxes.length; i++) {
-        checkboxes[i].checked = source.checked;
-    }
-}
-
-// 重置文件搜索表单
+// 重置文件过滤器
 function resetFileFilter() {
     document.getElementById('file-id').value = '';
     document.getElementById('file-type').value = '';
     document.getElementById('file-path').value = '';
+    // 重置分页参数
+    currentFilePage = 1;
     listFilesByFilter(); // 重置后重新搜索
 }
 
-// 重置组搜索表单
+// 重置组过滤器
 function resetGroupFilter() {
     document.getElementById('group-id').value = '';
     document.getElementById('group-name').value = '';
+    // 重置分页参数
+    currentGroupPage = 1;
     listGroupsByFilter(); // 重置后重新搜索
 }
 
-// 重置标签搜索表单
+// 重置标签过滤器
 function resetTagFilter() {
     document.getElementById('tag-id').value = '';
     document.getElementById('tag-name').value = '';
+    // 重置分页参数
+    currentTagPage = 1;
     listTagsByFilter(); // 重置后重新搜索
 }
 
-// 重置文件组关联搜索表单
+// 重置文件组过滤器
 function resetFileGroupFilter() {
     document.getElementById('file-group-file-id').value = '';
     document.getElementById('file-group-group-id').value = '';
+    // 重置分页参数
+    currentFileGroupPage = 1;
     listFileGroupsByFilter(); // 重置后重新搜索
 }
 
-// 重置组标签关联搜索表单
-function resetGroupTagFilter() {
-    document.getElementById('group-tag-group-id').value = '';
-    document.getElementById('group-tag-tag-id').value = '';
-    listGroupTagsByFilter(); // 重置后重新搜索
-}
-
-// 重置组关系搜索表单
+// 重置组关系过滤器
 function resetGroupRelationFilter() {
     document.getElementById('group-relation-first-id').value = '';
     document.getElementById('group-relation-second-id').value = '';
     document.getElementById('group-relation-type').value = '';
+    // 重置分页参数
+    currentGroupRelationPage = 1;
     listGroupRelationsByFilter(); // 重置后重新搜索
+}
+
+// 重置组标签过滤器
+function resetGroupTagFilter() {
+    document.getElementById('group-tag-group-id').value = '';
+    document.getElementById('group-tag-tag-id').value = '';
+    // 重置分页参数
+    currentGroupTagPage = 1;
+    listGroupTagsByFilter(); // 重置后重新搜索
+}
+
+// 切换全选文件
+function toggleAllFiles(source) {
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+// 切换全选组
+function toggleAllGroups(source) {
+    const checkboxes = document.querySelectorAll('.group-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+// 切换全选标签
+function toggleAllTags(source) {
+    const checkboxes = document.querySelectorAll('.tag-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+// 切换全选文件组
+function toggleAllFileGroups(source) {
+    const checkboxes = document.querySelectorAll('.file-group-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+// 切换全选组关系
+function toggleAllGroupRelations(source) {
+    const checkboxes = document.querySelectorAll('.group-relation-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
+}
+
+// 切换全选组标签
+function toggleAllGroupTags(source) {
+    const checkboxes = document.querySelectorAll('.group-tag-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
 }
 
 // 切换复杂查询标签
@@ -198,31 +180,15 @@ function addVisualSearchCondition() {
     conditionElement.innerHTML = `
         <span>${field} ${operator} ${value}</span>
         <button type="button" onclick="this.parentElement.remove()">删除</button>
-        <input type="hidden" class="condition-data" value='{"${field}": "${value}"}'>
+        <input type="hidden" class="condition-field" value="${field}">
+        <input type="hidden" class="condition-operator" value="${operator}">
+        <input type="hidden" class="condition-value" value="${value}">
     `;
     conditionsContainer.appendChild(conditionElement);
-    
-    // 清空输入
-    document.getElementById('visual-search-value').value = '';
 }
 
-// 执行可视化查询
+// 执行可视化搜索
 function performVisualSearch() {
-    const conditionElements = document.querySelectorAll('.condition-data');
-    const conditions = [];
-    
-    conditionElements.forEach(element => {
-        try {
-            const condition = JSON.parse(element.value);
-            conditions.push(condition);
-        } catch (e) {
-            console.error('Error parsing condition:', e);
-        }
-    });
-    
-    if (conditions.length > 0) {
-        searchFilesByConditions(conditions);
-    } else {
-        showMessage('请添加至少一个查询条件', 'warning');
-    }
+    // 这里应该根据添加的条件构造查询条件并执行搜索
+    showMessage('可视化搜索功能待实现', 'info');
 }

@@ -1,5 +1,11 @@
 // 组管理相关函数
 
+// 添加分页相关变量
+let currentGroupPage = 1;
+let groupPageSize = 10;
+let totalGroupPages = 1;
+let currentGroupConditions = null;
+
 function listGroupsByFilter() {
     const groupId = getInputValue('group-id');
     const groupName = getInputValue('group-name');
@@ -9,16 +15,43 @@ function listGroupsByFilter() {
     if (groupId) params.append('id', groupId);
     if (groupName) params.append('name', groupName);
     
-    const url = `${BASE_URL}/api/groups/filter?${params.toString()}`;
+    // 构造分页参数
+    const options = {
+        page: currentGroupPage,
+        page_size: groupPageSize
+    };
+    
+    // 保存当前条件
+    currentGroupConditions = {};
+    if (groupId) currentGroupConditions.id = parseInt(groupId);
+    if (groupName) currentGroupConditions.name = groupName;
+    
+    // 构造查询参数
+    const searchParams = new URLSearchParams({
+        filter: JSON.stringify(currentGroupConditions),
+        options: JSON.stringify(options)
+    });
+    
+    const url = `${BASE_URL}/api/groups/search/by-filter-with-pagination?${searchParams.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            renderGroupTable(data.data || []);
+            if (data.success && data.data) {
+                renderGroupTable(data.data.data || []);
+                // 更新分页信息
+                totalGroupPages = data.data.total_pages || 1;
+                renderGroupPagination(data.data);
+            } else {
+                renderGroupTable([]);
+                renderGroupPagination({ page: 1, total_pages: 1, total: 0 });
+            }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('查询组失败: ' + error.message, 'error');
+            renderGroupTable([]);
+            renderGroupPagination({ page: 1, total_pages: 1, total: 0 });
         });
 }
 
@@ -43,6 +76,92 @@ function renderGroupTable(groups) {
         `;
         tableBody.appendChild(row);
     });
+}
+
+// 渲染分页控件
+function renderGroupPagination(paginationData) {
+    const paginationContainer = document.getElementById('groups-pagination');
+    if (!paginationContainer) return;
+    
+    const currentPage = paginationData.page || 1;
+    const totalPages = paginationData.total_pages || 1;
+    const totalRecords = paginationData.total || 0;
+    
+    let paginationHTML = `
+        <div class="pagination-container">
+            <div class="pagination-info">
+                共 ${totalRecords} 条记录，第 ${currentPage} 页/共 ${totalPages} 页
+            </div>
+            <div class="pagination-controls">
+                <button onclick="changeGroupPage(1)" ${currentPage <= 1 ? 'disabled' : ''}>首页</button>
+                <button onclick="changeGroupPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+                <span class="page-numbers">
+    `;
+    
+    // 显示页码
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        paginationHTML += `<button onclick="changeGroupPage(1)">1</button>`;
+        if (startPage > 2) paginationHTML += `<span>...</span>`;
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            paginationHTML += `<button class="active">${i}</button>`;
+        } else {
+            paginationHTML += `<button onclick="changeGroupPage(${i})">${i}</button>`;
+        }
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+        paginationHTML += `<button onclick="changeGroupPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    paginationHTML += `
+                </span>
+                <button onclick="changeGroupPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+                <button onclick="changeGroupPage(${totalPages})" ${currentPage >= totalPages ? 'disabled' : ''}>末页</button>
+            </div>
+            <div class="pagination-size">
+                每页显示: 
+                <select onchange="changeGroupPageSize(this.value)">
+                    <option value="10" ${groupPageSize === 10 ? 'selected' : ''}>10</option>
+                    <option value="20" ${groupPageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${groupPageSize === 50 ? 'selected' : ''}>50</option>
+                    <option value="100" ${groupPageSize === 100 ? 'selected' : ''}>100</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+// 改变页码
+function changeGroupPage(page) {
+    if (page < 1 || page > totalGroupPages) return;
+    currentGroupPage = page;
+    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
+    if (currentGroupConditions && Object.keys(currentGroupConditions).length > 0) {
+        searchGroupsByConditions(currentGroupConditions);
+    } else {
+        listGroupsByFilter();
+    }
+}
+
+// 改变每页大小
+function changeGroupPageSize(size) {
+    groupPageSize = parseInt(size);
+    currentGroupPage = 1; // 重置到第一页
+    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
+    if (currentGroupConditions && Object.keys(currentGroupConditions).length > 0) {
+        searchGroupsByConditions(currentGroupConditions);
+    } else {
+        listGroupsByFilter();
+    }
 }
 
 function createGroup() {
@@ -73,6 +192,7 @@ function createGroup() {
             showMessage('组创建成功', 'success');
             closeModal();
             // 重新加载组列表
+            currentGroupPage = 1;
             listGroupsByFilter();
         } else {
             showMessage('组创建失败: ' + data.message, 'error');
@@ -439,27 +559,40 @@ function openComplexSearchGroupDialog() {
 }
 
 function searchGroupsByConditions(conditions) {
-    const url = `${BASE_URL}/api/groups/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            renderGroupTable(data.data || []);
-        } else {
-            showMessage('组查询失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组查询失败: ' + error.message, 'error');
+    // 构造查询选项
+    const options = {
+        page: currentGroupPage,
+        page_size: groupPageSize
+    };
+    
+    // 保存当前条件
+    currentGroupConditions = conditions;
+    
+    // 构造查询参数
+    const params = new URLSearchParams({
+        conditions: JSON.stringify(conditions),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/groups/search/by-conditions-with-pagination?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal();
+                renderGroupTable(data.data.data || []);
+                // 更新分页信息
+                totalGroupPages = data.data.total_pages || 1;
+                renderGroupPagination(data.data);
+            } else {
+                showMessage('组查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组查询失败: ' + error.message, 'error');
+        });
 }
 
 // 显示组的树状结构
@@ -486,6 +619,10 @@ function showGroupTree(groupId) {
 function renderGroupTree(treeNode, container = null, level = 0) {
     if (!container) {
         container = document.getElementById('group-tree-container');
+        if (!container) {
+            console.error('无法找到组树容器');
+            return;
+        }
         container.innerHTML = '';
     }
     
@@ -496,7 +633,7 @@ function renderGroupTree(treeNode, container = null, level = 0) {
     nodeElement.innerHTML = `
         <div class="tree-node-content">
             <span class="tree-node-name">${treeNode.group.name}</span>
-            <span class="tree-node-info">(ID: ${treeNode.group.id})</span>
+            <span class="tree-node-info">(ID: ${treeNode.group.id}, 引用数: ${treeNode.group.reference_count})</span>
         </div>
     `;
     
@@ -512,5 +649,8 @@ function renderGroupTree(treeNode, container = null, level = 0) {
 
 // 关闭组树模态框
 function closeGroupTreeModal() {
-    document.getElementById('group-tree-modal').style.display = 'none';
+    const modal = document.getElementById('group-tree-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
 }

@@ -1,5 +1,11 @@
 // 文件管理相关函数
 
+// 添加分页相关变量
+let currentFilePage = 1;
+let filePageSize = 10;
+let totalFilePages = 1;
+let currentFileConditions = null;
+
 function listFilesByFilter() {
     const fileId = getInputValue('file-id');
     const fileType = getInputValue('file-type');
@@ -11,16 +17,43 @@ function listFilesByFilter() {
     if (fileType) params.append('type_', fileType);
     if (filePath) params.append('path', filePath);
     
-    const url = `${BASE_URL}/api/files/filter?${params.toString()}`;
+    // 构造分页参数
+    const options = {
+        page: currentFilePage,
+        page_size: filePageSize
+    };
+    
+    // 保存当前条件
+    currentFileConditions = {};
+    if (fileId) currentFileConditions.id = parseInt(fileId);
+    if (fileType) currentFileConditions.type_ = fileType;
+    if (filePath) currentFileConditions.path = filePath;
+    
+    // 构造查询参数 - 修复参数格式问题
+    const searchParams = new URLSearchParams();
+    searchParams.append('filter', JSON.stringify(currentFileConditions));
+    searchParams.append('options', JSON.stringify(options));
+    
+    const url = `${BASE_URL}/api/files/search/by-filter-with-pagination?${searchParams.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            renderFileTable(data.data || []);
+            if (data.success && data.data) {
+                renderFileTable(data.data.data || []);
+                // 更新分页信息
+                totalFilePages = data.data.total_pages || 1;
+                renderFilePagination(data.data);
+            } else {
+                renderFileTable([]);
+                renderFilePagination({ page: 1, total_pages: 1, total: 0 });
+            }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('查询文件失败: ' + error.message, 'error');
+            renderFileTable([]);
+            renderFilePagination({ page: 1, total_pages: 1, total: 0 });
         });
 }
 
@@ -44,6 +77,92 @@ function renderFileTable(files) {
         `;
         tableBody.appendChild(row);
     });
+}
+
+// 渲染分页控件
+function renderFilePagination(paginationData) {
+    const paginationContainer = document.getElementById('files-pagination');
+    if (!paginationContainer) return;
+    
+    const currentPage = paginationData.page || 1;
+    const totalPages = paginationData.total_pages || 1;
+    const totalRecords = paginationData.total || 0;
+    
+    let paginationHTML = `
+        <div class="pagination-container">
+            <div class="pagination-info">
+                共 ${totalRecords} 条记录，第 ${currentPage} 页/共 ${totalPages} 页
+            </div>
+            <div class="pagination-controls">
+                <button onclick="changeFilePage(1)" ${currentPage <= 1 ? 'disabled' : ''}>首页</button>
+                <button onclick="changeFilePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+                <span class="page-numbers">
+    `;
+    
+    // 显示页码
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        paginationHTML += `<button onclick="changeFilePage(1)">1</button>`;
+        if (startPage > 2) paginationHTML += `<span>...</span>`;
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            paginationHTML += `<button class="active">${i}</button>`;
+        } else {
+            paginationHTML += `<button onclick="changeFilePage(${i})">${i}</button>`;
+        }
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+        paginationHTML += `<button onclick="changeFilePage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    paginationHTML += `
+                </span>
+                <button onclick="changeFilePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+                <button onclick="changeFilePage(${totalPages})" ${currentPage >= totalPages ? 'disabled' : ''}>末页</button>
+            </div>
+            <div class="pagination-size">
+                每页显示: 
+                <select onchange="changeFilePageSize(this.value)">
+                    <option value="10" ${filePageSize === 10 ? 'selected' : ''}>10</option>
+                    <option value="20" ${filePageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${filePageSize === 50 ? 'selected' : ''}>50</option>
+                    <option value="100" ${filePageSize === 100 ? 'selected' : ''}>100</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+// 改变页码
+function changeFilePage(page) {
+    if (page < 1 || page > totalFilePages) return;
+    currentFilePage = page;
+    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
+    if (currentFileConditions && Object.keys(currentFileConditions).length > 0) {
+        searchFilesByConditions(currentFileConditions);
+    } else {
+        listFilesByFilter();
+    }
+}
+
+// 改变每页大小
+function changeFilePageSize(size) {
+    filePageSize = parseInt(size);
+    currentFilePage = 1; // 重置到第一页
+    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
+    if (currentFileConditions && Object.keys(currentFileConditions).length > 0) {
+        searchFilesByConditions(currentFileConditions);
+    } else {
+        listFilesByFilter();
+    }
 }
 
 function getFileById() {
@@ -99,6 +218,7 @@ function createFile() {
             showMessage('文件创建成功', 'success');
             closeModal();
             // 重新加载文件列表
+            currentFilePage = 1;
             listFilesByFilter();
         } else {
             showMessage('文件创建失败: ' + data.message, 'error');
@@ -449,25 +569,38 @@ function openComplexSearchFileDialog() {
 }
 
 function searchFilesByConditions(conditions) {
-    const url = `${BASE_URL}/api/files/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            renderFileTable(data.data || []);
-        } else {
-            showMessage('文件查询失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件查询失败: ' + error.message, 'error');
+    // 构造查询选项
+    const options = {
+        page: currentFilePage,
+        page_size: filePageSize
+    };
+    
+    // 保存当前条件
+    currentFileConditions = conditions;
+    
+    // 构造查询参数
+    const params = new URLSearchParams({
+        conditions: JSON.stringify(conditions),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/files/search/by-conditions-with-pagination?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal();
+                renderFileTable(data.data.data || []);
+                // 更新分页信息
+                totalFilePages = data.data.total_pages || 1;
+                renderFilePagination(data.data);
+            } else {
+                showMessage('文件查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件查询失败: ' + error.message, 'error');
+        });
 }

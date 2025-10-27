@@ -1,5 +1,11 @@
 // 标签管理相关函数
 
+// 添加分页相关变量
+let currentTagPage = 1;
+let tagPageSize = 10;
+let totalTagPages = 1;
+let currentTagConditions = null;
+
 function listTagsByFilter() {
     const tagId = getInputValue('tag-id');
     const tagName = getInputValue('tag-name');
@@ -9,16 +15,43 @@ function listTagsByFilter() {
     if (tagId) params.append('id', tagId);
     if (tagName) params.append('name', tagName);
     
-    const url = `${BASE_URL}/api/tags/filter?${params.toString()}`;
+    // 构造分页参数
+    const options = {
+        page: currentTagPage,
+        page_size: tagPageSize
+    };
+    
+    // 保存当前条件
+    currentTagConditions = {};
+    if (tagId) currentTagConditions.id = tagId;
+    if (tagName) currentTagConditions.name = tagName;
+    
+    // 构造查询参数
+    const searchParams = new URLSearchParams({
+        filter: JSON.stringify(currentTagConditions),
+        options: JSON.stringify(options)
+    });
+    
+    const url = `${BASE_URL}/api/tags/search/by-filter-with-pagination?${searchParams.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            renderTagTable(data.data || []);
+            if (data.success && data.data) {
+                renderTagTable(data.data.data || []);
+                // 更新分页信息
+                totalTagPages = data.data.total_pages || 1;
+                renderTagPagination(data.data);
+            } else {
+                renderTagTable([]);
+                renderTagPagination({ page: 1, total_pages: 1, total: 0 });
+            }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('查询标签失败: ' + error.message, 'error');
+            renderTagTable([]);
+            renderTagPagination({ page: 1, total_pages: 1, total: 0 });
         });
 }
 
@@ -41,6 +74,92 @@ function renderTagTable(tags) {
         `;
         tableBody.appendChild(row);
     });
+}
+
+// 渲染分页控件
+function renderTagPagination(paginationData) {
+    const paginationContainer = document.getElementById('tags-pagination');
+    if (!paginationContainer) return;
+    
+    const currentPage = paginationData.page || 1;
+    const totalPages = paginationData.total_pages || 1;
+    const totalRecords = paginationData.total || 0;
+    
+    let paginationHTML = `
+        <div class="pagination-container">
+            <div class="pagination-info">
+                共 ${totalRecords} 条记录，第 ${currentPage} 页/共 ${totalPages} 页
+            </div>
+            <div class="pagination-controls">
+                <button onclick="changeTagPage(1)" ${currentPage <= 1 ? 'disabled' : ''}>首页</button>
+                <button onclick="changeTagPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+                <span class="page-numbers">
+    `;
+    
+    // 显示页码
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        paginationHTML += `<button onclick="changeTagPage(1)">1</button>`;
+        if (startPage > 2) paginationHTML += `<span>...</span>`;
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            paginationHTML += `<button class="active">${i}</button>`;
+        } else {
+            paginationHTML += `<button onclick="changeTagPage(${i})">${i}</button>`;
+        }
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+        paginationHTML += `<button onclick="changeTagPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    paginationHTML += `
+                </span>
+                <button onclick="changeTagPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+                <button onclick="changeTagPage(${totalPages})" ${currentPage >= totalPages ? 'disabled' : ''}>末页</button>
+            </div>
+            <div class="pagination-size">
+                每页显示: 
+                <select onchange="changeTagPageSize(this.value)">
+                    <option value="10" ${tagPageSize === 10 ? 'selected' : ''}>10</option>
+                    <option value="20" ${tagPageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${tagPageSize === 50 ? 'selected' : ''}>50</option>
+                    <option value="100" ${tagPageSize === 100 ? 'selected' : ''}>100</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+// 改变页码
+function changeTagPage(page) {
+    if (page < 1 || page > totalTagPages) return;
+    currentTagPage = page;
+    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
+    if (currentTagConditions && Object.keys(currentTagConditions).length > 0) {
+        searchTagsByConditions(currentTagConditions);
+    } else {
+        listTagsByFilter();
+    }
+}
+
+// 改变每页大小
+function changeTagPageSize(size) {
+    tagPageSize = parseInt(size);
+    currentTagPage = 1; // 重置到第一页
+    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
+    if (currentTagConditions && Object.keys(currentTagConditions).length > 0) {
+        searchTagsByConditions(currentTagConditions);
+    } else {
+        listTagsByFilter();
+    }
 }
 
 function createTag() {
@@ -71,6 +190,7 @@ function createTag() {
             showMessage('标签创建成功', 'success');
             closeModal();
             // 重新加载标签列表
+            currentTagPage = 1;
             listTagsByFilter();
         } else {
             showMessage('标签创建失败: ' + data.message, 'error');
@@ -436,25 +556,38 @@ function openComplexSearchTagDialog() {
 }
 
 function searchTagsByConditions(conditions) {
-    const url = `${BASE_URL}/api/tags/search/by-conditions`;
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(conditions)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal();
-            renderTagTable(data.data || []);
-        } else {
-            showMessage('标签查询失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签查询失败: ' + error.message, 'error');
+    // 构造查询选项
+    const options = {
+        page: currentTagPage,
+        page_size: tagPageSize
+    };
+    
+    // 保存当前条件
+    currentTagConditions = conditions;
+    
+    // 构造查询参数
+    const params = new URLSearchParams({
+        conditions: JSON.stringify(conditions),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/tags/search/by-conditions-with-pagination?${params.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal();
+                renderTagTable(data.data.data || []);
+                // 更新分页信息
+                totalTagPages = data.data.total_pages || 1;
+                renderTagPagination(data.data);
+            } else {
+                showMessage('标签查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('标签查询失败: ' + error.message, 'error');
+        });
 }

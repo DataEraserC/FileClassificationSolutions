@@ -328,6 +328,13 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+body.dark-mode table {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 table th,
@@ -347,6 +354,7 @@ table th {
     background-color: #e9ecef;
     font-weight: bold;
     transition: background-color 0.3s;
+    color: #495057;
 }
 
 body.dark-mode table th {
@@ -362,6 +370,14 @@ body.dark-mode table tr:hover {
     background-color: #3a3a3a;
 }
 
+/* 操作按钮容器 */
+.table-actions {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
 /* 操作按钮 */
 .action-button {
     background-color: #28a745;
@@ -373,6 +389,12 @@ body.dark-mode table tr:hover {
     cursor: pointer;
     font-size: 0.8rem;
     transition: background-color 0.3s, opacity 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    min-width: 30px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .action-button.delete {
@@ -390,6 +412,56 @@ body.dark-mode table tr:hover {
 
 .action-button:hover {
     opacity: 0.8;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.action-button:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.action-button.delete:hover {
+    background-color: #c82333;
+}
+
+.action-button.edit:hover {
+    background-color: #e0a800;
+}
+
+.action-button.view-tree:hover {
+    background-color: #5a32a3;
+}
+
+/* 组树状结构样式 */
+.tree-node {
+    margin: 5px 0;
+    padding: 5px;
+    border-left: 1px dashed #ccc;
+}
+
+.tree-node-content {
+    display: flex;
+    align-items: center;
+    padding: 5px;
+}
+
+.tree-node-name {
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.tree-node-info {
+    color: #666;
+    font-size: 0.9em;
+}
+
+body.dark-mode .tree-node {
+    border-left: 1px dashed #555;
+}
+
+body.dark-mode .tree-node-info {
+    color: #aaa;
 }
 
 /* 模态框样式 */
@@ -419,6 +491,8 @@ body.dark-mode .modal {
     border-radius: 5px;
     position: relative;
     transition: background-color 0.3s, border-color 0.3s;
+    max-height: 70vh;
+    overflow-y: auto;
 }
 
 body.dark-mode .modal-content {
@@ -560,35 +634,192 @@ body.dark-mode .form-group textarea:focus {
     100% { opacity: 0; transform: translateY(-20px); }
 }
 
-/* 组树状结构样式 */
-.tree-node {
-    margin: 5px 0;
-    padding: 5px;
-    border-left: 1px dashed #ccc;
+/* 分页控件样式 */
+.pagination-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 20px 0;
+    padding: 15px 0;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    transition: background-color 0.3s;
 }
 
-.tree-node-content {
+body.dark-mode .pagination-container {
+    background-color: #3a3a3a;
+}
+
+.pagination-info {
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #495057;
+    transition: color 0.3s;
+}
+
+body.dark-mode .pagination-info {
+    color: #e9ecef;
+}
+
+.pagination-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
+.pagination-controls button {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    color: #495057;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    min-width: 40px;
+}
+
+body.dark-mode .pagination-controls button {
+    background-color: #444;
+    border: 1px solid #5a5a5a;
+    color: #f0f0f0;
+}
+
+.pagination-controls button:hover:not(:disabled) {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.pagination-controls button:disabled {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+body.dark-mode .pagination-controls button:disabled {
+    background-color: #333;
+    color: #6c757d;
+    border-color: #5a5a5a;
+}
+
+.pagination-controls button.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+    font-weight: bold;
+}
+
+body.dark-mode .pagination-controls button.active {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.pagination-controls button.active:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.pagination-controls span {
     display: flex;
     align-items: center;
-    padding: 5px;
+    margin: 0 5px;
+    color: #6c757d;
 }
 
-.tree-node-name {
-    font-weight: bold;
-    margin-right: 10px;
+body.dark-mode .pagination-controls span {
+    color: #adb5bd;
 }
 
-.tree-node-info {
-    color: #666;
-    font-size: 0.9em;
+.pagination-size {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #495057;
 }
 
-body.dark-mode .tree-node {
-    border-left: 1px dashed #555;
+body.dark-mode .pagination-size {
+    color: #e9ecef;
 }
 
-body.dark-mode .tree-node-info {
-    color: #aaa;
+.pagination-size select {
+    padding: 6px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background-color: white;
+    color: #495057;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+body.dark-mode .pagination-size select {
+    background-color: #404040;
+    color: #f0f0f0;
+    border-color: #5a5a5a;
+}
+
+.pagination-size select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+body.dark-mode .pagination-size select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
+}
+
+/* 响应式分页控件 */
+@media (max-width: 768px) {
+    .pagination-container {
+        padding: 10px 5px;
+    }
+    
+    .pagination-controls {
+        gap: 3px;
+    }
+    
+    .pagination-controls button {
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 35px;
+    }
+    
+    .pagination-info {
+        font-size: 14px;
+        text-align: center;
+    }
+    
+    .pagination-size {
+        font-size: 13px;
+    }
+    
+    .pagination-size select {
+        padding: 5px 8px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pagination-controls button {
+        padding: 5px 8px;
+        font-size: 12px;
+        min-width: 30px;
+    }
+    
+    .pagination-info {
+        font-size: 13px;
+    }
+    
+    .pagination-size {
+        font-size: 12px;
+        flex-direction: column;
+        gap: 5px;
+    }
 }
 
 /* 响应式设计 */

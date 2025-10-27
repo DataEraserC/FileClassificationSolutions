@@ -1,6 +1,6 @@
-<!-- 文件组关联 -->
+<!-- 文件组关联管理 -->
 <section id="file-groups" class="tab-content">
-    <h2>文件组关联</h2>
+    <h2>文件组关联管理</h2>
     <!-- 简单搜索表单 -->
     <div class="search-form">
         <div class="form-row">
@@ -31,6 +31,7 @@
                     <th><input type="checkbox" id="file-groups-select-all" onclick="toggleAllFileGroups(this)"></th>
                     <th>文件ID</th>
                     <th>组ID</th>
+                    <th>关联类型</th>
                     <th>操作</th>
                 </tr>
             </thead>
@@ -38,5 +39,9 @@
                 <!-- 数据将通过JavaScript动态填充 -->
             </tbody>
         </table>
+    </div>
+    <!-- 分页控件 -->
+    <div id="file-groups-pagination" class="pagination-container">
+        <!-- 分页控件将通过JavaScript动态填充 -->
     </div>
 </section>

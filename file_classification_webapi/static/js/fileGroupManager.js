@@ -1,5 +1,11 @@
 // 文件组关联相关函数
 
+// 添加分页相关变量
+let currentFileGroupPage = 1;
+let fileGroupPageSize = 10;
+let totalFileGroupPages = 1;
+let currentFileGroupConditions = null;
+
 function listFileGroupsByFilter() {
     const fileId = getInputValue('file-group-file-id');
     const groupId = getInputValue('file-group-group-id');
@@ -9,35 +15,217 @@ function listFileGroupsByFilter() {
     if (fileId) params.append('file_id', fileId);
     if (groupId) params.append('group_id', groupId);
     
-    const url = `${BASE_URL}/api/file-groups/filter?${params.toString()}`;
+    // 构造分页参数
+    const options = {
+        page: currentFileGroupPage,
+        page_size: fileGroupPageSize
+    };
+    
+    // 保存当前条件
+    currentFileGroupConditions = {};
+    if (fileId) currentFileGroupConditions.file_id = fileId;
+    if (groupId) currentFileGroupConditions.group_id = groupId;
+    
+    // 构造查询参数
+    const searchParams = new URLSearchParams({
+        filter: JSON.stringify(currentFileGroupConditions),
+        options: JSON.stringify(options)
+    });
+    
+    const url = `${BASE_URL}/api/file-groups/search/by-filter-with-pagination?${searchParams.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            renderFileGroupTable(data.data || []);
+            if (data.success && data.data) {
+                renderFileGroupTable(data.data.data || []);
+                // 更新分页信息
+                totalFileGroupPages = data.data.total_pages || 1;
+                renderFileGroupPagination(data.data);
+            } else {
+                showMessage('文件组关联查询失败: ' + data.message, 'error');
+            }
         })
         .catch(error => {
             console.error('Error:', error);
-            showMessage('查询文件组关联失败: ' + error.message, 'error');
+            showMessage('文件组关联查询失败: ' + error.message, 'error');
         });
 }
 
+// 渲染文件组表格
 function renderFileGroupTable(fileGroups) {
-    const tableBody = document.querySelector('#file-groups-table tbody');
-    tableBody.innerHTML = '';
+    const tbody = document.querySelector('#file-groups-table tbody');
+    if (!tbody) return;
     
-    fileGroups.forEach(fileGroup => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><input type="checkbox" class="file-group-checkbox" data-file-id="${fileGroup.file_id}" data-group-id="${fileGroup.group_id}"></td>
-            <td>${fileGroup.file_id}</td>
-            <td>${fileGroup.group_id}</td>
+    if (!fileGroups || fileGroups.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5">暂无数据</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = fileGroups.map(fg => `
+        <tr>
+            <td><input type="checkbox" class="file-group-checkbox" data-file-id="${fg.file_id}" data-group-id="${fg.group_id}"></td>
+            <td>${fg.file_id}</td>
+            <td>${fg.group_id}</td>
             <td>
-                <button class="action-button delete" onclick="deleteFileGroup(${fileGroup.file_id}, ${fileGroup.group_id})">删除</button>
+                <div class="table-actions">
+                    <button class="action-button delete" onclick="deleteFileGroup(${fg.file_id}, ${fg.group_id})">删除</button>
+                </div>
             </td>
-        `;
-        tableBody.appendChild(row);
+        </tr>
+    `).join('');
+}
+
+// 渲染文件组分页控件
+function renderFileGroupPagination(data) {
+    const paginationContainer = document.getElementById('file-groups-pagination');
+    if (!paginationContainer) return;
+    
+    const currentPage = data.page || currentFileGroupPage;
+    const totalPages = data.total_pages || totalFileGroupPages;
+    const totalRecords = data.total || 0;
+    const pageSize = data.page_size || fileGroupPageSize;
+    
+    let paginationHTML = `
+        <div class="pagination-container">
+            <div class="pagination-info">
+                共 ${totalRecords} 条记录，第 ${currentPage} 页/共 ${totalPages} 页
+            </div>
+            <div class="pagination-controls">
+                <button onclick="changeFileGroupPage(1)" ${currentPage <= 1 ? 'disabled' : ''}>首页</button>
+                <button onclick="changeFileGroupPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
+                <span class="page-numbers">
+    `;
+    
+    // 显示页码
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        paginationHTML += `<button onclick="changeFileGroupPage(1)">1</button>`;
+        if (startPage > 2) paginationHTML += `<span>...</span>`;
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        if (i === currentPage) {
+            paginationHTML += `<button class="active">${i}</button>`;
+        } else {
+            paginationHTML += `<button onclick="changeFileGroupPage(${i})">${i}</button>`;
+        }
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
+        paginationHTML += `<button onclick="changeFileGroupPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    paginationHTML += `
+                </span>
+                <button onclick="changeFileGroupPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
+                <button onclick="changeFileGroupPage(${totalPages})" ${currentPage >= totalPages ? 'disabled' : ''}>末页</button>
+            </div>
+            <div class="pagination-size">
+                每页显示: 
+                <select onchange="changeFileGroupPageSize(this.value)">
+                    <option value="10" ${pageSize === 10 ? 'selected' : ''}>10</option>
+                    <option value="20" ${pageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${pageSize === 50 ? 'selected' : ''}>50</option>
+                    <option value="100" ${pageSize === 100 ? 'selected' : ''}>100</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+// 改变页码
+function changeFileGroupPage(page) {
+    if (page < 1 || page > totalFileGroupPages) return;
+    currentFileGroupPage = page;
+    if (currentFileGroupConditions) {
+        searchFileGroupsByConditions(currentFileGroupConditions);
+    } else {
+        searchFileGroupsByFilter();
+    }
+}
+
+// 使用filter方式搜索文件组（用于分页）
+function searchFileGroupsByFilter() {
+    // 构造查询参数
+    let params = new URLSearchParams();
+    if (currentFileGroupConditions && currentFileGroupConditions.file_id) params.append('file_id', currentFileGroupConditions.file_id);
+    if (currentFileGroupConditions && currentFileGroupConditions.group_id) params.append('group_id', currentFileGroupConditions.group_id);
+    
+    // 构造分页参数
+    const options = {
+        page: currentFileGroupPage,
+        page_size: fileGroupPageSize
+    };
+    
+    // 构造查询参数
+    const searchParams = new URLSearchParams({
+        filter: JSON.stringify(currentFileGroupConditions || {}),
+        options: JSON.stringify(options)
     });
+    
+    const url = `${BASE_URL}/api/file-groups/search/by-filter-with-pagination?${searchParams.toString()}`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data) {
+                renderFileGroupTable(data.data.data || []);
+                // 更新分页信息
+                totalFileGroupPages = data.data.total_pages || 1;
+                renderFileGroupPagination(data.data);
+            } else {
+                showMessage('文件组关联查询失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件组关联查询失败: ' + error.message, 'error');
+        });
+}
+
+// 在页面加载完成后绑定分页控件事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 使用事件委托处理分页按钮点击
+    document.addEventListener('click', function(e) {
+        // 处理文件组分页按钮点击
+        if (e.target.closest('#file-groups-pagination') && e.target.tagName === 'BUTTON') {
+            const button = e.target;
+            if (button.hasAttribute('onclick')) {
+                // 防止重复绑定事件
+                return;
+            }
+            
+            const pageMatch = button.textContent.match(/(\d+)/);
+            if (button.textContent === '首页') {
+                changeFileGroupPage(1);
+            } else if (button.textContent === '上一页') {
+                changeFileGroupPage(currentFileGroupPage - 1);
+            } else if (button.textContent === '下一页') {
+                changeFileGroupPage(currentFileGroupPage + 1);
+            } else if (button.textContent === '末页') {
+                changeFileGroupPage(totalFileGroupPages);
+            } else if (pageMatch) {
+                changeFileGroupPage(parseInt(pageMatch[1]));
+            }
+        }
+    });
+});
+
+// 改变每页大小
+function changeFileGroupPageSize(size) {
+    fileGroupPageSize = parseInt(size);
+    currentFileGroupPage = 1; // 重置到第一页
+    if (currentFileGroupConditions) {
+        searchFileGroupsByConditions(currentFileGroupConditions);
+    } else {
+        searchFileGroupsByFilter();
+    }
 }
 
 function createFileGroup() {
@@ -45,13 +233,14 @@ function createFileGroup() {
     const groupId = getInputValue('create-file-group-group-id');
     
     if (!fileId || !groupId) {
-        showMessage('请填写完整的文件组关联信息', 'warning');
+        showMessage('请填写完整的文件组信息', 'warning');
         return;
     }
     
     const fileGroupData = {
         file_id: parseInt(fileId),
-        group_id: parseInt(groupId)
+        group_id: parseInt(groupId),
+        relation_type: 1
     };
     
     const url = `${BASE_URL}/api/file-groups`;
@@ -80,7 +269,7 @@ function createFileGroup() {
 }
 
 function deleteFileGroup(fileId, groupId) {
-    if (!confirm('确定要删除该文件组关联吗？')) {
+    if (!confirm(`确定要删除文件组关联 [文件ID: ${fileId}, 组ID: ${groupId}] 吗？`)) {
         return;
     }
     
@@ -126,8 +315,7 @@ function deleteSelectedFileGroups() {
         return;
     }
     
-    // 构造删除DTO列表
-    const dtos = Array.from(selectedCheckboxes).map(cb => {
+    const fileGroups = Array.from(selectedCheckboxes).map(cb => {
         return {
             file_id: parseInt(cb.getAttribute('data-file-id')),
             group_id: parseInt(cb.getAttribute('data-group-id')),
@@ -135,15 +323,8 @@ function deleteSelectedFileGroups() {
         };
     });
     
-    // 确保数值字段是数字类型
-    const fixedDtos = dtos.map(dto => ({
-        file_id: parseInt(dto.file_id),
-        group_id: parseInt(dto.group_id),
-        relation_type: parseInt(dto.relation_type)
-    }));
-    
     // 使用新的delete by dtos接口
-    deleteFileGroupsByDtos(fixedDtos);
+    deleteFileGroupsByDtos(fileGroups);
 }
 
 // 打开创建文件组关联对话框
@@ -169,85 +350,6 @@ function openCreateFileGroupDialog() {
     document.getElementById('create-file-group-form').addEventListener('submit', function(e) {
         e.preventDefault();
         createFileGroup();
-    });
-    
-    document.getElementById('modal').style.display = 'block';
-}
-
-// 打开批量删除文件组对话框
-function openBatchDeleteFileGroupDialog() {
-    const modalBody = document.getElementById('modal-body');
-    
-    // 获取当前选中的文件组关联
-    const selectedFileGroupCheckboxes = document.querySelectorAll('.file-group-checkbox:checked');
-    const selectedFileGroupDtos = Array.from(selectedFileGroupCheckboxes).map(cb => ({
-        file_id: parseInt(cb.getAttribute('data-file-id')),
-        group_id: parseInt(cb.getAttribute('data-group-id')),
-        relation_type: 1
-    })).map(dto => ({
-        file_id: parseInt(dto.file_id),
-        group_id: parseInt(dto.group_id),
-        relation_type: parseInt(dto.relation_type)
-    }));
-    
-    let formContent;
-    if (selectedFileGroupDtos.length > 0) {
-        formContent = `
-            <h2>批量删除文件组关联</h2>
-            <p>已选择 ${selectedFileGroupDtos.length} 个文件组关联</p>
-            <form id="batch-delete-file-group-form">
-                <input type="hidden" id="selected-file-group-dtos" value='${JSON.stringify(selectedFileGroupDtos)}'>
-                <button type="submit">删除选中文件组关联</button>
-                <button type="button" onclick="closeModal()">取消</button>
-            </form>
-        `;
-    } else {
-        formContent = `
-            <h2>批量删除文件组关联</h2>
-            <form id="batch-delete-file-group-form">
-                <div class="form-group">
-                    <label for="batch-delete-file-group-conditions">删除条件 (JSON格式):</label>
-                    <textarea id="batch-delete-file-group-conditions" rows="5" placeholder='[{"FileId": 1, "GroupId": 2}]'></textarea>
-                </div>
-                <button type="submit">删除</button>
-                <button type="button" onclick="closeModal()">取消</button>
-            </form>
-        `;
-    }
-    
-    modalBody.innerHTML = formContent;
-    
-    // 绑定表单提交事件
-    document.getElementById('batch-delete-file-group-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // 如果有选中的文件组关联，使用delete by dtos
-        const selectedDtosInput = document.getElementById('selected-file-group-dtos');
-        if (selectedDtosInput) {
-            const dtos = JSON.parse(selectedDtosInput.value);
-            // 确保数值字段是数字类型
-            const fixedDtos = dtos.map(dto => ({
-                file_id: parseInt(dto.file_id),
-                group_id: parseInt(dto.group_id),
-                relation_type: parseInt(dto.relation_type)
-            }));
-            deleteFileGroupsByDtos(fixedDtos);
-            return;
-        }
-        
-        // 否则使用条件删除（向后兼容）
-        const conditionsJson = document.getElementById('batch-delete-file-group-conditions').value;
-        if (!conditionsJson) {
-            showMessage('请输入删除条件', 'warning');
-            return;
-        }
-        
-        try {
-            const conditions = JSON.parse(conditionsJson);
-            deleteFileGroupsByConditions(conditions);
-        } catch (e) {
-            showMessage('JSON格式错误: ' + e.message, 'error');
-        }
     });
     
     document.getElementById('modal').style.display = 'block';
@@ -337,23 +439,21 @@ function openComplexSearchFileGroupDialog() {
                 <div class="form-group">
                     <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
                 </div>
-                <div class="form-group">
-                    <label>已添加的条件:</label>
-                    <div id="visual-search-conditions"></div>
-                </div>
-                <button type="button" onclick="performVisualSearch()">查询</button>
+                <div id="visual-search-conditions"></div>
+                <button type="submit">查询</button>
+                <button type="button" onclick="closeModal()">取消</button>
             </form>
         </div>
-        <div id="json-search" class="tab-content" style="display: none;">
+        <div id="json-search" class="tab-content">
             <form id="json-file-group-search-form">
                 <div class="form-group">
                     <label for="complex-search-file-group-conditions">查询条件 (JSON格式):</label>
-                    <textarea id="complex-search-file-group-conditions" rows="5" placeholder='[{"FileId": 1, "GroupId": 2}]'></textarea>
+                    <textarea id="complex-search-file-group-conditions" rows="5" placeholder='[{"FileId": 1}]'></textarea>
                 </div>
                 <button type="submit">查询</button>
+                <button type="button" onclick="closeModal()">取消</button>
             </form>
         </div>
-        <button type="button" onclick="closeModal()">取消</button>
     `;
     
     // 绑定表单提交事件
@@ -379,9 +479,12 @@ function openComplexSearchFileGroupDialog() {
 function searchFileGroupsByConditions(conditions) {
     // 构造查询选项
     const options = {
-        limit: 100,
-        offset: 0
+        page: currentFileGroupPage,
+        page_size: fileGroupPageSize
     };
+    
+    // 保存当前条件
+    currentFileGroupConditions = conditions;
     
     // 构造查询参数
     const params = new URLSearchParams({
@@ -389,14 +492,17 @@ function searchFileGroupsByConditions(conditions) {
         options: JSON.stringify(options)
     });
     
-    const url = `${BASE_URL}/api/file-groups/search/by-conditions-with-options?${params.toString()}`;
+    const url = `${BASE_URL}/api/file-groups/search/by-conditions-with-pagination?${params.toString()}`;
     
     fetch(url)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 closeModal();
-                renderFileGroupTable(data.data || []);
+                renderFileGroupTable(data.data.data || []);
+                // 更新分页信息
+                totalFileGroupPages = data.data.total_pages || 1;
+                renderFileGroupPagination(data.data);
             } else {
                 showMessage('文件组关联查询失败: ' + data.message, 'error');
             }
@@ -405,4 +511,21 @@ function searchFileGroupsByConditions(conditions) {
             console.error('Error:', error);
             showMessage('文件组关联查询失败: ' + error.message, 'error');
         });
+}
+
+// 重置文件组过滤器
+function resetFileGroupFilter() {
+    document.getElementById('file-group-file-id').value = '';
+    document.getElementById('file-group-group-id').value = '';
+    // 重置分页参数
+    currentFileGroupPage = 1;
+    listFileGroupsByFilter(); // 重置后重新搜索
+}
+
+// 切换全选文件组
+function toggleAllFileGroups(source) {
+    const checkboxes = document.querySelectorAll('.file-group-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
 }

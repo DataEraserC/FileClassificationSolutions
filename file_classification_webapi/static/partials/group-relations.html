@@ -5,16 +5,16 @@
     <div class="search-form">
         <div class="form-row">
             <div class="form-group">
-                <label for="group-relation-first-id">第一组ID:</label>
-                <input type="number" id="group-relation-first-id" placeholder="请输入第一组ID">
+                <label for="group-relation-first-id">第一个组ID:</label>
+                <input type="number" id="group-relation-first-id" placeholder="请输入第一个组ID">
             </div>
             <div class="form-group">
-                <label for="group-relation-second-id">第二组ID:</label>
-                <input type="number" id="group-relation-second-id" placeholder="请输入第二组ID">
+                <label for="group-relation-second-id">第二个组ID:</label>
+                <input type="number" id="group-relation-second-id" placeholder="请输入第二个组ID">
             </div>
             <div class="form-group">
                 <label for="group-relation-type">关系类型:</label>
-                <input type="text" id="group-relation-type" placeholder="请输入关系类型">
+                <input type="number" id="group-relation-type" placeholder="请输入关系类型">
             </div>
             <div class="form-group">
                 <button onclick="listGroupRelationsByFilter()">搜索</button>
@@ -33,8 +33,8 @@
             <thead>
                 <tr>
                     <th><input type="checkbox" id="group-relations-select-all" onclick="toggleAllGroupRelations(this)"></th>
-                    <th>第一组ID</th>
-                    <th>第二组ID</th>
+                    <th>第一个组ID</th>
+                    <th>第二个组ID</th>
                     <th>关系类型</th>
                     <th>操作</th>
                 </tr>
@@ -43,5 +43,9 @@
                 <!-- 数据将通过JavaScript动态填充 -->
             </tbody>
         </table>
+    </div>
+    <!-- 分页控件 -->
+    <div id="group-relations-pagination" class="pagination-container">
+        <!-- 分页控件将通过JavaScript动态填充 -->
     </div>
 </section>
