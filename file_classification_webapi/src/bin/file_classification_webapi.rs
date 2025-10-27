@@ -1,12 +1,45 @@
-use actix_web::{middleware::Logger, web, App, HttpServer};
+use actix_web::{middleware::Logger, web, App, HttpServer, HttpResponse, Result};
+use actix_files as fs;
 mod handlers;
 mod utils;
 
-use actix_files as fs;
 use file_classification_core::utils::database::establish_connection;
 use file_classification_core::utils::database::run_pending_migrations;
+use rust_embed::RustEmbed;
 use std::path::Path;
 use utils::database::establish_connection_pool;
+
+// 嵌入静态资源
+#[derive(RustEmbed)]
+#[folder = "static/"]
+struct Assets;
+
+fn handle_embedded_file(path: &str) -> HttpResponse {
+    match Assets::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            HttpResponse::Ok()
+                .content_type(mime.as_ref())
+                .body(content.data)
+        }
+        None => {
+            // Avoid recursive call by directly getting index.html
+            if path == "index.html" {
+                return HttpResponse::NotFound().body("404 Not Found");
+            }
+            handle_embedded_file("index.html")
+        }
+    }
+}
+
+async fn index_handler() -> HttpResponse {
+    handle_embedded_file("index.html")
+}
+
+async fn static_handler(path: web::Path<String>) -> HttpResponse {
+    let path = path.into_inner();
+    handle_embedded_file(&path)
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -22,10 +55,6 @@ async fn main() -> std::io::Result<()> {
 	}
 
 	let pool = establish_connection_pool();
-
-	// 尝试多种方式定位 static 目录
-	let static_dir = find_static_directory()?;
-	println!("使用静态文件目录: {:?}", static_dir);
 
 	// 在HttpServer::new中添加新的路由
 	HttpServer::new(move || {
@@ -89,45 +118,11 @@ async fn main() -> std::io::Result<()> {
             .service(handlers::group_relations::api_create_group_relation)
             .service(handlers::group_relations::api_delete_group_relation)
             .service(handlers::group_relations::api_delete_group_relations_by_conditions)
-            // 静态文件服务 - 放在最后，作为兜底
-            .service(fs::Files::new("/", &static_dir).index_file("index.html"))
+            // 静态文件服务 - 使用嵌入的资源
+            .route("/", web::get().to(index_handler))
+            .route("/{filename:.*}", web::get().to(static_handler))
 	})
 	.bind("127.0.0.1:8082")?
 	.run()
 	.await
-}
-
-/// 查找静态文件目录，支持从不同目录运行程序
-fn find_static_directory() -> std::io::Result<std::path::PathBuf> {
-    // 首先尝试从可执行文件所在目录查找
-    if let Ok(exe_path) = std::env::current_exe() {
-        if let Some(exe_dir) = exe_path.parent() {
-            let static_dir = exe_dir.join("static");
-            if Path::new(&static_dir).exists() {
-                return Ok(static_dir);
-            }
-        }
-    }
-
-    // 然后尝试从当前工作目录查找
-    if let Ok(current_dir) = std::env::current_dir() {
-        let static_dir = current_dir.join("static");
-        if Path::new(&static_dir).exists() {
-            return Ok(static_dir);
-        }
-        
-        // 尝试从当前工作目录的子目录 file_classification_webapi 中查找
-        let static_dir = current_dir.join("file_classification_webapi").join("static");
-        if Path::new(&static_dir).exists() {
-            return Ok(static_dir);
-        }
-    }
-
-    // 如果都没找到，则返回默认路径并让后续逻辑处理错误
-    if let Ok(current_dir) = std::env::current_dir() {
-        let static_dir = current_dir.join("static");
-        Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("静态文件目录不存在: {:?}", static_dir)))
-    } else {
-        Err(std::io::Error::new(std::io::ErrorKind::NotFound, "无法确定静态文件目录位置"))
-    }
 }

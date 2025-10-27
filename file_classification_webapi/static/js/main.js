@@ -6,6 +6,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(initTabs, 100);
 });
 
+// 等待主题切换按钮加载完成后再初始化
+function waitForThemeToggle() {
+    const themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        initThemeToggle();
+    } else {
+        // 如果还没找到元素，稍后再试
+        setTimeout(waitForThemeToggle, 100);
+    }
+}
+
+// 监听页面内容加载完成事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化主题切换功能
+    waitForThemeToggle();
+});
+
 function initTabs() {
     const navLinks = document.querySelectorAll('.nav-link');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -81,4 +98,33 @@ function autoSearch(tabName) {
             }
             break;
     }
+}
+
+// 初始化主题切换功能
+function initThemeToggle() {
+    const themeToggle = document.getElementById('themeToggle');
+    const body = document.body;
+    
+    // 检查本地存储中的主题偏好
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        body.classList.add('dark-mode');
+        themeToggle.textContent = '☀️';
+    } else {
+        themeToggle.textContent = '🌙';
+    }
+    
+    // 添加点击事件监听器
+    themeToggle.addEventListener('click', function() {
+        body.classList.toggle('dark-mode');
+        
+        // 更新按钮图标
+        if (body.classList.contains('dark-mode')) {
+            themeToggle.textContent = '☀️';
+            localStorage.setItem('theme', 'dark');
+        } else {
+            themeToggle.textContent = '🌙';
+            localStorage.setItem('theme', 'light');
+        }
+    });
 }

@@ -9,6 +9,12 @@ body {
     font-family: "Microsoft YaHei", Arial, sans-serif;
     background-color: #f5f5f5;
     color: #333;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark-mode {
+    background-color: #1a1a1a;
+    color: #f0f0f0;
 }
 
 .container {
@@ -23,11 +29,39 @@ header {
     color: white;
     padding: 1rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+body.dark-mode header {
+    background-color: #0d6e7d;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 header h1 {
     text-align: center;
     font-size: 1.8rem;
+}
+
+.theme-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.theme-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
 /* 主容器 */
@@ -42,6 +76,7 @@ header h1 {
     background-color: #343a40;
     color: white;
     padding: 1rem 0;
+    transition: background-color 0.3s;
 }
 
 .sidebar ul {
@@ -78,6 +113,12 @@ header h1 {
     border-radius: 5px;
     padding: 1.5rem;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+body.dark-mode .tab-content {
+    background-color: #2d2d2d;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 .tab-content h2 {
@@ -85,6 +126,12 @@ header h1 {
     padding-bottom: 0.5rem;
     border-bottom: 2px solid #007bff;
     color: #333;
+    transition: color 0.3s, border-color 0.3s;
+}
+
+body.dark-mode .tab-content h2 {
+    color: #f0f0f0;
+    border-bottom: 2px solid #007bff;
 }
 
 /* 搜索表单样式 */
@@ -93,6 +140,11 @@ header h1 {
     border-radius: 5px;
     padding: 1rem;
     margin-bottom: 1.5rem;
+    transition: background-color 0.3s;
+}
+
+body.dark-mode .search-form {
+    background-color: #3a3a3a;
 }
 
 .search-form .form-row {
@@ -113,6 +165,11 @@ header h1 {
     margin-bottom: 0.5rem;
     font-weight: bold;
     color: #555;
+    transition: color 0.3s;
+}
+
+body.dark-mode .search-form .form-group label {
+    color: #ddd;
 }
 
 .search-form .form-group input,
@@ -122,7 +179,16 @@ header h1 {
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 1rem;
-    transition: border-color 0.3s;
+    transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+    background-color: white;
+    color: #333;
+}
+
+body.dark-mode .search-form .form-group input,
+body.dark-mode .search-form .form-group select {
+    background-color: #404040;
+    color: #f0f0f0;
+    border-color: #5a5a5a;
 }
 
 .search-form .form-group input:focus,
@@ -130,6 +196,12 @@ header h1 {
     outline: none;
     border-color: #007bff;
     box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+body.dark-mode .search-form .form-group input:focus,
+body.dark-mode .search-form .form-group select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
 }
 
 .search-form .form-group button {
@@ -165,6 +237,10 @@ header h1 {
     transition: background-color 0.3s;
 }
 
+body.dark-mode .toolbar button {
+    background-color: #0056b3;
+}
+
 .toolbar button:hover {
     background-color: #0056b3;
 }
@@ -185,15 +261,31 @@ table td {
     padding: 0.75rem;
     text-align: left;
     border-bottom: 1px solid #dee2e6;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark-mode table th,
+body.dark-mode table td {
+    border-bottom: 1px solid #5a5a5a;
 }
 
 table th {
     background-color: #e9ecef;
     font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+body.dark-mode table th {
+    background-color: #444;
+    color: #f0f0f0;
 }
 
 table tr:hover {
     background-color: #f8f9fa;
+}
+
+body.dark-mode table tr:hover {
+    background-color: #3a3a3a;
 }
 
 /* 操作按钮 */
@@ -206,6 +298,7 @@ table tr:hover {
     border-radius: 3px;
     cursor: pointer;
     font-size: 0.8rem;
+    transition: background-color 0.3s, opacity 0.3s;
 }
 
 .action-button.delete {
@@ -231,6 +324,11 @@ table tr:hover {
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.4);
+    transition: background-color 0.3s;
+}
+
+body.dark-mode .modal {
+    background-color: rgba(0,0,0,0.7);
 }
 
 .modal-content {
@@ -242,6 +340,13 @@ table tr:hover {
     max-width: 500px;
     border-radius: 5px;
     position: relative;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+body.dark-mode .modal-content {
+    background-color: #2d2d2d;
+    border-color: #5a5a5a;
+    color: #f0f0f0;
 }
 
 .close {
@@ -252,6 +357,11 @@ table tr:hover {
     position: absolute;
     right: 10px;
     top: 0;
+    transition: color 0.3s;
+}
+
+body.dark-mode .close {
+    color: #ddd;
 }
 
 .close:hover,
@@ -259,6 +369,11 @@ table tr:hover {
     color: black;
     text-decoration: none;
     cursor: pointer;
+}
+
+body.dark-mode .close:hover,
+body.dark-mode .close:focus {
+    color: white;
 }
 
 .form-group {
@@ -269,6 +384,11 @@ table tr:hover {
     display: block;
     margin-bottom: 0.5rem;
     font-weight: bold;
+    transition: color 0.3s;
+}
+
+body.dark-mode .form-group label {
+    color: #ddd;
 }
 
 .form-group input,
@@ -279,6 +399,32 @@ table tr:hover {
     border: 1px solid #ced4da;
     border-radius: 4px;
     font-size: 1rem;
+    transition: border-color 0.3s, background-color 0.3s, color 0.3s;
+    background-color: white;
+    color: #333;
+}
+
+body.dark-mode .form-group input,
+body.dark-mode .form-group select,
+body.dark-mode .form-group textarea {
+    background-color: #404040;
+    color: #f0f0f0;
+    border-color: #5a5a5a;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+body.dark-mode .form-group input:focus,
+body.dark-mode .form-group select:focus,
+body.dark-mode .form-group textarea:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
 }
 
 .form-group button {
@@ -290,6 +436,7 @@ table tr:hover {
     cursor: pointer;
     font-size: 1rem;
     margin-right: 0.5rem;
+    transition: background-color 0.3s;
 }
 
 .form-group button:hover {
@@ -308,6 +455,7 @@ table tr:hover {
     z-index: 10000;
     box-shadow: 0 2px 10px rgba(0,0,0,0.2);
     animation: fadeInOut 3s ease-in-out;
+    transition: background-color 0.3s;
 }
 
 .notification.success {
@@ -348,6 +496,7 @@ table tr:hover {
     .sidebar ul {
         display: flex;
         flex-wrap: wrap;
+        justify-content: center;
     }
     
     .sidebar ul li {
@@ -359,6 +508,7 @@ table tr:hover {
         border-bottom: 1px solid #495057;
         border-left: none;
         text-align: center;
+        min-width: 100px;
     }
     
     .search-form .form-row {
@@ -375,5 +525,50 @@ table tr:hover {
     
     .form-group {
         min-width: 100%;
+    }
+    
+    header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .theme-toggle {
+        align-self: flex-end;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 20% auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar ul {
+        flex-direction: column;
+    }
+    
+    .sidebar ul li a {
+        border-left: 3px solid transparent;
+        border-bottom: 1px solid #495057;
+    }
+    
+    .sidebar ul li a.active {
+        border-left: 3px solid #ffc107;
+        border-bottom: 1px solid #495057;
+    }
+    
+    .toolbar button {
+        margin-bottom: 0.5rem;
+        display: inline-block;
+    }
+    
+    table {
+        font-size: 0.8rem;
+    }
+    
+    table th,
+    table td {
+        padding: 0.5rem 0.25rem;
     }
 }
