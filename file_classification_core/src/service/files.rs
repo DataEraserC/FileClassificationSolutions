@@ -211,6 +211,42 @@ pub fn select_files_by_filter_with_options(
 	files_dao::select_files_by_conditions_with_options(conn, conditions, options)
 }
 
+/// 根据过滤条件和选项查询文件列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_files_by_filter_with_pagination(
+	conn: &mut AnyConnection,
+	search_input: FileFilter,
+	options: FileQueryOptions,
+) -> Result<PaginationResult<File>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(id) = search_input.id {
+		conditions.push(FileCondition::Id(id));
+	}
+	if let Some(type_) = search_input.type_ {
+		conditions.push(FileCondition::Type(type_));
+	}
+	if let Some(path) = search_input.path {
+		conditions.push(FileCondition::Path(path));
+	}
+	if let Some(reference_count) = search_input.reference_count {
+		conditions.push(FileCondition::ReferenceCount(reference_count));
+	}
+	if let Some(group_id) = search_input.group_id {
+		conditions.push(FileCondition::GroupId(group_id));
+	}
+	
+	select_files_by_conditions_with_pagination(conn, conditions, options)
+}
+
 /// 根据条件查询文件列表
 ///
 /// 参数:

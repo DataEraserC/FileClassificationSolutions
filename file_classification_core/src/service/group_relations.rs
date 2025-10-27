@@ -185,6 +185,36 @@ pub fn select_group_relations_by_conditions_with_options(
 	group_relations_dao::select_group_relations_by_conditions_with_options(conn, conditions, options)
 }
 
+/// 根据过滤条件和选项查询组关系记录（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组关系过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_group_relations_by_filter_with_pagination(
+	conn: &mut AnyConnection,
+	search_input: GroupRelationFilter,
+	options: GroupRelationQueryOptions,
+) -> Result<PaginationResult<GroupRelation>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(first_group_id) = search_input.first_group_id {
+		conditions.push(GroupRelationCondition::FirstGroupId(first_group_id));
+	}
+	if let Some(second_group_id) = search_input.second_group_id {
+		conditions.push(GroupRelationCondition::SecondGroupId(second_group_id));
+	}
+	if let Some(relation_type) = search_input.relation_type {
+		conditions.push(GroupRelationCondition::RelationType(relation_type));
+	}
+	
+	select_group_relations_by_conditions_with_pagination(conn, conditions, options)
+}
+
 /// 根据条件和选项查询组关系记录（支持分页结果）
 ///
 /// 参数:

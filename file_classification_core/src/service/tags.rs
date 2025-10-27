@@ -158,6 +158,36 @@ pub fn select_tags_by_conditions_with_options(
 	tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
 }
 
+/// 根据过滤条件和选项查询标签列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 标签过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_tags_by_filter_with_pagination(
+	conn: &mut AnyConnection,
+	search_input: TagFilter,
+	options: TagQueryOptions,
+) -> Result<PaginationResult<Tag>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(id) = search_input.id {
+		conditions.push(TagCondition::Id(id));
+	}
+	if let Some(name) = search_input.name {
+		conditions.push(TagCondition::Name(name));
+	}
+	if let Some(reference_count) = search_input.reference_count {
+		conditions.push(TagCondition::ReferenceCount(reference_count));
+	}
+	
+	select_tags_by_conditions_with_pagination(conn, conditions, options)
+}
+
 /// 根据条件和选项查询标签列表（支持分页结果）
 ///
 /// 参数:

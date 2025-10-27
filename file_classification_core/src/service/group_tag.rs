@@ -111,7 +111,7 @@ pub fn select_group_tags_by_filter(
 	group_tag_dao::select_group_tags_by_filter(conn, search_input, limit)
 }
 
-/// 根据过滤条件和选项查询组-标签关联列表
+/// 根据过滤条件和选项查询分组-标签关联列表
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象
@@ -126,6 +126,33 @@ pub fn select_group_tags_by_filter_with_options(
 	options: GroupTagQueryOptions,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
 	group_tag_dao::select_group_tags_by_filter_with_options(conn, search_input, options)
+}
+
+/// 根据过滤条件和选项查询分组-标签关联列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 组-标签关联过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_group_tags_by_filter_with_pagination(
+	conn: &mut AnyConnection,
+	search_input: GroupTagFilter,
+	options: GroupTagQueryOptions,
+) -> Result<PaginationResult<GroupTagDTO>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(group_id) = search_input.group_id {
+		conditions.push(GroupTagCondition::GroupId(group_id));
+	}
+	if let Some(tag_id) = search_input.tag_id {
+		conditions.push(GroupTagCondition::TagId(tag_id));
+	}
+	
+	select_group_tags_by_conditions_with_pagination(conn, conditions, options)
 }
 
 /// 根据条件查询分组-标签关联记录

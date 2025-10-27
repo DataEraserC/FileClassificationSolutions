@@ -144,6 +144,36 @@ pub fn select_file_groups_by_filter_with_options(
 	file_group_dao::select_file_groups_by_filter_with_options(conn, search_input, options)
 }
 
+/// 根据过滤条件和选项查询文件-分组关联列表（支持分页结果）
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件-分组关联过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的分页结果或数据库错误
+pub fn select_file_groups_by_filter_with_pagination(
+	conn: &mut AnyConnection,
+	search_input: FileGroupFilter,
+	options: FileGroupQueryOptions,
+) -> Result<PaginationResult<FileGroupDTO>, diesel::result::Error> {
+	// 构造查询条件
+	let mut conditions = Vec::new();
+	
+	if let Some(file_id) = search_input.file_id {
+		conditions.push(FileGroupCondition::FileId(file_id));
+	}
+	if let Some(group_id) = search_input.group_id {
+		conditions.push(FileGroupCondition::GroupId(group_id));
+	}
+	if let Some(relation_type) = search_input.relation_type {
+		conditions.push(FileGroupCondition::RelationType(relation_type));
+	}
+	
+	select_file_groups_by_conditions_with_pagination(conn, conditions, options)
+}
+
 /// 根据条件查询文件-分组关联记录
 ///
 /// 参数:
