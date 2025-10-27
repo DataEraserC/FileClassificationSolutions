@@ -86,7 +86,8 @@ function deleteFileGroup(fileId, groupId) {
     
     const fileGroupData = {
         file_id: fileId,
-        group_id: groupId
+        group_id: groupId,
+        relation_type: 1
     };
     
     const url = `${BASE_URL}/api/file-groups`;

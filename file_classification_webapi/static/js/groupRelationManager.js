@@ -56,7 +56,7 @@ function createGroupRelation() {
     const groupRelationData = {
         first_group_id: parseInt(firstId),
         second_group_id: parseInt(secondId),
-        relation_type: relationType
+        relation_type: parseInt(relationType)
     };
     
     const url = `${BASE_URL}/api/group-relations`;
@@ -90,9 +90,9 @@ function deleteGroupRelation(firstId, secondId, relationType) {
     }
     
     const groupRelationData = {
-        first_group_id: firstId,
-        second_group_id: secondId,
-        relation_type: relationType
+        first_group_id: parseInt(firstId),
+        second_group_id: parseInt(secondId),
+        relation_type: parseInt(relationType)
     };
     
     const url = `${BASE_URL}/api/group-relations`;
@@ -144,7 +144,7 @@ function deleteSelectedGroupRelations() {
     const fixedDtos = dtos.map(dto => ({
         first_group_id: parseInt(dto.first_group_id),
         second_group_id: parseInt(dto.second_group_id),
-        relation_type: dto.relation_type
+        relation_type: parseInt(dto.relation_type)
     }));
     
     // 使用新的delete by dtos接口
@@ -196,7 +196,7 @@ function openBatchDeleteGroupRelationDialog() {
     })).map(dto => ({
         first_group_id: parseInt(dto.first_group_id),
         second_group_id: parseInt(dto.second_group_id),
-        relation_type: dto.relation_type
+        relation_type: parseInt(dto.relation_type)
     }));
     
     let formContent;
