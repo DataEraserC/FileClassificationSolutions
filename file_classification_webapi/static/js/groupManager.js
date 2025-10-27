@@ -248,7 +248,7 @@ function openBatchDeleteGroupDialog() {
     
     // 获取当前选中的组ID
     const selectedGroupCheckboxes = document.querySelectorAll('.group-checkbox:checked');
-    const selectedGroupIds = Array.from(selectedGroupCheckboxes).map(cb => parseInt(cb.value));
+    const selectedGroupIds = Array.from(selectedGroupCheckboxes).map(cb => parseInt(cb.value)).map(id => parseInt(id));
     
     let formContent;
     if (selectedGroupIds.length > 0) {
@@ -285,7 +285,9 @@ function openBatchDeleteGroupDialog() {
         const selectedIdsInput = document.getElementById('selected-group-ids');
         if (selectedIdsInput) {
             const groupIds = JSON.parse(selectedIdsInput.value);
-            deleteGroupsByIds(groupIds);
+            // 确保数值字段是数字类型
+            const fixedGroupIds = groupIds.map(id => parseInt(id));
+            deleteGroupsByIds(fixedGroupIds);
             return;
         }
         

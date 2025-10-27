@@ -134,8 +134,15 @@ function deleteSelectedFileGroups() {
         };
     });
     
+    // 确保数值字段是数字类型
+    const fixedDtos = dtos.map(dto => ({
+        file_id: parseInt(dto.file_id),
+        group_id: parseInt(dto.group_id),
+        relation_type: parseInt(dto.relation_type)
+    }));
+    
     // 使用新的delete by dtos接口
-    deleteFileGroupsByDtos(dtos);
+    deleteFileGroupsByDtos(fixedDtos);
 }
 
 // 打开创建文件组关联对话框
@@ -176,6 +183,10 @@ function openBatchDeleteFileGroupDialog() {
         file_id: parseInt(cb.getAttribute('data-file-id')),
         group_id: parseInt(cb.getAttribute('data-group-id')),
         relation_type: 1
+    })).map(dto => ({
+        file_id: parseInt(dto.file_id),
+        group_id: parseInt(dto.group_id),
+        relation_type: parseInt(dto.relation_type)
     }));
     
     let formContent;
@@ -213,7 +224,13 @@ function openBatchDeleteFileGroupDialog() {
         const selectedDtosInput = document.getElementById('selected-file-group-dtos');
         if (selectedDtosInput) {
             const dtos = JSON.parse(selectedDtosInput.value);
-            deleteFileGroupsByDtos(dtos);
+            // 确保数值字段是数字类型
+            const fixedDtos = dtos.map(dto => ({
+                file_id: parseInt(dto.file_id),
+                group_id: parseInt(dto.group_id),
+                relation_type: parseInt(dto.relation_type)
+            }));
+            deleteFileGroupsByDtos(fixedDtos);
             return;
         }
         

@@ -246,7 +246,7 @@ function openBatchDeleteTagDialog() {
     
     // 获取当前选中的标签ID
     const selectedTagCheckboxes = document.querySelectorAll('.tag-checkbox:checked');
-    const selectedTagIds = Array.from(selectedTagCheckboxes).map(cb => parseInt(cb.value));
+    const selectedTagIds = Array.from(selectedTagCheckboxes).map(cb => parseInt(cb.value)).map(id => parseInt(id));
     
     let formContent;
     if (selectedTagIds.length > 0) {
@@ -283,7 +283,9 @@ function openBatchDeleteTagDialog() {
         const selectedIdsInput = document.getElementById('selected-tag-ids');
         if (selectedIdsInput) {
             const tagIds = JSON.parse(selectedIdsInput.value);
-            deleteTagsByIds(tagIds);
+            // 确保数值字段是数字类型
+            const fixedTagIds = tagIds.map(id => parseInt(id));
+            deleteTagsByIds(fixedTagIds);
             return;
         }
         

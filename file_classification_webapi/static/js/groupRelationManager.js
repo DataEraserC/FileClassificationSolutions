@@ -140,8 +140,15 @@ function deleteSelectedGroupRelations() {
         };
     });
     
+    // 确保数值字段是数字类型
+    const fixedDtos = dtos.map(dto => ({
+        first_group_id: parseInt(dto.first_group_id),
+        second_group_id: parseInt(dto.second_group_id),
+        relation_type: dto.relation_type
+    }));
+    
     // 使用新的delete by dtos接口
-    deleteGroupRelationsByDtos(dtos);
+    deleteGroupRelationsByDtos(fixedDtos);
 }
 
 // 打开创建组关系对话框
@@ -186,6 +193,10 @@ function openBatchDeleteGroupRelationDialog() {
         first_group_id: parseInt(cb.getAttribute('data-first-id')),
         second_group_id: parseInt(cb.getAttribute('data-second-id')),
         relation_type: cb.getAttribute('data-relation-type')
+    })).map(dto => ({
+        first_group_id: parseInt(dto.first_group_id),
+        second_group_id: parseInt(dto.second_group_id),
+        relation_type: dto.relation_type
     }));
     
     let formContent;
@@ -223,7 +234,13 @@ function openBatchDeleteGroupRelationDialog() {
         const selectedDtosInput = document.getElementById('selected-group-relation-dtos');
         if (selectedDtosInput) {
             const dtos = JSON.parse(selectedDtosInput.value);
-            deleteGroupRelationsByDtos(dtos);
+            // 确保数值字段是数字类型
+            const fixedDtos = dtos.map(dto => ({
+                first_group_id: parseInt(dto.first_group_id),
+                second_group_id: parseInt(dto.second_group_id),
+                relation_type: dto.relation_type
+            }));
+            deleteGroupRelationsByDtos(fixedDtos);
             return;
         }
         

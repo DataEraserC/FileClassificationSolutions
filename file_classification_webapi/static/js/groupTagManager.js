@@ -133,8 +133,14 @@ function deleteSelectedGroupTags() {
         };
     });
     
+    // 确保数值字段是数字类型
+    const fixedDtos = dtos.map(dto => ({
+        group_id: parseInt(dto.group_id),
+        tag_id: parseInt(dto.tag_id)
+    }));
+    
     // 使用新的delete by dtos接口
-    deleteGroupTagsByDtos(dtos);
+    deleteGroupTagsByDtos(fixedDtos);
 }
 
 // 打开创建组标签关联对话框
@@ -174,6 +180,9 @@ function openBatchDeleteGroupTagDialog() {
     const selectedGroupTagDtos = Array.from(selectedGroupTagCheckboxes).map(cb => ({
         group_id: parseInt(cb.getAttribute('data-group-id')),
         tag_id: parseInt(cb.getAttribute('data-tag-id'))
+    })).map(dto => ({
+        group_id: parseInt(dto.group_id),
+        tag_id: parseInt(dto.tag_id)
     }));
     
     let formContent;
@@ -211,7 +220,12 @@ function openBatchDeleteGroupTagDialog() {
         const selectedDtosInput = document.getElementById('selected-group-tag-dtos');
         if (selectedDtosInput) {
             const dtos = JSON.parse(selectedDtosInput.value);
-            deleteGroupTagsByDtos(dtos);
+            // 确保数值字段是数字类型
+            const fixedDtos = dtos.map(dto => ({
+                group_id: parseInt(dto.group_id),
+                tag_id: parseInt(dto.tag_id)
+            }));
+            deleteGroupTagsByDtos(fixedDtos);
             return;
         }
         

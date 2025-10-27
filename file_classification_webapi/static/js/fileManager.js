@@ -284,7 +284,7 @@ function openBatchDeleteFileDialog() {
     
     // 获取当前选中的文件ID
     const selectedFileCheckboxes = document.querySelectorAll('.file-checkbox:checked');
-    const selectedFileIds = Array.from(selectedFileCheckboxes).map(cb => parseInt(cb.value));
+    const selectedFileIds = Array.from(selectedFileCheckboxes).map(cb => parseInt(cb.value)).map(id => parseInt(id));
     
     let formContent;
     if (selectedFileIds.length > 0) {
@@ -321,7 +321,9 @@ function openBatchDeleteFileDialog() {
         const selectedIdsInput = document.getElementById('selected-file-ids');
         if (selectedIdsInput) {
             const fileIds = JSON.parse(selectedIdsInput.value);
-            deleteFilesByIds(fileIds);
+            // 确保数值字段是数字类型
+            const fixedFileIds = fileIds.map(id => parseInt(id));
+            deleteFilesByIds(fixedFileIds);
             return;
         }
         

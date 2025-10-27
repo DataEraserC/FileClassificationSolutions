@@ -26,27 +26,27 @@ tag create --name "在线"
 
 # 4. 为每个网站创建主文件组并创建文件
 group create --name "youtube_bookmark"
-file create --type "bookmark" --path "https://youtube.com" --group-id 13
+file create --type "bookmark" --path "https://youtube.com" --group-id 10
 group create --name "bilibili_bookmark"
-file create --type "bookmark" --path "https://bilibili.com" --group-id 14
+file create --type "bookmark" --path "https://bilibili.com" --group-id 11
 group create --name "twitch_bookmark"
-file create --type "bookmark" --path "https://twitch.tv" --group-id 15
+file create --type "bookmark" --path "https://twitch.tv" --group-id 12
 group create --name "github_bookmark"
-file create --type "bookmark" --path "https://github.com" --group-id 16
+file create --type "bookmark" --path "https://github.com" --group-id 13
 group create --name "stackoverflow_bookmark"
-file create --type "bookmark" --path "https://stackoverflow.com" --group-id 17
+file create --type "bookmark" --path "https://stackoverflow.com" --group-id 14
 group create --name "coursera_bookmark"
-file create --type "bookmark" --path "https://coursera.org" --group-id 18
+file create --type "bookmark" --path "https://coursera.org" --group-id 15
 group create --name "google_bookmark"
-file create --type "bookmark" --path "https://google.com" --group-id 19
+file create --type "bookmark" --path "https://google.com" --group-id 16
 group create --name "baidu_bookmark"
-file create --type "bookmark" --path "https://baidu.com" --group-id 20
+file create --type "bookmark" --path "https://baidu.com" --group-id 17
 group create --name "chatgpt_bookmark"
-file create --type "bookmark" --path "https://chat.openai.com" --group-id 21
+file create --type "bookmark" --path "https://chat.openai.com" --group-id 18
 group create --name "drive_bookmark"
-file create --type "bookmark" --path "https://drive.google.com" --group-id 22
+file create --type "bookmark" --path "https://drive.google.com" --group-id 19
 group create --name "slack_bookmark"
-file create --type "bookmark" --path "https://slack.com" --group-id 23
+file create --type "bookmark" --path "https://slack.com" --group-id 20
 
 # 5. 建立层级分类关系（使用group_relations表）
 # 娱乐网站 -> 视频网站 -> youtube_bookmark主组
@@ -79,14 +79,14 @@ group-relation create --first-group-id 8 --second-group-id 19 --relation-type 1
 group-relation create --first-group-id 8 --second-group-id 20 --relation-type 1
 
 # 学习网站 -> 技术文档网站 -> chatgpt_bookmark主组
-group-relation create --first-group-id 8 --second-group-id 21 --relation-type 1
+group-relation create --first-group-id 8 --second-group-id 18 --relation-type 1
 
 # 工作网站 -> 办公协作网站 -> drive_bookmark主组
 group-relation create --first-group-id 3 --second-group-id 9 --relation-type 1
-group-relation create --first-group-id 9 --second-group-id 22 --relation-type 1
+group-relation create --first-group-id 9 --second-group-id 19 --relation-type 1
 
 # 工作网站 -> 办公协作网站 -> slack_bookmark主组
-group-relation create --first-group-id 9 --second-group-id 23 --relation-type 1
+group-relation create --first-group-id 9 --second-group-id 20 --relation-type 1
 
 # 6. 建立标签分类关系（使用group_tags表）
 # 为分类组添加标签，实现横向分类
@@ -110,6 +110,6 @@ group-tag create --group-id 17 --tag-id 3  # stackoverflow - 编程标签
 group-tag create --group-id 18 --tag-id 8  # coursera - 在线标签
 group-tag create --group-id 19 --tag-id 7  # google - 技术标签
 group-tag create --group-id 20 --tag-id 7  # baidu - 技术标签
-group-tag create --group-id 21 --tag-id 7  # chatgpt - 技术标签
-group-tag create --group-id 22 --tag-id 5  # drive - 工作标签
-group-tag create --group-id 23 --tag-id 5  # slack - 工作标签
+group-tag create --group-id 18 --tag-id 7  # chatgpt - 技术标签
+group-tag create --group-id 19 --tag-id 5  # drive - 工作标签
+group-tag create --group-id 20 --tag-id 5  # slack - 工作标签
