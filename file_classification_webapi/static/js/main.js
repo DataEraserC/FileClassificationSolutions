@@ -164,5 +164,8 @@ function initSidebarToggle() {
         } else {
             localStorage.setItem('sidebarState', 'expanded');
         }
+        
+        // 触发窗口大小调整事件，确保响应式设计正常工作
+        window.dispatchEvent(new Event('resize'));
     });
 }

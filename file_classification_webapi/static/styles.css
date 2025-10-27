@@ -91,7 +91,7 @@ header h1 {
 }
 
 .sidebar.collapsed {
-    width: 50px;
+    width: 60px;
 }
 
 .sidebar nav {
@@ -103,6 +103,8 @@ header h1 {
 .sidebar ul {
     list-style: none;
     flex: 1;
+    padding: 0;
+    margin: 0;
 }
 
 .sidebar ul li {
@@ -110,7 +112,8 @@ header h1 {
 }
 
 .sidebar ul li a {
-    display: block;
+    display: flex;
+    align-items: center;
     padding: 0.75rem 1.5rem;
     color: #ccc;
     text-decoration: none;
@@ -122,7 +125,7 @@ header h1 {
 
 .sidebar.collapsed ul li a {
     padding: 0.75rem 1rem;
-    text-align: center;
+    justify-content: center;
 }
 
 .sidebar ul li a:hover,
@@ -135,6 +138,24 @@ header h1 {
 .sidebar.collapsed ul li a:hover,
 .sidebar.collapsed ul li a.active {
     border-left: none;
+}
+
+/* 导航文本和图标 */
+.nav-text {
+    flex: 1;
+}
+
+.nav-icon {
+    margin-left: 0.5rem;
+    font-size: 1.2em;
+}
+
+.sidebar.collapsed .nav-text {
+    display: none;
+}
+
+.sidebar.collapsed .nav-icon {
+    margin-left: 0;
 }
 
 /* 侧边栏切换按钮 */
@@ -566,10 +587,19 @@ body.dark-mode .form-group textarea:focus {
         border-left: none;
         text-align: center;
         min-width: 100px;
+        justify-content: center;
     }
     
     .sidebar.collapsed ul li a {
         padding: 0.75rem;
+    }
+    
+    .nav-text {
+        display: inline;
+    }
+    
+    .sidebar.collapsed .nav-text {
+        display: none;
     }
     
     .search-form .form-row {
@@ -612,6 +642,8 @@ body.dark-mode .form-group textarea:focus {
     .sidebar ul li a {
         border-left: 3px solid transparent;
         border-bottom: 1px solid #495057;
+        text-align: left;
+        min-width: auto;
     }
     
     .sidebar ul li a.active {
