@@ -124,6 +124,18 @@ jobs:
           echo '[target.aarch64-linux-android]' > .cargo/config.toml
           echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
           echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang\"" >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[target.armv7-linux-androideabi]' >> .cargo/config.toml
+          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
+          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang\"" >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[target.x86_64-linux-android]' >> .cargo/config.toml
+          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
+          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang\"" >> .cargo/config.toml
+          echo '' >> .cargo/config.toml
+          echo '[target.i686-linux-android]' >> .cargo/config.toml
+          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
+          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang\"" >> .cargo/config.toml
       - name: Install SQLite for Android
         run: |
           sudo apt-get update
@@ -131,13 +143,33 @@ jobs:
       - name: Build for Android
         run: |
           cargo build --target aarch64-linux-android --release --bin file_classification_cli --verbose
+      - name: Build for other Android targets
+        run: |
+          cargo build --target armv7-linux-androideabi --release --bin file_classification_cli --verbose
+          cargo build --target x86_64-linux-android --release --bin file_classification_cli --verbose
+          cargo build --target i686-linux-android --release --bin file_classification_cli --verbose
       - name: Set Android binary name
         run: echo "ANDROID_BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload Android artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-android
+          name: file_classification_cli-android-aarch64
           path: target/aarch64-linux-android/release/file_classification_cli
+      - name: Upload other Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_cli-android-armv7
+          path: target/armv7-linux-androideabi/release/file_classification_cli
+      - name: Upload other Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_cli-android-x86_64
+          path: target/x86_64-linux-android/release/file_classification_cli
+      - name: Upload other Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: file_classification_cli-android-i686
+          path: target/i686-linux-android/release/file_classification_cli
 
   build-linux:
     name: Build Linux binaries
@@ -258,7 +290,7 @@ jobs:
         run: |
           cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
       - name: Set binary name
-        run: echo "BINARY_NAME=file_classification_cli.exe" >> $env:GITHUB_ENV
+        run: echo "BINARY_NAME=file_classification_cli.exe" >> $GITHUB_ENV
       - name: Upload CLI artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -353,4 +385,7 @@ jobs:
             artifacts/file_classification_cli-aarch64-apple-darwin/file_classification_cli
             artifacts/file_classification_webapi-x86_64-apple-darwin/file_classification_webapi
             artifacts/file_classification_webapi-aarch64-apple-darwin/file_classification_webapi
-            artifacts/file_classification_cli-android/file_classification_cli
+            artifacts/file_classification_cli-android-aarch64/file_classification_cli
+            artifacts/file_classification_cli-android-armv7/file_classification_cli
+            artifacts/file_classification_cli-android-x86_64/file_classification_cli
+            artifacts/file_classification_cli-android-i686/file_classification_cli
