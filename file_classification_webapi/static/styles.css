@@ -225,6 +225,7 @@ body.dark-mode .search-form {
     display: flex;
     flex-wrap: wrap;
     margin: 0 -0.5rem;
+    align-items: flex-end;
 }
 
 .search-form .form-group {
@@ -291,6 +292,9 @@ body.dark-mode .search-form .form-group select:focus {
     transition: all 0.3s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     font-weight: 500;
+    align-self: flex-end;
+    height: calc(2.25rem + 2px);
+    /* 匹配输入框的高度 */
 }
 
 .search-form .form-group button:hover {
@@ -302,6 +306,13 @@ body.dark-mode .search-form .form-group select:focus {
 .search-form .form-group button:active {
     transform: translateY(0);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 调整包含按钮的 form-group */
+.search-form .form-row > .form-group:last-child {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
 }
 
 /* 工具栏样式 */
