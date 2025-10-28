@@ -9,6 +9,7 @@ function loadPartials() {
     const partials = [
         { id: 'header-placeholder', file: 'partials/header.html' },
         { id: 'sidebar-placeholder', file: 'partials/sidebar.html' },
+        { id: 'home-placeholder', file: 'partials/home.html' },
         { id: 'files-placeholder', file: 'partials/files.html' },
         { id: 'groups-placeholder', file: 'partials/groups.html' },
         { id: 'tags-placeholder', file: 'partials/tags.html' },
@@ -43,14 +44,9 @@ function initializeApp() {
     // 初始化应用功能
     // 这里可以添加一些初始化逻辑
     
-    // 默认显示第一个tab并自动搜索
-    const firstTab = document.querySelector('.tab-content');
-    if (firstTab) {
-        firstTab.style.display = 'block';
-        const firstNavLink = document.querySelector('.nav-link');
-        if (firstNavLink) {
-            firstNavLink.classList.add('active');
-            autoSearch(firstNavLink.getAttribute('data-target'));
-        }
+    // 默认显示主页
+    const homeTab = document.getElementById('home');
+    if (homeTab) {
+        homeTab.style.display = 'block';
     }
 }

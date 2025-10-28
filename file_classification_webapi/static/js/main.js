@@ -104,8 +104,10 @@ function initTabs() {
             // 设置当前链接为活动状态
             this.classList.add('active');
             
-            // 页面刚打开时自动搜索一次
-            autoSearch(target);
+            // 页面刚打开时自动搜索一次，但主页不需要搜索
+            if (target !== 'home') {
+                autoSearch(target);
+            }
         });
     });
 }
