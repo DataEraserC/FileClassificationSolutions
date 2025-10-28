@@ -17,7 +17,7 @@ function showMessage(message, type = 'info') {
             </div>
         `;
         messageContainer.style.display = 'block';
-        
+
         // 3秒后自动隐藏消息
         setTimeout(() => {
             messageContainer.style.display = 'none';
@@ -152,7 +152,7 @@ function switchComplexSearchTab(tab) {
         button.classList.remove('active');
     });
     event.target.classList.add('active');
-    
+
     // 显示对应的标签内容
     if (tab === 'visual') {
         document.getElementById('visual-search').style.display = 'block';
@@ -168,12 +168,12 @@ function addVisualSearchCondition() {
     const field = document.getElementById('visual-search-field').value;
     const operator = document.getElementById('visual-search-operator').value;
     const value = document.getElementById('visual-search-value').value;
-    
+
     if (!value) {
         showMessage('请输入值', 'warning');
         return;
     }
-    
+
     const conditionsContainer = document.getElementById('visual-search-conditions');
     const conditionElement = document.createElement('div');
     conditionElement.className = 'condition-item';
@@ -207,10 +207,10 @@ function showConfirmDialog(title, message, callback) {
                 </div>
             </div>
         `;
-        
+
         // 保存回调函数
         window.confirmCallback = callback;
-        
+
         // 打开模态框
         openModal();
     }
@@ -220,12 +220,12 @@ function showConfirmDialog(title, message, callback) {
 function handleConfirm(result) {
     // 关闭模态框
     closeModal();
-    
+
     // 执行回调函数
     if (window.confirmCallback && typeof window.confirmCallback === 'function') {
         window.confirmCallback(result);
     }
-    
+
     // 清除回调函数
     window.confirmCallback = null;
 }

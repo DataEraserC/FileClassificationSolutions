@@ -1,20 +1,20 @@
-use actix_web::{middleware::Logger, web, App, HttpServer, HttpResponse, Result};
 use actix_files as fs;
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer, Result};
 mod handlers;
 mod utils;
 
+use actix_cors::Cors;
+use chrono;
+use dotenvy::dotenv;
+use fern;
 use file_classification_core::utils::database::establish_connection;
 use file_classification_core::utils::database::run_pending_migrations;
+use log;
 use rust_embed::RustEmbed;
+use std::env;
 use std::path::Path;
 use std::path::PathBuf;
 use utils::database::establish_connection_pool;
-use log;
-use fern;
-use chrono;
-use dotenvy::dotenv;
-use std::env;
-use actix_cors::Cors;
 
 // 嵌入静态资源
 #[derive(RustEmbed)]
@@ -59,7 +59,7 @@ fn find_static_directory() -> std::io::Result<PathBuf> {
             log::info!("找到静态资源目录: {:?}", static_dir);
             return Ok(static_dir);
         }
-        
+
         // 尝试从当前工作目录的子目录 file_classification_webapi 中查找
         let static_dir = current_dir.join("file_classification_webapi").join("static");
         if Path::new(&static_dir).exists() {
@@ -96,7 +96,7 @@ async fn index_handler() -> HttpResponse {
             log::info!("物理目录中未找到 index.html，回退到嵌入资源");
         }
     }
-    
+
     // 回退到嵌入资源
     log::info!("从嵌入资源提供 index.html 文件");
     handle_embedded_file("index.html")
@@ -104,13 +104,13 @@ async fn index_handler() -> HttpResponse {
 
 async fn static_handler(path: web::Path<String>) -> HttpResponse {
     let path = path.into_inner();
-    
+
     // 首先尝试从物理目录提供文件
     match find_static_directory() {
         Ok(static_dir) => {
             let file_path = static_dir.join(&path);
             log::debug!("尝试从物理目录提供文件: {:?}, 请求路径: {}", file_path, path);
-            
+
             if file_path.exists() && file_path.is_file() {
                 // 确保请求的文件在 static 目录内，防止路径遍历攻击
                 if let Ok(abs_file_path) = file_path.canonicalize() {
@@ -141,7 +141,7 @@ async fn static_handler(path: web::Path<String>) -> HttpResponse {
             log::info!("查找物理目录失败: {}，回退到嵌入资源，请求路径: {}", e, path);
         }
     }
-    
+
     // 回退到嵌入资源
     log::info!("从嵌入资源提供文件: {}", path);
     handle_embedded_file(&path)
@@ -151,21 +151,21 @@ async fn static_handler(path: web::Path<String>) -> HttpResponse {
 fn setup_logger() -> Result<(), fern::InitError> {
     // 加载 .env 文件
     let _ = dotenv();
-    
+
     // 创建 logs 目录（如果不存在）
     std::fs::create_dir_all("logs")?;
-    
+
     // 获取当前日期时间作为日志文件名
     let local_time = chrono::Local::now();
     let date_str = local_time.format("%Y-%m-%d").to_string();
     let log_file_path = format!("logs/{}.log", date_str);
-    
+
     // 获取终端日志等级
     let console_log_level = env::var("RUST_LOG")
         .ok()
         .and_then(|s| s.parse().ok())
         .unwrap_or(log::LevelFilter::Info);
-        
+
     // 文件日志等级默认为 Debug
     let file_log_level = env::var("RUST_LOG_FILE")
         .ok()
@@ -183,23 +183,23 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 message
             ))
         });
-        
+
     // 添加控制台输出
     let dispatch = dispatch.chain(
         fern::Dispatch::new()
             .level(console_log_level)
             .chain(std::io::stdout())
     );
-    
+
     // 添加文件输出
     let dispatch = dispatch.chain(
         fern::Dispatch::new()
             .level(file_log_level)
             .chain(fern::log_file(log_file_path)?)
     );
-    
+
     dispatch.apply()?;
-        
+
     Ok(())
 }
 
@@ -210,7 +210,7 @@ fn create_cors() -> Cors {
         .ok()
         .and_then(|s| s.parse::<bool>().ok())
         .unwrap_or(true); // 默认启用 CORS
-        
+
     let cors_origin = env::var("CORS_ORIGIN")
         .ok()
         .unwrap_or_else(|| "http://localhost:8082".to_string());
@@ -238,7 +238,7 @@ fn create_cors() -> Cors {
 async fn main() -> std::io::Result<()> {
     // 初始化日志记录器
     setup_logger().expect("日志系统初始化失败");
-    
+
     // 输出日志等级信息
     let console_log_level = env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
     let file_log_level = env::var("RUST_LOG_FILE").unwrap_or_else(|_| "debug".to_string());
@@ -260,7 +260,7 @@ async fn main() -> std::io::Result<()> {
     if let Ok(current_dir) = std::env::current_dir() {
         log::info!("当前工作目录: {:?}", current_dir);
     }
-    
+
     // 输出可执行文件路径
     if let Ok(exe_path) = std::env::current_exe() {
         log::info!("可执行文件路径: {:?}", exe_path);
@@ -272,7 +272,7 @@ async fn main() -> std::io::Result<()> {
         .ok()
         .and_then(|s| s.parse::<u16>().ok())
         .unwrap_or(8082u16);
-        
+
     let bind_info = format!("{}:{}", bind_address, bind_port);
     log::info!("服务器将绑定到: {}", bind_info);
 
@@ -280,7 +280,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         // 创建 CORS 中间件
         let cors = create_cors();
-        
+
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .wrap(Logger::default())
@@ -370,7 +370,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", web::get().to(index_handler))
             .route("/{filename:.*}", web::get().to(static_handler))
     })
-    .bind(&bind_info)?
-    .run()
-    .await
+        .bind(&bind_info)?
+        .run()
+        .await
 }

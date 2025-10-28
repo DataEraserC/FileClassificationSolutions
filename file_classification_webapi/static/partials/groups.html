@@ -1,16 +1,16 @@
 <!-- 组管理 -->
-<section id="groups" class="tab-content">
+<section class="tab-content" id="groups">
     <h2>组管理</h2>
     <!-- 简单搜索表单 -->
     <div class="search-form">
         <div class="form-row">
             <div class="form-group">
                 <label for="group-id">组ID:</label>
-                <input type="number" id="group-id" placeholder="请输入组ID">
+                <input id="group-id" placeholder="请输入组ID" type="number">
             </div>
             <div class="form-group">
                 <label for="group-name">组名:</label>
-                <input type="text" id="group-name" placeholder="请输入组名">
+                <input id="group-name" placeholder="请输入组名" type="text">
             </div>
             <div class="form-group">
                 <button onclick="listGroupsByFilter()">搜索</button>
@@ -18,7 +18,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="toolbar">
         <button onclick="openCreateGroupDialog()">新增组</button>
         <button onclick="deleteSelectedGroups()">批量删除</button>
@@ -27,23 +27,23 @@
     <div class="table-container">
         <table id="groups-table">
             <thead>
-                <tr>
-                    <th><input type="checkbox" id="groups-select-all" onclick="toggleAllGroups(this)"></th>
-                    <th>ID</th>
-                    <th>名称</th>
-                    <th>描述</th>
-                    <th>引用计数</th>
-                    <th>父组ID</th>
-                    <th>操作</th>
-                </tr>
+            <tr>
+                <th><input id="groups-select-all" onclick="toggleAllGroups(this)" type="checkbox"></th>
+                <th>ID</th>
+                <th>名称</th>
+                <th>描述</th>
+                <th>引用计数</th>
+                <th>父组ID</th>
+                <th>操作</th>
+            </tr>
             </thead>
             <tbody>
-                <!-- 数据将通过JavaScript动态填充 -->
+            <!-- 数据将通过JavaScript动态填充 -->
             </tbody>
         </table>
     </div>
     <!-- 分页控件 -->
-    <div id="groups-pagination" class="pagination-container">
+    <div class="pagination-container" id="groups-pagination">
         <!-- 分页控件将通过JavaScript动态填充 -->
     </div>
 </section>

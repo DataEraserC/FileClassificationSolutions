@@ -10,34 +10,34 @@ let currentGroupTagQueryType = null; // 'filter' or 'conditions'
 function listGroupTagsByFilter() {
     const groupId = getInputValue('group-tag-group-id');
     const tagId = getInputValue('group-tag-tag-id');
-    
+
     // 构造查询参数
     let params = new URLSearchParams();
     if (groupId) params.append('group_id', groupId);
     if (tagId) params.append('tag_id', tagId);
-    
+
     // 构造分页参数
     const options = {
         page: currentGroupTagPage,
         page_size: groupTagPageSize
     };
-    
+
     // 保存当前条件
     currentGroupTagConditions = {};
     if (groupId) currentGroupTagConditions.group_id = groupId;
     if (tagId) currentGroupTagConditions.tag_id = tagId;
-    
+
     // 标记使用filter查询
     currentGroupTagQueryType = 'filter';
-    
+
     // 构造查询参数
     const searchParams = new URLSearchParams({
         filter: JSON.stringify(currentGroupTagConditions),
         options: JSON.stringify(options)
     });
-    
+
     const url = `${BASE_URL}/api/group-tags/search/by-filter-with-pagination?${searchParams.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -60,12 +60,12 @@ function listGroupTagsByFilter() {
 function renderGroupTagTable(groupTags) {
     const tbody = document.querySelector('#group-tags-table tbody');
     if (!tbody) return;
-    
+
     if (!groupTags || groupTags.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4">暂无数据</td></tr>';
         return;
     }
-    
+
     tbody.innerHTML = groupTags.map(gt => `
         <tr>
             <td><input type="checkbox" class="group-tag-checkbox" data-group-id="${gt.group_id}" data-tag-id="${gt.tag_id}"></td>
@@ -84,12 +84,12 @@ function renderGroupTagTable(groupTags) {
 function renderGroupTagPagination(data) {
     const paginationContainer = document.getElementById('group-tags-pagination');
     if (!paginationContainer) return;
-    
+
     const currentPage = data.page || currentGroupTagPage;
     const totalPages = data.total_pages || totalGroupTagPages;
     const totalRecords = data.total || 0;
     const pageSize = data.page_size || groupTagPageSize;
-    
+
     let paginationHTML = `
         <div class="pagination-container">
             <div class="pagination-info">
@@ -100,16 +100,16 @@ function renderGroupTagPagination(data) {
                 <button onclick="changeGroupTagPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
                 <span class="page-numbers">
     `;
-    
+
     // 显示页码
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, currentPage + 2);
-    
+
     if (startPage > 1) {
         paginationHTML += `<button onclick="changeGroupTagPage(1)">1</button>`;
         if (startPage > 2) paginationHTML += `<span>...</span>`;
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         if (i === currentPage) {
             paginationHTML += `<button class="active">${i}</button>`;
@@ -117,12 +117,12 @@ function renderGroupTagPagination(data) {
             paginationHTML += `<button onclick="changeGroupTagPage(${i})">${i}</button>`;
         }
     }
-    
+
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
         paginationHTML += `<button onclick="changeGroupTagPage(${totalPages})">${totalPages}</button>`;
     }
-    
+
     paginationHTML += `
                 </span>
                 <button onclick="changeGroupTagPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
@@ -139,7 +139,7 @@ function renderGroupTagPagination(data) {
             </div>
         </div>
     `;
-    
+
     paginationContainer.innerHTML = paginationHTML;
 }
 
@@ -161,21 +161,21 @@ function searchGroupTagsByFilter() {
     let params = new URLSearchParams();
     if (currentGroupTagConditions && currentGroupTagConditions.group_id) params.append('group_id', currentGroupTagConditions.group_id);
     if (currentGroupTagConditions && currentGroupTagConditions.tag_id) params.append('tag_id', currentGroupTagConditions.tag_id);
-    
+
     // 构造分页参数
     const options = {
         page: currentGroupTagPage,
         page_size: groupTagPageSize
     };
-    
+
     // 构造查询参数
     const searchParams = new URLSearchParams({
         filter: JSON.stringify(currentGroupTagConditions || {}),
         options: JSON.stringify(options)
     });
-    
+
     const url = `${BASE_URL}/api/group-tags/search/by-filter-with-pagination?${searchParams.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -195,9 +195,9 @@ function searchGroupTagsByFilter() {
 }
 
 // 在页面加载完成后绑定分页控件事件
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // 使用事件委托处理分页按钮点击
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         // 处理组标签分页按钮点击
         if (e.target.closest('#group-tags-pagination') && e.target.tagName === 'BUTTON') {
             const button = e.target;
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 防止重复绑定事件
                 return;
             }
-            
+
             const pageMatch = button.textContent.match(/(\d+)/);
             if (button.textContent === '首页') {
                 changeGroupTagPage(1);
@@ -236,17 +236,17 @@ function changeGroupTagPageSize(size) {
 function createGroupTag() {
     const groupId = getInputValue('create-group-tag-group-id');
     const tagId = getInputValue('create-group-tag-tag-id');
-    
+
     if (!groupId || !tagId) {
         showMessage('请填写完整的组标签信息', 'warning');
         return;
     }
-    
+
     const groupTagData = {
         group_id: parseInt(groupId),
         tag_id: parseInt(tagId)
     };
-    
+
     const url = `${BASE_URL}/api/group-tags`;
     fetch(url, {
         method: 'POST',
@@ -255,26 +255,26 @@ function createGroupTag() {
         },
         body: JSON.stringify(groupTagData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('组标签关联创建成功', 'success');
-            closeModal();
-            // 重新加载组标签列表
-            listGroupTagsByFilter();
-        } else {
-            showMessage('组标签关联创建失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组标签关联创建失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('组标签关联创建成功', 'success');
+                closeModal();
+                // 重新加载组标签列表
+                listGroupTagsByFilter();
+            } else {
+                showMessage('组标签关联创建失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组标签关联创建失败: ' + error.message, 'error');
+        });
 }
 
 function deleteGroupTag(groupId, tagId) {
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除组标签关联 [组ID: ${groupId}, 标签ID: ${tagId}] 吗？`, function(result) {
+    showConfirmDialog('确认删除', `确定要删除组标签关联 [组ID: ${groupId}, 标签ID: ${tagId}] 吗？`, function (result) {
         if (result) {
             const groupTagData = {
                 group_id: groupId,
@@ -289,20 +289,20 @@ function deleteGroupTag(groupId, tagId) {
                 },
                 body: JSON.stringify(groupTagData)
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('组标签关联删除成功', 'success');
-                    // 重新加载组标签列表
-                    listGroupTagsByFilter();
-                } else {
-                    showMessage('组标签关联删除失败: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('组标签关联删除失败: ' + error.message, 'error');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('组标签关联删除成功', 'success');
+                        // 重新加载组标签列表
+                        listGroupTagsByFilter();
+                    } else {
+                        showMessage('组标签关联删除失败: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('组标签关联删除失败: ' + error.message, 'error');
+                });
         }
     });
 }
@@ -316,7 +316,7 @@ function deleteSelectedGroupTags() {
     }
 
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组标签关联吗？`, function(result) {
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组标签关联吗？`, function (result) {
         if (result) {
             const groupTags = Array.from(selectedCheckboxes).map(cb => {
                 return {
@@ -349,13 +349,13 @@ function openCreateGroupTagDialog() {
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
-    
+
     // 绑定表单提交事件
-    document.getElementById('create-group-tag-form').addEventListener('submit', function(e) {
+    document.getElementById('create-group-tag-form').addEventListener('submit', function (e) {
         e.preventDefault();
         createGroupTag();
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -369,21 +369,21 @@ function deleteGroupTagsByDtos(dtos) {
         },
         body: JSON.stringify(dtos)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('组标签关联批量删除成功', 'success');
-            closeModal();
-            // 重新加载组标签列表
-            listGroupTagsByFilter();
-        } else {
-            showMessage('组标签关联批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组标签关联批量删除失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('组标签关联批量删除成功', 'success');
+                closeModal();
+                // 重新加载组标签列表
+                listGroupTagsByFilter();
+            } else {
+                showMessage('组标签关联批量删除失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组标签关联批量删除失败: ' + error.message, 'error');
+        });
 }
 
 function deleteGroupTagsByConditions(conditions) {
@@ -395,21 +395,21 @@ function deleteGroupTagsByConditions(conditions) {
         },
         body: JSON.stringify(conditions)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('组标签关联批量删除成功', 'success');
-            closeModal();
-            // 重新加载组标签列表
-            listGroupTagsByFilter();
-        } else {
-            showMessage('组标签关联批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('组标签关联批量删除失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('组标签关联批量删除成功', 'success');
+                closeModal();
+                // 重新加载组标签列表
+                listGroupTagsByFilter();
+            } else {
+                showMessage('组标签关联批量删除失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组标签关联批量删除失败: ' + error.message, 'error');
+        });
 }
 
 // 打开复杂查询组标签对话框
@@ -459,16 +459,16 @@ function openComplexSearchGroupTagDialog() {
             </form>
         </div>
     `;
-    
+
     // 绑定表单提交事件
-    document.getElementById('json-group-tag-search-form').addEventListener('submit', function(e) {
+    document.getElementById('json-group-tag-search-form').addEventListener('submit', function (e) {
         e.preventDefault();
         const conditionsJson = document.getElementById('complex-search-group-tag-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入查询条件', 'warning');
             return;
         }
-        
+
         try {
             const conditions = JSON.parse(conditionsJson);
             searchGroupTagsByConditions(conditions);
@@ -476,7 +476,7 @@ function openComplexSearchGroupTagDialog() {
             showMessage('JSON格式错误: ' + e.message, 'error');
         }
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -486,21 +486,21 @@ function searchGroupTagsByConditions(conditions) {
         page: currentGroupTagPage,
         page_size: groupTagPageSize
     };
-    
+
     // 保存当前条件
     currentGroupTagConditions = conditions;
-    
+
     // 标记使用conditions查询
     currentGroupTagQueryType = 'conditions';
-    
+
     // 构造查询参数
     const params = new URLSearchParams({
         conditions: JSON.stringify(conditions),
         options: JSON.stringify(options)
     });
-    
+
     const url = `${BASE_URL}/api/group-tags/search/by-conditions-with-pagination?${params.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {

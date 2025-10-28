@@ -21,29 +21,29 @@ mod repl;
 
 /// 主函数：解析命令行参数，初始化数据库连接和上下文，并处理命令
 fn main() -> Result<(), Box<dyn Error>> {
-	let cli = Cli::parse();
-	let mut conn = utils::database::establish_connection();
+    let cli = Cli::parse();
+    let mut conn = utils::database::establish_connection();
 
-	// 运行待处理的数据库迁移
-	if let Err(e) = utils::database::run_pending_migrations(&mut conn) {
-		eprintln!("数据库迁移失败: {}", e);
-		return Err(e);
-	}
+    // 运行待处理的数据库迁移
+    if let Err(e) = utils::database::run_pending_migrations(&mut conn) {
+        eprintln!("数据库迁移失败: {}", e);
+        return Err(e);
+    }
 
-	let mut context = Context::new();
+    let mut context = Context::new();
 
-	match cli.command {
-		cli::Commands::Repl => {
-			if let Err(e) = run_repl(&mut conn, &mut context) {
-				eprintln!("REPL Error: {}", e);
-			}
-		}
-		command => {
-			if let Err(e) = handle_command(cli::Cli { command }, &mut conn, &mut context) {
-				eprintln!("Command Error: {}", e);
-			}
-		}
-	}
+    match cli.command {
+        cli::Commands::Repl => {
+            if let Err(e) = run_repl(&mut conn, &mut context) {
+                eprintln!("REPL Error: {}", e);
+            }
+        }
+        command => {
+            if let Err(e) = handle_command(cli::Cli { command }, &mut conn, &mut context) {
+                eprintln!("Command Error: {}", e);
+            }
+        }
+    }
 
-	Ok(())
+    Ok(())
 }

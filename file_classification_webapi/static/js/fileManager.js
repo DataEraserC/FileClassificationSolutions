@@ -11,35 +11,35 @@ function listFilesByFilter() {
     const fileId = getInputValue('file-id');
     const fileType = getInputValue('file-type');
     const filePath = getInputValue('file-path');
-    
+
     // 构造查询参数
     let params = new URLSearchParams();
     if (fileId) params.append('id', fileId);
     if (fileType) params.append('type_', fileType);
     if (filePath) params.append('path', filePath);
-    
+
     // 构造分页参数
     const options = {
         page: currentFilePage,
         page_size: filePageSize
     };
-    
+
     // 保存当前条件
     currentFileConditions = {};
     if (fileId) currentFileConditions.id = parseInt(fileId);
     if (fileType) currentFileConditions.type_ = fileType;
     if (filePath) currentFileConditions.path = filePath;
-    
+
     // 标记使用filter查询
     currentFileQueryType = 'filter';
-    
+
     // 构造查询参数 - 修复参数格式问题
     const searchParams = new URLSearchParams();
     searchParams.append('filter', JSON.stringify(currentFileConditions));
     searchParams.append('options', JSON.stringify(options));
-    
+
     const url = `${BASE_URL}/api/files/search/by-filter-with-pagination?${searchParams.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -50,21 +50,21 @@ function listFilesByFilter() {
                 renderFilePagination(data.data);
             } else {
                 renderFileTable([]);
-                renderFilePagination({ page: 1, total_pages: 1, total: 0 });
+                renderFilePagination({page: 1, total_pages: 1, total: 0});
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('查询文件失败: ' + error.message, 'error');
             renderFileTable([]);
-            renderFilePagination({ page: 1, total_pages: 1, total: 0 });
+            renderFilePagination({page: 1, total_pages: 1, total: 0});
         });
 }
 
 function renderFileTable(files) {
     const tableBody = document.querySelector('#files-table tbody');
     tableBody.innerHTML = '';
-    
+
     files.forEach(file => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -87,11 +87,11 @@ function renderFileTable(files) {
 function renderFilePagination(paginationData) {
     const paginationContainer = document.getElementById('files-pagination');
     if (!paginationContainer) return;
-    
+
     const currentPage = paginationData.page || 1;
     const totalPages = paginationData.total_pages || 1;
     const totalRecords = paginationData.total || 0;
-    
+
     let paginationHTML = `
         <div class="pagination-container">
             <div class="pagination-info">
@@ -102,16 +102,16 @@ function renderFilePagination(paginationData) {
                 <button onclick="changeFilePage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
                 <span class="page-numbers">
     `;
-    
+
     // 显示页码
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, currentPage + 2);
-    
+
     if (startPage > 1) {
         paginationHTML += `<button onclick="changeFilePage(1)">1</button>`;
         if (startPage > 2) paginationHTML += `<span>...</span>`;
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         if (i === currentPage) {
             paginationHTML += `<button class="active">${i}</button>`;
@@ -119,12 +119,12 @@ function renderFilePagination(paginationData) {
             paginationHTML += `<button onclick="changeFilePage(${i})">${i}</button>`;
         }
     }
-    
+
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
         paginationHTML += `<button onclick="changeFilePage(${totalPages})">${totalPages}</button>`;
     }
-    
+
     paginationHTML += `
                 </span>
                 <button onclick="changeFilePage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
@@ -141,7 +141,7 @@ function renderFilePagination(paginationData) {
             </div>
         </div>
     `;
-    
+
     paginationContainer.innerHTML = paginationHTML;
 }
 
@@ -175,7 +175,7 @@ function getFileById() {
         showMessage('请输入文件ID', 'warning');
         return;
     }
-    
+
     const url = `${BASE_URL}/api/files/${fileId}`;
     fetch(url)
         .then(response => response.json())
@@ -196,18 +196,18 @@ function createFile() {
     const fileType = getInputValue('create-file-type');
     const filePath = getInputValue('create-file-path');
     const groupId = getInputValue('create-file-group-id');
-    
+
     if (!fileType || !filePath || !groupId) {
         showMessage('请填写完整的文件信息', 'warning');
         return;
     }
-    
+
     const fileData = {
         type_: fileType,
         path: filePath,
         group_id: parseInt(groupId)
     };
-    
+
     const url = `${BASE_URL}/api/files`;
     fetch(url, {
         method: 'POST',
@@ -216,22 +216,22 @@ function createFile() {
         },
         body: JSON.stringify(fileData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('文件创建成功', 'success');
-            closeModal();
-            // 重新加载文件列表
-            currentFilePage = 1;
-            listFilesByFilter();
-        } else {
-            showMessage('文件创建失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件创建失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('文件创建成功', 'success');
+                closeModal();
+                // 重新加载文件列表
+                currentFilePage = 1;
+                listFilesByFilter();
+            } else {
+                showMessage('文件创建失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件创建失败: ' + error.message, 'error');
+        });
 }
 
 function updateFile() {
@@ -239,18 +239,18 @@ function updateFile() {
     const fileType = getInputValue('edit-file-type');
     const filePath = getInputValue('edit-file-path');
     const groupId = getInputValue('edit-file-group-id');
-    
+
     if (!fileId || !fileType || !filePath || !groupId) {
         showMessage('请填写完整的文件信息', 'warning');
         return;
     }
-    
+
     const updateData = {
         type_: fileType,
         path: filePath,
         group_id: parseInt(groupId)
     };
-    
+
     const url = `${BASE_URL}/api/files/${fileId}`;
     fetch(url, {
         method: 'PUT',
@@ -259,45 +259,45 @@ function updateFile() {
         },
         body: JSON.stringify(updateData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('文件更新成功', 'success');
-            closeModal();
-            // 重新加载文件列表
-            listFilesByFilter();
-        } else {
-            showMessage('文件更新失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件更新失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('文件更新成功', 'success');
+                closeModal();
+                // 重新加载文件列表
+                listFilesByFilter();
+            } else {
+                showMessage('文件更新失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件更新失败: ' + error.message, 'error');
+        });
 }
 
 function deleteFile(fileId) {
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', '确定要删除该文件吗？', function(result) {
+    showConfirmDialog('确认删除', '确定要删除该文件吗？', function (result) {
         if (result) {
             const url = `${BASE_URL}/api/files/${fileId}`;
             fetch(url, {
                 method: 'DELETE'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('文件删除成功', 'success');
-                    // 重新加载文件列表
-                    listFilesByFilter();
-                } else {
-                    showMessage('文件删除失败: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('文件删除失败: ' + error.message, 'error');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('文件删除成功', 'success');
+                        // 重新加载文件列表
+                        listFilesByFilter();
+                    } else {
+                        showMessage('文件删除失败: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('文件删除失败: ' + error.message, 'error');
+                });
         }
     });
 }
@@ -311,10 +311,10 @@ function deleteSelectedFiles() {
     }
 
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个文件吗？`, function(result) {
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个文件吗？`, function (result) {
         if (result) {
             const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
-            
+
             // 使用新的delete by ids接口
             deleteFilesByIds(ids);
         }
@@ -343,13 +343,13 @@ function openCreateFileDialog() {
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
-    
+
     // 绑定表单提交事件
-    document.getElementById('create-file-form').addEventListener('submit', function(e) {
+    document.getElementById('create-file-form').addEventListener('submit', function (e) {
         e.preventDefault();
         createFile();
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -386,13 +386,13 @@ function openEditFileDialog(fileId) {
                         <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
                     </form>
                 `;
-                
+
                 // 绑定表单提交事件
-                document.getElementById('edit-file-form').addEventListener('submit', function(e) {
+                document.getElementById('edit-file-form').addEventListener('submit', function (e) {
                     e.preventDefault();
                     updateFile();
                 });
-                
+
                 document.getElementById('modal').style.display = 'block';
             } else {
                 showMessage('获取文件信息失败: ' + data.message, 'error');
@@ -407,11 +407,11 @@ function openEditFileDialog(fileId) {
 // 打开批量删除文件对话框
 function openBatchDeleteFileDialog() {
     const modalBody = document.getElementById('modal-body');
-    
+
     // 获取当前选中的文件ID
     const selectedFileCheckboxes = document.querySelectorAll('.file-checkbox:checked');
     const selectedFileIds = Array.from(selectedFileCheckboxes).map(cb => parseInt(cb.value)).map(id => parseInt(id));
-    
+
     let formContent;
     if (selectedFileIds.length > 0) {
         formContent = `
@@ -436,13 +436,13 @@ function openBatchDeleteFileDialog() {
             </form>
         `;
     }
-    
+
     modalBody.innerHTML = formContent;
-    
+
     // 绑定表单提交事件
-    document.getElementById('batch-delete-file-form').addEventListener('submit', function(e) {
+    document.getElementById('batch-delete-file-form').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         // 如果有选中的文件ID，使用delete by ids
         const selectedIdsInput = document.getElementById('selected-file-ids');
         if (selectedIdsInput) {
@@ -452,14 +452,14 @@ function openBatchDeleteFileDialog() {
             deleteFilesByIds(fixedFileIds);
             return;
         }
-        
+
         // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-file-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
             return;
         }
-        
+
         try {
             const conditions = JSON.parse(conditionsJson);
             deleteFilesByConditions(conditions);
@@ -467,7 +467,7 @@ function openBatchDeleteFileDialog() {
             showMessage('JSON格式错误: ' + e.message, 'error');
         }
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -481,21 +481,21 @@ function deleteFilesByIds(fileIds) {
         },
         body: JSON.stringify(fileIds)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('文件批量删除成功', 'success');
-            closeModal();
-            // 重新加载文件列表
-            listFilesByFilter();
-        } else {
-            showMessage('文件批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('文件批量删除失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('文件批量删除成功', 'success');
+                closeModal();
+                // 重新加载文件列表
+                listFilesByFilter();
+            } else {
+                showMessage('文件批量删除失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件批量删除失败: ' + error.message, 'error');
+        });
 }
 
 // 打开复杂查询文件对话框
@@ -553,16 +553,16 @@ function openComplexSearchFileDialog() {
         </div>
         <button type="button" onclick="closeModal()">取消</button>
     `;
-    
+
     // 绑定表单提交事件
-    document.getElementById('json-file-search-form').addEventListener('submit', function(e) {
+    document.getElementById('json-file-search-form').addEventListener('submit', function (e) {
         e.preventDefault();
         const conditionsJson = document.getElementById('complex-search-file-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入查询条件', 'warning');
             return;
         }
-        
+
         try {
             const conditions = JSON.parse(conditionsJson);
             searchFilesByConditions(conditions);
@@ -570,7 +570,7 @@ function openComplexSearchFileDialog() {
             showMessage('JSON格式错误: ' + e.message, 'error');
         }
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -580,21 +580,21 @@ function searchFilesByConditions(conditions) {
         page: currentFilePage,
         page_size: filePageSize
     };
-    
+
     // 保存当前条件
     currentFileConditions = conditions;
-    
+
     // 标记使用conditions查询
     currentFileQueryType = 'conditions';
-    
+
     // 构造查询参数
     const params = new URLSearchParams({
         conditions: JSON.stringify(conditions),
         options: JSON.stringify(options)
     });
-    
+
     const url = `${BASE_URL}/api/files/search/by-conditions-with-pagination?${params.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {

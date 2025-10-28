@@ -32,7 +32,7 @@ header {
     background-color: #17a2b8;
     color: white;
     padding: 1rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -41,7 +41,7 @@ header {
 
 body.dark-mode header {
     background-color: #0d6e7d;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 header h1 {
@@ -186,13 +186,13 @@ header h1 {
     background-color: white;
     border-radius: 5px;
     padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     transition: background-color 0.3s, box-shadow 0.3s;
 }
 
 body.dark-mode .tab-content {
     background-color: #2d2d2d;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .tab-content h2 {
@@ -270,13 +270,13 @@ body.dark-mode .search-form .form-group select {
 .search-form .form-group select:focus {
     outline: none;
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 body.dark-mode .search-form .form-group input:focus,
 body.dark-mode .search-form .form-group select:focus {
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
 }
 
 /* 搜索表单中的按钮样式 */
@@ -376,13 +376,13 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 1rem;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border-radius: 5px;
     overflow: hidden;
 }
 
 body.dark-mode table {
-    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 table th,
@@ -442,7 +442,7 @@ body.dark-mode table tr:hover {
     justify-content: center;
     min-height: 30px;
     min-width: 30px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     font-weight: 500;
 }
 
@@ -462,12 +462,12 @@ body.dark-mode table tr:hover {
 .action-button:hover {
     opacity: 0.9;
     transform: translateY(-1px);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .action-button:active {
     transform: translateY(0);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .action-button.delete:hover {
@@ -532,7 +532,7 @@ body.dark-mode .tree-node-info {
     margin-bottom: 10px;
     border-radius: 4px;
     position: relative;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     animation: fadeInOut 3s ease-in-out;
 }
 
@@ -601,10 +601,22 @@ body.dark-mode .message-error {
 }
 
 @keyframes fadeInOut {
-    0% { opacity: 0; transform: translateY(-20px); }
-    10% { opacity: 1; transform: translateY(0); }
-    90% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(-20px); }
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    90% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
 }
 
 /* 模态框样式 */
@@ -616,12 +628,12 @@ body.dark-mode .message-error {
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.4);
     transition: background-color 0.3s;
 }
 
 body.dark-mode .modal {
-    background-color: rgba(0,0,0,0.7);
+    background-color: rgba(0, 0, 0, 0.7);
 }
 
 .modal-content {
@@ -768,14 +780,14 @@ body.dark-mode .form-group textarea {
 .form-group textarea:focus {
     outline: none;
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 body.dark-mode .form-group input:focus,
 body.dark-mode .form-group select:focus,
 body.dark-mode .form-group textarea:focus {
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
 }
 
 /* 表单中的按钮样式 */
@@ -814,7 +826,7 @@ body.dark-mode .form-group textarea:focus {
     color: white;
     font-weight: bold;
     z-index: 10000;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     animation: fadeInOut 3s ease-in-out;
     transition: background-color 0.3s;
 }
@@ -837,10 +849,22 @@ body.dark-mode .form-group textarea:focus {
 }
 
 @keyframes fadeInOut {
-    0% { opacity: 0; transform: translateY(-20px); }
-    10% { opacity: 1; transform: translateY(0); }
-    90% { opacity: 1; transform: translateY(0); }
-    100% { opacity: 0; transform: translateY(-20px); }
+    0% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    10% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    90% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
 }
 
 /* 分页控件样式 */
@@ -984,12 +1008,12 @@ body.dark-mode .pagination-size select {
 .pagination-size select:focus {
     outline: none;
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 body.dark-mode .pagination-size select:focus {
     border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0,123,255,0.5);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
 }
 
 /* 响应式分页控件 */
@@ -997,26 +1021,26 @@ body.dark-mode .pagination-size select:focus {
     .pagination-container {
         padding: 10px 5px;
     }
-    
+
     .pagination-controls {
         gap: 3px;
     }
-    
+
     .pagination-controls button {
         padding: 6px 10px;
         font-size: 13px;
         min-width: 35px;
     }
-    
+
     .pagination-info {
         font-size: 14px;
         text-align: center;
     }
-    
+
     .pagination-size {
         font-size: 13px;
     }
-    
+
     .pagination-size select {
         padding: 5px 8px;
         font-size: 13px;
@@ -1029,11 +1053,11 @@ body.dark-mode .pagination-size select:focus {
         font-size: 12px;
         min-width: 30px;
     }
-    
+
     .pagination-info {
         font-size: 13px;
     }
-    
+
     .pagination-size {
         font-size: 12px;
         flex-direction: column;
@@ -1046,26 +1070,26 @@ body.dark-mode .pagination-size select:focus {
     .main-container {
         flex-direction: column;
     }
-    
+
     .sidebar {
         width: 100%;
         padding: 0;
     }
-    
+
     .sidebar.collapsed {
         width: 100%;
     }
-    
+
     .sidebar ul {
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
     }
-    
+
     .sidebar ul li {
         margin: 0;
     }
-    
+
     .sidebar ul li a {
         padding: 0.75rem;
         border-bottom: 1px solid #495057;
@@ -1074,45 +1098,45 @@ body.dark-mode .pagination-size select:focus {
         min-width: 100px;
         justify-content: center;
     }
-    
+
     .sidebar.collapsed ul li a {
         padding: 0.75rem;
     }
-    
+
     .nav-text {
         display: inline;
     }
-    
+
     .sidebar.collapsed .nav-text {
         display: none;
     }
-    
+
     .search-form .form-row {
         flex-direction: column;
     }
-    
+
     .search-form .form-group {
         min-width: 100%;
     }
-    
+
     .form-row {
         flex-direction: column;
     }
-    
+
     .form-group {
         min-width: 100%;
     }
-    
+
     header {
         flex-direction: column;
         gap: 10px;
         text-align: center;
     }
-    
+
     .theme-toggle {
         align-self: flex-end;
     }
-    
+
     .modal-content {
         width: 95%;
         margin: 20% auto;
@@ -1123,28 +1147,28 @@ body.dark-mode .pagination-size select:focus {
     .sidebar ul {
         flex-direction: column;
     }
-    
+
     .sidebar ul li a {
         border-left: 3px solid transparent;
         border-bottom: 1px solid #495057;
         text-align: left;
         min-width: auto;
     }
-    
+
     .sidebar ul li a.active {
         border-left: 3px solid #ffc107;
         border-bottom: 1px solid #495057;
     }
-    
+
     .toolbar button {
         margin-bottom: 0.5rem;
         display: inline-block;
     }
-    
+
     table {
         font-size: 0.8rem;
     }
-    
+
     table th,
     table td {
         padding: 0.5rem 0.25rem;

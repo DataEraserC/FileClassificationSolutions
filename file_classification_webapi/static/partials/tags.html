@@ -1,16 +1,16 @@
 <!-- 标签管理 -->
-<section id="tags" class="tab-content">
+<section class="tab-content" id="tags">
     <h2>标签管理</h2>
     <!-- 简单搜索表单 -->
     <div class="search-form">
         <div class="form-row">
             <div class="form-group">
                 <label for="tag-id">标签ID:</label>
-                <input type="number" id="tag-id" placeholder="请输入标签ID">
+                <input id="tag-id" placeholder="请输入标签ID" type="number">
             </div>
             <div class="form-group">
                 <label for="tag-name">标签名:</label>
-                <input type="text" id="tag-name" placeholder="请输入标签名">
+                <input id="tag-name" placeholder="请输入标签名" type="text">
             </div>
             <div class="form-group">
                 <button onclick="listTagsByFilter()">搜索</button>
@@ -18,7 +18,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="toolbar">
         <button onclick="openCreateTagDialog()">新增标签</button>
         <button onclick="deleteSelectedTags()">批量删除</button>
@@ -27,22 +27,22 @@
     <div class="table-container">
         <table id="tags-table">
             <thead>
-                <tr>
-                    <th><input type="checkbox" id="tags-select-all" onclick="toggleAllTags(this)"></th>
-                    <th>ID</th>
-                    <th>名称</th>
-                    <th>描述</th>
-                    <th>引用计数</th>
-                    <th>操作</th>
-                </tr>
+            <tr>
+                <th><input id="tags-select-all" onclick="toggleAllTags(this)" type="checkbox"></th>
+                <th>ID</th>
+                <th>名称</th>
+                <th>描述</th>
+                <th>引用计数</th>
+                <th>操作</th>
+            </tr>
             </thead>
             <tbody>
-                <!-- 数据将通过JavaScript动态填充 -->
+            <!-- 数据将通过JavaScript动态填充 -->
             </tbody>
         </table>
     </div>
     <!-- 分页控件 -->
-    <div id="tags-pagination" class="pagination-container">
+    <div class="pagination-container" id="tags-pagination">
         <!-- 分页控件将通过JavaScript动态填充 -->
     </div>
 </section>

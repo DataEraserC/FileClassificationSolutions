@@ -10,34 +10,34 @@ let currentTagQueryType = null; // 'filter' or 'conditions'
 function listTagsByFilter() {
     const tagId = getInputValue('tag-id');
     const tagName = getInputValue('tag-name');
-    
+
     // 构造查询参数
     let params = new URLSearchParams();
     if (tagId) params.append('id', tagId);
     if (tagName) params.append('name', tagName);
-    
+
     // 构造分页参数
     const options = {
         page: currentTagPage,
         page_size: tagPageSize
     };
-    
+
     // 保存当前条件
     currentTagConditions = {};
     if (tagId) currentTagConditions.id = tagId;
     if (tagName) currentTagConditions.name = tagName;
-    
+
     // 标记使用filter查询
     currentTagQueryType = 'filter';
-    
+
     // 构造查询参数
     const searchParams = new URLSearchParams({
         filter: JSON.stringify(currentTagConditions),
         options: JSON.stringify(options)
     });
-    
+
     const url = `${BASE_URL}/api/tags/search/by-filter-with-pagination?${searchParams.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
@@ -48,21 +48,21 @@ function listTagsByFilter() {
                 renderTagPagination(data.data);
             } else {
                 renderTagTable([]);
-                renderTagPagination({ page: 1, total_pages: 1, total: 0 });
+                renderTagPagination({page: 1, total_pages: 1, total: 0});
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('查询标签失败: ' + error.message, 'error');
             renderTagTable([]);
-            renderTagPagination({ page: 1, total_pages: 1, total: 0 });
+            renderTagPagination({page: 1, total_pages: 1, total: 0});
         });
 }
 
 function renderTagTable(tags) {
     const tableBody = document.querySelector('#tags-table tbody');
     tableBody.innerHTML = '';
-    
+
     tags.forEach(tag => {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -84,11 +84,11 @@ function renderTagTable(tags) {
 function renderTagPagination(paginationData) {
     const paginationContainer = document.getElementById('tags-pagination');
     if (!paginationContainer) return;
-    
+
     const currentPage = paginationData.page || 1;
     const totalPages = paginationData.total_pages || 1;
     const totalRecords = paginationData.total || 0;
-    
+
     let paginationHTML = `
         <div class="pagination-container">
             <div class="pagination-info">
@@ -99,16 +99,16 @@ function renderTagPagination(paginationData) {
                 <button onclick="changeTagPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>上一页</button>
                 <span class="page-numbers">
     `;
-    
+
     // 显示页码
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(totalPages, currentPage + 2);
-    
+
     if (startPage > 1) {
         paginationHTML += `<button onclick="changeTagPage(1)">1</button>`;
         if (startPage > 2) paginationHTML += `<span>...</span>`;
     }
-    
+
     for (let i = startPage; i <= endPage; i++) {
         if (i === currentPage) {
             paginationHTML += `<button class="active">${i}</button>`;
@@ -116,12 +116,12 @@ function renderTagPagination(paginationData) {
             paginationHTML += `<button onclick="changeTagPage(${i})">${i}</button>`;
         }
     }
-    
+
     if (endPage < totalPages) {
         if (endPage < totalPages - 1) paginationHTML += `<span>...</span>`;
         paginationHTML += `<button onclick="changeTagPage(${totalPages})">${totalPages}</button>`;
     }
-    
+
     paginationHTML += `
                 </span>
                 <button onclick="changeTagPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>下一页</button>
@@ -138,7 +138,7 @@ function renderTagPagination(paginationData) {
             </div>
         </div>
     `;
-    
+
     paginationContainer.innerHTML = paginationHTML;
 }
 
@@ -169,17 +169,17 @@ function changeTagPageSize(size) {
 function createTag() {
     const tagName = getInputValue('create-tag-name');
     const tagDescription = getInputValue('create-tag-description');
-    
+
     if (!tagName) {
         showMessage('请输入标签名', 'warning');
         return;
     }
-    
+
     const tagData = {
         name: tagName,
         description: tagDescription || ''
     };
-    
+
     const url = `${BASE_URL}/api/tags`;
     fetch(url, {
         method: 'POST',
@@ -188,39 +188,39 @@ function createTag() {
         },
         body: JSON.stringify(tagData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('标签创建成功', 'success');
-            closeModal();
-            // 重新加载标签列表
-            currentTagPage = 1;
-            listTagsByFilter();
-        } else {
-            showMessage('标签创建失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签创建失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('标签创建成功', 'success');
+                closeModal();
+                // 重新加载标签列表
+                currentTagPage = 1;
+                listTagsByFilter();
+            } else {
+                showMessage('标签创建失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('标签创建失败: ' + error.message, 'error');
+        });
 }
 
 function updateTag() {
     const tagId = getInputValue('edit-tag-id');
     const tagName = getInputValue('edit-tag-name');
     const tagDescription = getInputValue('edit-tag-description');
-    
+
     if (!tagId || !tagName) {
         showMessage('请填写完整的标签信息', 'warning');
         return;
     }
-    
+
     const updateData = {
         name: tagName,
         description: tagDescription || ''
     };
-    
+
     const url = `${BASE_URL}/api/tags/${tagId}`;
     fetch(url, {
         method: 'PUT',
@@ -229,45 +229,45 @@ function updateTag() {
         },
         body: JSON.stringify(updateData)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('标签更新成功', 'success');
-            closeModal();
-            // 重新加载标签列表
-            listTagsByFilter();
-        } else {
-            showMessage('标签更新失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签更新失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('标签更新成功', 'success');
+                closeModal();
+                // 重新加载标签列表
+                listTagsByFilter();
+            } else {
+                showMessage('标签更新失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('标签更新失败: ' + error.message, 'error');
+        });
 }
 
 function deleteTag(tagId) {
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', '确定要删除该标签吗？', function(result) {
+    showConfirmDialog('确认删除', '确定要删除该标签吗？', function (result) {
         if (result) {
             const url = `${BASE_URL}/api/tags/${tagId}`;
             fetch(url, {
                 method: 'DELETE'
             })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage('标签删除成功', 'success');
-                    // 重新加载标签列表
-                    listTagsByFilter();
-                } else {
-                    showMessage('标签删除失败: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showMessage('标签删除失败: ' + error.message, 'error');
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage('标签删除成功', 'success');
+                        // 重新加载标签列表
+                        listTagsByFilter();
+                    } else {
+                        showMessage('标签删除失败: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('标签删除失败: ' + error.message, 'error');
+                });
         }
     });
 }
@@ -281,10 +281,10 @@ function deleteSelectedTags() {
     }
 
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个标签吗？`, function(result) {
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个标签吗？`, function (result) {
         if (result) {
             const ids = Array.from(selectedCheckboxes).map(cb => parseInt(cb.getAttribute('data-id')));
-            
+
             // 使用新的delete by ids接口
             deleteTagsByIds(ids);
         }
@@ -309,13 +309,13 @@ function openCreateTagDialog() {
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
     `;
-    
+
     // 绑定表单提交事件
-    document.getElementById('create-tag-form').addEventListener('submit', function(e) {
+    document.getElementById('create-tag-form').addEventListener('submit', function (e) {
         e.preventDefault();
         createTag();
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -348,13 +348,13 @@ function openEditTagDialog(tagId) {
                         <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
                     </form>
                 `;
-                
+
                 // 绑定表单提交事件
-                document.getElementById('edit-tag-form').addEventListener('submit', function(e) {
+                document.getElementById('edit-tag-form').addEventListener('submit', function (e) {
                     e.preventDefault();
                     updateTag();
                 });
-                
+
                 document.getElementById('modal').style.display = 'block';
             } else {
                 showMessage('获取标签信息失败: ' + data.message, 'error');
@@ -369,11 +369,11 @@ function openEditTagDialog(tagId) {
 // 打开批量删除标签对话框
 function openBatchDeleteTagDialog() {
     const modalBody = document.getElementById('modal-body');
-    
+
     // 获取当前选中的标签ID
     const selectedTagCheckboxes = document.querySelectorAll('.tag-checkbox:checked');
     const selectedTagIds = Array.from(selectedTagCheckboxes).map(cb => parseInt(cb.value)).map(id => parseInt(id));
-    
+
     let formContent;
     if (selectedTagIds.length > 0) {
         formContent = `
@@ -398,13 +398,13 @@ function openBatchDeleteTagDialog() {
             </form>
         `;
     }
-    
+
     modalBody.innerHTML = formContent;
-    
+
     // 绑定表单提交事件
-    document.getElementById('batch-delete-tag-form').addEventListener('submit', function(e) {
+    document.getElementById('batch-delete-tag-form').addEventListener('submit', function (e) {
         e.preventDefault();
-        
+
         // 如果有选中的标签ID，使用delete by ids
         const selectedIdsInput = document.getElementById('selected-tag-ids');
         if (selectedIdsInput) {
@@ -414,14 +414,14 @@ function openBatchDeleteTagDialog() {
             deleteTagsByIds(fixedTagIds);
             return;
         }
-        
+
         // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-tag-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
             return;
         }
-        
+
         try {
             const conditions = JSON.parse(conditionsJson);
             deleteTagsByConditions(conditions);
@@ -429,7 +429,7 @@ function openBatchDeleteTagDialog() {
             showMessage('JSON格式错误: ' + e.message, 'error');
         }
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -443,21 +443,21 @@ function deleteTagsByIds(tagIds) {
         },
         body: JSON.stringify(tagIds)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('标签批量删除成功', 'success');
-            closeModal();
-            // 重新加载标签列表
-            listTagsByFilter();
-        } else {
-            showMessage('标签批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签批量删除失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('标签批量删除成功', 'success');
+                closeModal();
+                // 重新加载标签列表
+                listTagsByFilter();
+            } else {
+                showMessage('标签批量删除失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('标签批量删除失败: ' + error.message, 'error');
+        });
 }
 
 function deleteTagsByConditions(conditions) {
@@ -469,21 +469,21 @@ function deleteTagsByConditions(conditions) {
         },
         body: JSON.stringify(conditions)
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showMessage('标签批量删除成功', 'success');
-            closeModal();
-            // 重新加载标签列表
-            listTagsByFilter();
-        } else {
-            showMessage('标签批量删除失败: ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('标签批量删除失败: ' + error.message, 'error');
-    });
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('标签批量删除成功', 'success');
+                closeModal();
+                // 重新加载标签列表
+                listTagsByFilter();
+            } else {
+                showMessage('标签批量删除失败: ' + data.message, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('标签批量删除失败: ' + error.message, 'error');
+        });
 }
 
 // 打开复杂查询标签对话框
@@ -540,16 +540,16 @@ function openComplexSearchTagDialog() {
         </div>
         <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
-    
+
     // 绑定表单提交事件
-    document.getElementById('json-tag-search-form').addEventListener('submit', function(e) {
+    document.getElementById('json-tag-search-form').addEventListener('submit', function (e) {
         e.preventDefault();
         const conditionsJson = document.getElementById('complex-search-tag-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入查询条件', 'warning');
             return;
         }
-        
+
         try {
             const conditions = JSON.parse(conditionsJson);
             searchTagsByConditions(conditions);
@@ -557,7 +557,7 @@ function openComplexSearchTagDialog() {
             showMessage('JSON格式错误: ' + e.message, 'error');
         }
     });
-    
+
     document.getElementById('modal').style.display = 'block';
 }
 
@@ -567,21 +567,21 @@ function searchTagsByConditions(conditions) {
         page: currentTagPage,
         page_size: tagPageSize
     };
-    
+
     // 保存当前条件
     currentTagConditions = conditions;
-    
+
     // 标记使用conditions查询
     currentTagQueryType = 'conditions';
-    
+
     // 构造查询参数
     const params = new URLSearchParams({
         conditions: JSON.stringify(conditions),
         options: JSON.stringify(options)
     });
-    
+
     const url = `${BASE_URL}/api/tags/search/by-conditions-with-pagination?${params.toString()}`;
-    
+
     fetch(url)
         .then(response => response.json())
         .then(data => {
