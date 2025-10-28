@@ -107,16 +107,21 @@ pub fn mark_group_as_primary(
         .execute(conn)
 }
 
-/// 取消所有分组的主分组标记
-///
+/// 将指定分组标记为非主分组
+/// 
 /// 参数:
 /// - `conn`: 数据库连接对象
-///
+/// - `group_id`: 要标记为非主分组的分组ID
+/// 
 /// 返回值:
-/// 成功时返回影响的行数，失败则返回数据库错误
-#[allow(dead_code)]
-pub fn mark_group_as_non_primary(conn: &mut AnyConnection) -> Result<usize, diesel::result::Error> {
-    diesel::update(groups::table).set(groups::is_primary.eq(false)).execute(conn)
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
+pub fn mark_group_as_non_primary(
+    conn: &mut AnyConnection,
+    group_id: i32,
+) -> Result<usize, diesel::result::Error> {
+    diesel::update(groups::table.filter(groups::id.eq(group_id)))
+        .set(groups::is_primary.eq(false))
+        .execute(conn)
 }
 
 /// 根据过滤条件查询分组列表

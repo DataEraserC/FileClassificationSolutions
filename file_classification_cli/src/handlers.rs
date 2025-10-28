@@ -346,23 +346,10 @@ fn handle_file_action(
             }
         }
         cli::FileActions::UpdateById { id, path, type_, reference_count, group_id } => {
-            let mut changes = models::UpdateFileDTO::default();
-            if let Some(path) = path {
-                changes.path = Some(path);
-            }
-            if let Some(type_) = type_ {
-                changes.type_ = Some(type_);
-            }
-            if let Some(reference_count) = reference_count {
-                changes.reference_count = Some(reference_count);
-            }
-            if let Some(group_id) = group_id {
-                changes.group_id = Some(group_id);
-            }
+            let update_dto = models::UpdateFileDTO { path, type_, reference_count, group_id };
 
-            let conditions = vec![models::FileCondition::Id(id)];
-            match service::files::update_files_by_conditions(conn, conditions, changes) {
-                Ok(count) => println!("成功更新 {} 个文件", count),
+            match service::files::update_file_by_id(conn, id, update_dto) {
+                Ok(count) => println!("成功更新 {} 条记录", count),
                 Err(e) => eprintln!("更新文件失败: {:?}", e),
             }
         }

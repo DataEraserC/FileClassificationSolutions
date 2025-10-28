@@ -2,11 +2,11 @@ use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
 use file_classification_core::model::models::{CreateTagDTO, TagQueryOptions};
-use file_classification_core::service::tags::{delete_tags_by_conditions, delete_tags_by_ids, select_tag_by_group_id, select_tags_by_conditions_with_options, select_tags_by_conditions_with_pagination, select_tags_by_filter_with_options, select_tags_by_filter_with_pagination};
+use file_classification_core::service::tags::{delete_tags_by_conditions, delete_tags_by_ids, select_tag_by_group_id, select_tags_by_conditions_with_options, select_tags_by_conditions_with_pagination, select_tags_by_filter_with_options, select_tags_by_filter_with_pagination, update_tag_by_id};
 use file_classification_core::{
     model::models::{TagCondition, TagFilter, UpdateTagDTO},
     service::tags::{
-        create_tag, delete_tag, select_tags_by_conditions, select_tags_by_filter,
+        create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions, select_tags_by_filter,
         update_tags_by_conditions,
     }
     ,
@@ -95,29 +95,25 @@ async fn api_get_tag_by_id(path: web::Path<i32>, pool: web::Data<DbPool>) -> Res
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 构造条件数组，只包含当前标签ID
-    let conditions = vec![file_classification_core::model::models::TagCondition::Id(tag_id)];
-
     // 调用服务层根据ID查询标签
-    match select_tags_by_conditions(&mut conn, conditions, Some(1)) {
-        Ok(tags) => {
-            if tags.is_empty() {
-                // 未找到标签时返回404
-                Ok(
-                    HttpResponse::NotFound()
-                        .json(ApiError { success: false, message: "标签未找到".to_string() }),
-                )
-            } else {
-                // 构造成功响应，返回单个标签
-                Ok(HttpResponse::Ok().json(ApiResponse {
-                    success: true,
-                    data: Some(&tags[0]),
-                    message: None,
-                    count: Some(1),
-                }))
-            }
+    match get_tag_by_id(&mut conn, tag_id) {
+        Ok(tag) => {
+            // 构造成功响应，返回单个标签
+            Ok(HttpResponse::Ok().json(ApiResponse {
+                success: true,
+                data: Some(tag),
+                message: None,
+                count: Some(1),
+            }))
         }
-        // 错误处理
+        // 标签未找到
+        Err(diesel::result::Error::NotFound) => {
+            Ok(
+                HttpResponse::NotFound()
+                    .json(ApiError { success: false, message: "标签未找到".to_string() }),
+            )
+        }
+        // 其他错误处理
         Err(e) => Ok(
             HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
         ),
@@ -305,19 +301,16 @@ async fn api_update_tag_by_id(
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 构造条件数组，只包含当前标签ID
-    let conditions = vec![file_classification_core::model::models::TagCondition::Id(tag_id)];
-
     // 调用服务层更新指定标签
-    match update_tags_by_conditions(&mut conn, conditions, update_dto.into_inner()) {
+    match update_tag_by_id(&mut conn, tag_id, update_dto.into_inner()) {
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
                 Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功更新 {} 条记录", count),
-					"count": count
-			})))
+                    "success": true,
+                    "message": format!("成功更新 {} 条记录", count),
+                    "count": count
+                })))
             }
         // 错误处理
         Err(e) => Ok(

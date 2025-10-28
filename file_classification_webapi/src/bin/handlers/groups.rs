@@ -2,7 +2,7 @@ use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
 use file_classification_core::model::models::GroupQueryOptions;
-use file_classification_core::service::groups::{delete_groups_by_conditions, delete_groups_by_ids, select_group_by_file_id, select_group_by_tag_id, select_groups_by_conditions_with_options, select_groups_by_conditions_with_pagination, select_groups_by_filter_with_options, select_groups_by_filter_with_pagination};
+use file_classification_core::service::groups::{delete_groups_by_conditions, delete_groups_by_ids, get_group_by_id, select_group_by_file_id, select_group_by_tag_id, select_groups_by_conditions_with_options, select_groups_by_conditions_with_pagination, select_groups_by_filter_with_options, select_groups_by_filter_with_pagination, update_group_by_id};
 use file_classification_core::{
     model::models::{GroupCondition, GroupFilter, UpdateGroupDTO},
     service::groups::{
@@ -98,29 +98,25 @@ async fn api_get_group_by_id(
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 构造条件数组，只包含当前组ID
-    let conditions = vec![file_classification_core::model::models::GroupCondition::Id(group_id)];
-
     // 调用服务层根据ID查询组
-    match select_groups_by_conditions(&mut conn, conditions, Some(1)) {
-        Ok(groups) => {
-            if groups.is_empty() {
-                // 未找到组时返回404
-                Ok(
-                    HttpResponse::NotFound()
-                        .json(ApiError { success: false, message: "组未找到".to_string() }),
-                )
-            } else {
-                // 构造成功响应，返回单个组
-                Ok(HttpResponse::Ok().json(ApiResponse {
-                    success: true,
-                    data: Some(&groups[0]),
-                    message: None,
-                    count: Some(1),
-                }))
-            }
+    match get_group_by_id(&mut conn, group_id) {
+        Ok(group) => {
+            // 构造成功响应，返回单个组
+            Ok(HttpResponse::Ok().json(ApiResponse {
+                success: true,
+                data: Some(group),
+                message: None,
+                count: Some(1),
+            }))
         }
-        // 错误处理
+        // 组未找到
+        Err(diesel::result::Error::NotFound) => {
+            Ok(
+                HttpResponse::NotFound()
+                    .json(ApiError { success: false, message: "组未找到".to_string() }),
+            )
+        }
+        // 其他错误处理
         Err(e) => Ok(
             HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
         ),
@@ -343,19 +339,16 @@ async fn api_update_group_by_id(
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 构造条件数组，只包含当前组ID
-    let conditions = vec![file_classification_core::model::models::GroupCondition::Id(group_id)];
-
     // 调用服务层更新指定组
-    match update_groups_by_conditions(&mut conn, conditions, update_dto.into_inner()) {
+    match update_group_by_id(&mut conn, group_id, update_dto.into_inner()) {
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
                 Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功更新 {} 条记录", count),
-					"count": count
-			})))
+                    "success": true,
+                    "message": format!("成功更新 {} 条记录", count),
+                    "count": count
+                })))
             }
         // 错误处理
         Err(e) => Ok(

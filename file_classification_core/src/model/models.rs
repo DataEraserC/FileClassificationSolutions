@@ -154,7 +154,7 @@ pub enum FileOrderBy {
 /// 更新文件的DTO对象
 ///
 /// 用于更新文件记录时的数据传输对象，所有字段都是可选的
-#[derive(AsChangeset, serde::Deserialize, Default)]
+#[derive(AsChangeset, serde::Deserialize, Default, Clone)]
 #[diesel(table_name = files)]
 pub struct UpdateFileDTO {
     /// 文件路径（可选）

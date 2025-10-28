@@ -1,14 +1,11 @@
 use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
-use file_classification_core::service::files::{
-    create_file, delete_files_by_conditions, delete_files_by_ids, select_file_by_group_id,
-    select_files_by_conditions_with_options, select_files_by_conditions_with_pagination, select_files_by_filter_with_options, select_files_by_filter_with_pagination,
-};
+use file_classification_core::service::files::{create_file, delete_files_by_conditions, delete_files_by_ids, select_file_by_group_id, select_files_by_conditions_with_options, select_files_by_conditions_with_pagination, select_files_by_filter_with_options, select_files_by_filter_with_pagination, update_file_by_id};
 use file_classification_core::{
     model::models::{FileCondition, FileFilter, FileQueryOptions, UpdateFileDTO},
     service::files::{
-        delete_file, select_files_by_conditions, select_files_by_filter, update_files_by_conditions,
+        delete_file, get_file_by_id, select_files_by_conditions, select_files_by_filter, update_files_by_conditions,
     }
     ,
 };
@@ -96,29 +93,25 @@ async fn api_get_file_by_id(path: web::Path<i32>, pool: web::Data<DbPool>) -> Re
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 构造条件数组，只包含当前文件ID
-    let conditions = vec![file_classification_core::model::models::FileCondition::Id(file_id)];
-
     // 调用服务层根据ID查询文件
-    match select_files_by_conditions(&mut conn, conditions, Some(1)) {
-        Ok(files) => {
-            if files.is_empty() {
-                // 未找到文件时返回404
-                Ok(
-                    HttpResponse::NotFound()
-                        .json(ApiError { success: false, message: "文件未找到".to_string() }),
-                )
-            } else {
-                // 构造成功响应，返回单个文件
-                Ok(HttpResponse::Ok().json(ApiResponse {
-                    success: true,
-                    data: Some(&files[0]),
-                    message: None,
-                    count: Some(1),
-                }))
-            }
+    match get_file_by_id(&mut conn, file_id) {
+        Ok(file) => {
+            // 构造成功响应，返回单个文件
+            Ok(HttpResponse::Ok().json(ApiResponse {
+                success: true,
+                data: Some(file),
+                message: None,
+                count: Some(1),
+            }))
         }
-        // 错误处理
+        // 文件未找到
+        Err(diesel::result::Error::NotFound) => {
+            Ok(
+                HttpResponse::NotFound()
+                    .json(ApiError { success: false, message: "文件未找到".to_string() }),
+            )
+        }
+        // 其他错误处理
         Err(e) => Ok(
             HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
         ),
@@ -276,19 +269,16 @@ async fn api_update_file_by_id(
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 构造条件数组，只包含当前文件ID
-    let conditions = vec![file_classification_core::model::models::FileCondition::Id(file_id)];
-
     // 调用服务层更新指定文件
-    match update_files_by_conditions(&mut conn, conditions, update_dto.into_inner()) {
+    match update_file_by_id(&mut conn, file_id, update_dto.into_inner()) {
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
                 Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功更新 {} 条记录", count),
-					"count": count
-			})))
+                    "success": true,
+                    "message": format!("成功更新 {} 条记录", count),
+                    "count": count
+                })))
             }
         // 错误处理
         Err(e) => Ok(

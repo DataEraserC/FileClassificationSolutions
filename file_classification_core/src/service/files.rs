@@ -306,13 +306,27 @@ pub fn select_files_by_conditions_with_pagination(
 /// - `update_set`: 更新内容DTO
 ///
 /// 返回值:
-/// 成功更新的记录数或数据库错误
+/// 成功更新的记录数或AppError错误
 pub fn update_files_by_conditions(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
     update_set: UpdateFileDTO,
-) -> Result<usize, diesel::result::Error> {
-    files_dao::update_files_by_conditions(conn, conditions, update_set)
+) -> Result<usize, AppError> {
+    // 首先查询将要更新的文件
+    let files_to_update = select_files_by_conditions(conn, conditions, None)?;
+
+    // 使用事务确保数据一致性
+    conn.transaction::<usize, AppError, _>(|conn| {
+        let mut total_updated = 0;
+
+        // 对于每个要更新的文件，调用单个文件更新函数
+        for file in &files_to_update {
+            update_file_by_id(conn, file.id, update_set.clone())?;
+            total_updated += 1;
+        }
+
+        Ok(total_updated)
+    })
 }
 
 /// 根据条件批量删除文件（级联删除相关资源）
@@ -398,8 +412,84 @@ pub fn update_file_by_id(
     conn: &mut AnyConnection,
     file_id: i32,
     update_set: UpdateFileDTO,
-) -> Result<usize, diesel::result::Error> {
-    files_dao::update_file_by_id(conn, file_id, update_set)
+) -> Result<usize, AppError> {
+    conn.transaction::<usize, AppError, _>(|conn| {
+        // 获取当前文件信息
+        let current_file = get_file_by_id(conn, file_id)?;
+        
+        // 如果没有更新group_id，则直接更新
+        if update_set.group_id.is_none() {
+            return Ok(files_dao::update_file_by_id(conn, file_id, update_set)?);
+        }
+        
+        // 如果更新了group_id，则需要进行类似创建文件时的检查
+        let new_group_id = update_set.group_id.unwrap();
+        
+        // 如果组ID没有变化，则直接更新
+        if new_group_id == current_file.group_id {
+            return Ok(files_dao::update_file_by_id(conn, file_id, update_set)?);
+        }
+        
+        // 验证新目标分组是否存在
+        let target_group = groups_dao::get_group_by_id(conn, new_group_id)?;
+        
+        // 目标分组不能已经是别人的主分组
+        if target_group.is_primary == true {
+            return Err(AppError::CannotBindToPrimaryGroup);
+        }
+        
+        // 检查目标分组是否为空（作为主分组必须为空）
+        if file_group_dao::check_group_empty(conn, target_group.id)? == false {
+            return Err(FuturePrimaryGroupShouldBeEmpty);
+        }
+        
+        // 检查该组是否已经是其他组的父组
+        let children = group_relations_dao::get_direct_children_ids(conn, target_group.id)?;
+        if !children.is_empty() {
+            // 如果该组已经是其他组的父组，则不能转为主组
+            return Err(FuturePrimaryGroupShouldBeEmpty);
+        }
+        
+        // 获取原主组
+        let old_primary_group = groups_dao::get_group_by_id(conn, current_file.group_id)?;
+        
+        // 减少原主组的引用计数
+        groups_dao::decrease_group_reference_count_by_id(conn, old_primary_group.id)?;
+        
+        // 增加新主组的引用计数
+        groups_dao::increase_group_reference_count_by_id(conn, target_group.id)?;
+        
+        // 更新文件信息
+        let rows_affected = files_dao::update_file_by_id(conn, file_id, update_set)?;
+        
+        // 删除旧的文件-组关联
+        file_group_dao::delete_file_group_by_dto(
+            conn, 
+            &FileGroupDTO { 
+                file_id, 
+                group_id: old_primary_group.id, 
+                relation_type: 1 
+            }
+        )?;
+        
+        // 创建新的文件-组关联
+        file_group_service::create_file_group(
+            conn,
+            FileGroupDTO { 
+                file_id, 
+                group_id: target_group.id, 
+                relation_type: 1 
+            },
+        )?;
+        
+        // 将新目标分组标记为主分组
+        groups_dao::mark_group_as_primary(conn, target_group.id)?;
+        
+        // 将旧的主分组标记为非主分组
+        groups_dao::mark_group_as_non_primary(conn, old_primary_group.id)?;
+        
+        Ok(rows_affected)
+    })
 }
 
 /// 根据文件ID列表批量删除文件
