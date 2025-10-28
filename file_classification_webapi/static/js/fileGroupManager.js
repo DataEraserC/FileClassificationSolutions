@@ -5,6 +5,7 @@ let currentFileGroupPage = 1;
 let fileGroupPageSize = 10;
 let totalFileGroupPages = 1;
 let currentFileGroupConditions = null;
+let currentFileGroupQueryType = null; // 'filter' or 'conditions'
 
 function listFileGroupsByFilter() {
     const fileId = getInputValue('file-group-file-id');
@@ -25,6 +26,9 @@ function listFileGroupsByFilter() {
     currentFileGroupConditions = {};
     if (fileId) currentFileGroupConditions.file_id = fileId;
     if (groupId) currentFileGroupConditions.group_id = groupId;
+    
+    // 标记使用filter查询
+    currentFileGroupQueryType = 'filter';
     
     // 构造查询参数
     const searchParams = new URLSearchParams({
@@ -143,7 +147,8 @@ function renderFileGroupPagination(data) {
 function changeFileGroupPage(page) {
     if (page < 1 || page > totalFileGroupPages) return;
     currentFileGroupPage = page;
-    if (currentFileGroupConditions) {
+    // 根据查询类型选择接口
+    if (currentFileGroupQueryType === 'conditions') {
         searchFileGroupsByConditions(currentFileGroupConditions);
     } else {
         searchFileGroupsByFilter();
@@ -487,6 +492,9 @@ function searchFileGroupsByConditions(conditions) {
     
     // 保存当前条件
     currentFileGroupConditions = conditions;
+    
+    // 标记使用conditions查询
+    currentFileGroupQueryType = 'conditions';
     
     // 构造查询参数
     const params = new URLSearchParams({

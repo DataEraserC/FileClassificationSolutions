@@ -5,6 +5,7 @@ let currentGroupTagPage = 1;
 let groupTagPageSize = 10;
 let totalGroupTagPages = 1;
 let currentGroupTagConditions = null;
+let currentGroupTagQueryType = null; // 'filter' or 'conditions'
 
 function listGroupTagsByFilter() {
     const groupId = getInputValue('group-tag-group-id');
@@ -25,6 +26,9 @@ function listGroupTagsByFilter() {
     currentGroupTagConditions = {};
     if (groupId) currentGroupTagConditions.group_id = groupId;
     if (tagId) currentGroupTagConditions.tag_id = tagId;
+    
+    // 标记使用filter查询
+    currentGroupTagQueryType = 'filter';
     
     // 构造查询参数
     const searchParams = new URLSearchParams({
@@ -143,7 +147,8 @@ function renderGroupTagPagination(data) {
 function changeGroupTagPage(page) {
     if (page < 1 || page > totalGroupTagPages) return;
     currentGroupTagPage = page;
-    if (currentGroupTagConditions) {
+    // 根据查询类型选择接口
+    if (currentGroupTagQueryType === 'conditions') {
         searchGroupTagsByConditions(currentGroupTagConditions);
     } else {
         searchGroupTagsByFilter();
@@ -484,6 +489,9 @@ function searchGroupTagsByConditions(conditions) {
     
     // 保存当前条件
     currentGroupTagConditions = conditions;
+    
+    // 标记使用conditions查询
+    currentGroupTagQueryType = 'conditions';
     
     // 构造查询参数
     const params = new URLSearchParams({

@@ -5,6 +5,7 @@ let currentGroupRelationPage = 1;
 let groupRelationPageSize = 10;
 let totalGroupRelationPages = 1;
 let currentGroupRelationConditions = null;
+let currentGroupRelationQueryType = null; // 'filter' or 'conditions'
 
 function listGroupRelationsByFilter() {
     const firstId = getInputValue('group-relation-first-id');
@@ -28,6 +29,9 @@ function listGroupRelationsByFilter() {
     if (firstId) currentGroupRelationConditions.first_group_id = firstId;
     if (secondId) currentGroupRelationConditions.second_group_id = secondId;
     if (relationType) currentGroupRelationConditions.relation_type = relationType;
+    
+    // 标记使用filter查询
+    currentGroupRelationQueryType = 'filter';
     
     // 构造查询参数
     const searchParams = new URLSearchParams({
@@ -147,7 +151,8 @@ function renderGroupRelationPagination(data) {
 function changeGroupRelationPage(page) {
     if (page < 1 || page > totalGroupRelationPages) return;
     currentGroupRelationPage = page;
-    if (currentGroupRelationConditions) {
+    // 根据查询类型选择接口
+    if (currentGroupRelationQueryType === 'conditions') {
         searchGroupRelationsByConditions(currentGroupRelationConditions);
     } else {
         searchGroupRelationsByFilter();
@@ -498,6 +503,9 @@ function searchGroupRelationsByConditions(conditions) {
     
     // 保存当前条件
     currentGroupRelationConditions = conditions;
+    
+    // 标记使用conditions查询
+    currentGroupRelationQueryType = 'conditions';
     
     // 构造查询参数
     const params = new URLSearchParams({

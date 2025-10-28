@@ -5,6 +5,7 @@ let currentFilePage = 1;
 let filePageSize = 10;
 let totalFilePages = 1;
 let currentFileConditions = null;
+let currentFileQueryType = null; // 'filter' or 'conditions'
 
 function listFilesByFilter() {
     const fileId = getInputValue('file-id');
@@ -28,6 +29,9 @@ function listFilesByFilter() {
     if (fileId) currentFileConditions.id = parseInt(fileId);
     if (fileType) currentFileConditions.type_ = fileType;
     if (filePath) currentFileConditions.path = filePath;
+    
+    // 标记使用filter查询
+    currentFileQueryType = 'filter';
     
     // 构造查询参数 - 修复参数格式问题
     const searchParams = new URLSearchParams();
@@ -145,8 +149,8 @@ function renderFilePagination(paginationData) {
 function changeFilePage(page) {
     if (page < 1 || page > totalFilePages) return;
     currentFilePage = page;
-    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
-    if (currentFileConditions && Object.keys(currentFileConditions).length > 0) {
+    // 根据查询类型选择接口
+    if (currentFileQueryType === 'conditions') {
         searchFilesByConditions(currentFileConditions);
     } else {
         listFilesByFilter();
@@ -157,8 +161,8 @@ function changeFilePage(page) {
 function changeFilePageSize(size) {
     filePageSize = parseInt(size);
     currentFilePage = 1; // 重置到第一页
-    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
-    if (currentFileConditions && Object.keys(currentFileConditions).length > 0) {
+    // 根据查询类型选择接口
+    if (currentFileQueryType === 'conditions') {
         searchFilesByConditions(currentFileConditions);
     } else {
         listFilesByFilter();
@@ -579,6 +583,9 @@ function searchFilesByConditions(conditions) {
     
     // 保存当前条件
     currentFileConditions = conditions;
+    
+    // 标记使用conditions查询
+    currentFileQueryType = 'conditions';
     
     // 构造查询参数
     const params = new URLSearchParams({

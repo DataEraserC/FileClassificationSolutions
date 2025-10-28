@@ -5,6 +5,7 @@ let currentTagPage = 1;
 let tagPageSize = 10;
 let totalTagPages = 1;
 let currentTagConditions = null;
+let currentTagQueryType = null; // 'filter' or 'conditions'
 
 function listTagsByFilter() {
     const tagId = getInputValue('tag-id');
@@ -25,6 +26,9 @@ function listTagsByFilter() {
     currentTagConditions = {};
     if (tagId) currentTagConditions.id = tagId;
     if (tagName) currentTagConditions.name = tagName;
+    
+    // 标记使用filter查询
+    currentTagQueryType = 'filter';
     
     // 构造查询参数
     const searchParams = new URLSearchParams({
@@ -142,8 +146,8 @@ function renderTagPagination(paginationData) {
 function changeTagPage(page) {
     if (page < 1 || page > totalTagPages) return;
     currentTagPage = page;
-    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
-    if (currentTagConditions && Object.keys(currentTagConditions).length > 0) {
+    // 根据查询类型选择接口
+    if (currentTagQueryType === 'conditions') {
         searchTagsByConditions(currentTagConditions);
     } else {
         listTagsByFilter();
@@ -154,8 +158,8 @@ function changeTagPage(page) {
 function changeTagPageSize(size) {
     tagPageSize = parseInt(size);
     currentTagPage = 1; // 重置到第一页
-    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
-    if (currentTagConditions && Object.keys(currentTagConditions).length > 0) {
+    // 根据查询类型选择接口
+    if (currentTagQueryType === 'conditions') {
         searchTagsByConditions(currentTagConditions);
     } else {
         listTagsByFilter();
@@ -566,6 +570,9 @@ function searchTagsByConditions(conditions) {
     
     // 保存当前条件
     currentTagConditions = conditions;
+    
+    // 标记使用conditions查询
+    currentTagQueryType = 'conditions';
     
     // 构造查询参数
     const params = new URLSearchParams({

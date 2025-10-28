@@ -5,6 +5,7 @@ let currentGroupPage = 1;
 let groupPageSize = 10;
 let totalGroupPages = 1;
 let currentGroupConditions = null;
+let currentGroupQueryType = null; // 'filter' or 'conditions'
 
 function listGroupsByFilter() {
     const groupId = getInputValue('group-id');
@@ -25,6 +26,9 @@ function listGroupsByFilter() {
     currentGroupConditions = {};
     if (groupId) currentGroupConditions.id = parseInt(groupId);
     if (groupName) currentGroupConditions.name = groupName;
+    
+    // 标记使用filter查询
+    currentGroupQueryType = 'filter';
     
     // 构造查询参数
     const searchParams = new URLSearchParams({
@@ -144,8 +148,8 @@ function renderGroupPagination(paginationData) {
 function changeGroupPage(page) {
     if (page < 1 || page > totalGroupPages) return;
     currentGroupPage = page;
-    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
-    if (currentGroupConditions && Object.keys(currentGroupConditions).length > 0) {
+    // 根据查询类型选择接口
+    if (currentGroupQueryType === 'conditions') {
         searchGroupsByConditions(currentGroupConditions);
     } else {
         listGroupsByFilter();
@@ -156,8 +160,8 @@ function changeGroupPage(page) {
 function changeGroupPageSize(size) {
     groupPageSize = parseInt(size);
     currentGroupPage = 1; // 重置到第一页
-    // 检查是否有查询条件，如果有则使用conditions接口，否则使用filter接口
-    if (currentGroupConditions && Object.keys(currentGroupConditions).length > 0) {
+    // 根据查询类型选择接口
+    if (currentGroupQueryType === 'conditions') {
         searchGroupsByConditions(currentGroupConditions);
     } else {
         listGroupsByFilter();
@@ -569,6 +573,9 @@ function searchGroupsByConditions(conditions) {
     
     // 保存当前条件
     currentGroupConditions = conditions;
+    
+    // 标记使用conditions查询
+    currentGroupQueryType = 'conditions';
     
     // 构造查询参数
     const params = new URLSearchParams({
