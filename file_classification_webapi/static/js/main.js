@@ -79,6 +79,21 @@ function initTabs() {
     // 存储已打开的标签页
     const openedTabs = new Set();
 
+    // 页面加载时只显示首页内容
+    const homeTab = document.getElementById('home');
+    if (homeTab) {
+        homeTab.style.display = 'block';
+        // 主页也需要执行一次搜索以显示默认数据
+        autoSearch('home');
+    }
+
+    // 隐藏除主页外的所有标签页内容
+    tabContents.forEach(content => {
+        if (content.id !== 'home') {
+            content.style.display = 'none';
+        }
+    });
+
     navLinks.forEach(link => {
         link.addEventListener('click', function (e) {
             e.preventDefault();
@@ -123,6 +138,9 @@ function initTabs() {
 // 根据当前tab自动执行搜索
 function autoSearch(tabName) {
     switch (tabName) {
+        case 'home':
+            // 主页可能需要执行某些初始化操作
+            break;
         case 'files':
             if (typeof listFilesByFilter === 'function') {
                 listFilesByFilter();
