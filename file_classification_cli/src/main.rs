@@ -22,7 +22,15 @@ mod repl;
 /// 主函数：解析命令行参数，初始化数据库连接和上下文，并处理命令
 fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
-    let mut conn = utils::database::establish_connection();
+    
+    // 加载 .env 文件中的环境变量
+    dotenvy::dotenv().ok();
+
+    // 从环境变量中获取数据库连接URL和数据库类型
+    let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let database_type = std::env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
+    
+    let mut conn = utils::database::establish_connection(&database_url, &database_type);
 
     // 运行待处理的数据库迁移
     if let Err(e) = utils::database::run_pending_migrations(&mut conn) {

@@ -5,7 +5,6 @@
 //! 并封装了通用的数据库连接类型。
 
 pub use diesel::{Connection, QueryResult};
-use dotenvy::dotenv;
 use std::env;
 
 /// 通用数据库连接枚举
@@ -22,27 +21,19 @@ pub enum AnyConnection {
 
 /// 建立数据库连接
 ///
-/// 从环境变量中读取数据库配置信息，并根据配置建立相应的数据库连接。
+/// 根据提供的数据库URL和类型建立相应的数据库连接。
 ///
-/// 环境变量要求：
-/// - `DATABASE_URL`: 数据库连接字符串
-/// - `DATABASE_TYPE`: 数据库类型（当前仅支持 "sqlite"）
+/// 参数：
+/// - `database_url`: 数据库连接字符串
+/// - `database_type`: 数据库类型（当前仅支持 "sqlite"）
 ///
 /// 返回值：
 /// 成功时返回封装好的数据库连接对象，失败时会 panic 并输出错误信息
-pub fn establish_connection() -> AnyConnection {
-    // 加载 .env 文件中的环境变量
-    dotenv().ok();
-
-    // 从环境变量中获取数据库连接URL和数据库类型
-    // NOTE: from ./.env
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let database_type = env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
-
+pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConnection {
     // 根据数据库类型建立相应的连接
-    match database_type.as_str() {
+    match database_type {
         "sqlite" => AnyConnection::Sqlite(
-            diesel::SqliteConnection::establish(&database_url)
+            diesel::SqliteConnection::establish(database_url)
                 .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
         ),
         // 不支持的数据库类型直接 panic
