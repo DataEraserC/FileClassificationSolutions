@@ -1071,44 +1071,78 @@ body.dark-mode .pagination-size select:focus {
         flex-direction: column;
     }
 
+    /* 方案1: 底部导航栏 */
     .sidebar {
         width: 100%;
         padding: 0;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: auto;
+        z-index: 1000;
     }
 
     .sidebar.collapsed {
         width: 100%;
     }
 
+    .sidebar-toggle {
+        display: none;
+    }
+
+    .sidebar nav {
+        padding: 0;
+    }
+
     .sidebar ul {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        margin: 0;
+        padding: 0;
     }
 
     .sidebar ul li {
         margin: 0;
+        flex: 1;
     }
 
     .sidebar ul li a {
-        padding: 0.75rem;
-        border-bottom: 1px solid #495057;
+        padding: 1rem 0.5rem;
+        border-bottom: none;
         border-left: none;
         text-align: center;
-        min-width: 100px;
-        justify-content: center;
+        flex-direction: column;
+        font-size: 0.8rem;
+        min-height: 60px;
     }
 
     .sidebar.collapsed ul li a {
-        padding: 0.75rem;
+        padding: 1rem 0.5rem;
     }
 
     .nav-text {
-        display: inline;
+        display: block;
+        font-size: 0.7rem;
+        margin-top: 0.25rem;
+        margin-left: 0;
+    }
+
+    .nav-icon {
+        margin-left: 0;
+        font-size: 1.2rem;
     }
 
     .sidebar.collapsed .nav-text {
-        display: none;
+        display: block;
+    }
+
+    /* 调整主内容区域，避免被底部导航栏遮挡 */
+    .content {
+        margin-bottom: 60px;
     }
 
     .search-form .form-row {
@@ -1144,20 +1178,23 @@ body.dark-mode .pagination-size select:focus {
 }
 
 @media (max-width: 480px) {
-    .sidebar ul {
-        flex-direction: column;
-    }
-
+    /* 在小屏幕上进一步优化 */
     .sidebar ul li a {
-        border-left: 3px solid transparent;
-        border-bottom: 1px solid #495057;
-        text-align: left;
-        min-width: auto;
+        padding: 0.75rem 0.25rem;
+        min-height: 50px;
+        font-size: 0.7rem;
     }
 
-    .sidebar ul li a.active {
-        border-left: 3px solid #ffc107;
-        border-bottom: 1px solid #495057;
+    .nav-icon {
+        font-size: 1rem;
+    }
+
+    .nav-text {
+        font-size: 0.6rem;
+    }
+
+    .content {
+        margin-bottom: 50px;
     }
 
     .toolbar button {

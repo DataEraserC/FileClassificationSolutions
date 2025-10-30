@@ -67,6 +67,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化侧边栏切换功能
     waitForSidebarToggle();
+    
+    // 移动端底部导航适配
+    handleMobileBottomNav();
 });
 
 function initTabs() {
@@ -107,6 +110,11 @@ function initTabs() {
             // 页面刚打开时自动搜索一次，但主页不需要搜索
             if (target !== 'home') {
                 autoSearch(target);
+            }
+            
+            // 在移动设备上，点击导航项后滚动到内容顶部
+            if (window.innerWidth <= 768) {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
         });
     });
@@ -202,4 +210,31 @@ function initSidebarToggle() {
         // 触发窗口大小调整事件，确保响应式设计正常工作
         window.dispatchEvent(new Event('resize'));
     });
+}
+
+// 处理移动端底部导航
+function handleMobileBottomNav() {
+    // 检测是否为移动设备
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        const sidebar = document.querySelector('.sidebar');
+        // 确保侧边栏在底部
+        sidebar.style.position = 'fixed';
+        sidebar.style.bottom = '0';
+        sidebar.style.top = 'auto';
+        
+        // 监听窗口大小变化
+        window.addEventListener('resize', function() {
+            const currentSidebar = document.querySelector('.sidebar');
+            if (window.innerWidth <= 768) {
+                currentSidebar.style.position = 'fixed';
+                currentSidebar.style.bottom = '0';
+                currentSidebar.style.top = 'auto';
+            } else {
+                currentSidebar.style.position = '';
+                currentSidebar.style.bottom = '';
+            }
+        });
+    }
 }
