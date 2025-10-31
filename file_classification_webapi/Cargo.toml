@@ -4,12 +4,12 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
+file_classification_common = { path = "../common" }
 file_classification_core = { path = "../file_classification_core", features = ["swagger"] }
 chrono = { workspace = true }
 serde = { workspace = true }
 #diesel = { workspace = true, features = ["r2d2"] }
 diesel = { workspace = true }
-dotenvy = { workspace = true }
 # web related deps
 actix-web = "4.11"
 actix-cors = "0.7"

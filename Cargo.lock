@@ -911,11 +911,19 @@ dependencies = [
  "assert_cmd",
  "clap",
  "dialoguer",
- "dotenvy",
+ "file_classification_common",
  "file_classification_core",
  "libsqlite3-sys",
  "rustyline",
  "shlex",
+]
+
+[[package]]
+name = "file_classification_common"
+version = "0.1.0"
+dependencies = [
+ "dotenvy",
+ "tempfile",
 ]
 
 [[package]]
@@ -939,9 +947,9 @@ dependencies = [
  "actix-web",
  "chrono",
  "diesel",
- "dotenvy",
  "env_logger",
  "fern",
+ "file_classification_common",
  "file_classification_core",
  "lazy_static",
  "log",

@@ -6,13 +6,15 @@ use actix_cors::Cors;
 use actix_files::NamedFile;
 use log;
 use std::env;
-use std::fs;
-use std::path::Path;
 use std::path::PathBuf;
+// 引入嵌入资源模块
+use crate::utils::embedded::{Assets};
 
 // 引入数据库连接相关类型
 use file_classification_core::utils::database::{establish_connection, run_pending_migrations};
 use crate::utils::database::establish_connection_pool;
+// 引入环境变量加载工具
+use file_classification_common::env_loader::load_env_file;
 
 // 创建 CORS 中间件
 fn create_cors() -> Cors {
@@ -23,70 +25,133 @@ fn create_cors() -> Cors {
         .supports_credentials()
 }
 
-// 静态文件服务处理器
-async fn index_handler() -> Result<NamedFile> {
-    let path: PathBuf = "./static/index.html".parse().unwrap();
-    Ok(NamedFile::open(path)?)
-}
-
-// 静态资源处理器
-async fn static_handler(path: web::Path<String>) -> Result<NamedFile> {
-    let mut full_path = PathBuf::from("./static/");
-    full_path.push(path.as_str());
-    Ok(NamedFile::open(full_path)?)
-}
-
-/// 加载环境变量文件
-///
-/// 加载顺序：
-/// 1. 通过 ENV_FILE 环境变量指定的文件
-/// 2. 回退到 .file_classification_env
-/// 3. 如果以上都不存在，则创建带有默认配置的 .file_classification_env
-fn load_env_file() -> Result<Option<String>, Box<dyn std::error::Error>> {
-    // 首先检查是否通过环境变量指定了env文件
-    let env_file = env::var("ENV_FILE").unwrap_or_else(|_| ".file_classification_env".to_string());
-    
-    // 尝试加载指定的env文件
-    if Path::new(&env_file).exists() {
-        dotenvy::dotenv_override().ok();
-        dotenvy::from_filename_override(&env_file)?;
-        Ok(Some(env_file))
-    } else if env_file != ".file_classification_env" && Path::new(".file_classification_env").exists() {
-        // 如果指定了自定义env文件但不存在，回退到.file_classification_env
-        dotenvy::dotenv_override().ok();
-        dotenvy::from_filename_override(".file_classification_env")?;
-        Ok(Some(".file_classification_env".to_string()))
-    } else {
-        // 如果文件都不存在，创建默认的.file_classification_env
-        create_default_env_file()?;
-        dotenvy::dotenv_override().ok();
-        dotenvy::from_filename_override(".file_classification_env")?;
-        Ok(None)
+// 处理嵌入的文件资源
+fn handle_embedded_file(path: &str) -> HttpResponse {
+    match Assets::get(path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(path).first_or_octet_stream();
+            HttpResponse::Ok()
+                .content_type(mime.as_ref())
+                .body(content.data)
+        }
+        None => {
+            // 避免递归调用，直接获取 index.html
+            if path == "index.html" {
+                return HttpResponse::NotFound().body("404 Not Found");
+            }
+            handle_embedded_file("index.html")
+        }
     }
 }
 
-/// 创建默认的环境变量配置文件
-fn create_default_env_file() -> Result<(), Box<dyn std::error::Error>> {
-    let default_content = r#"# File Classification 系统配置文件
-# 数据库配置
-DATABASE_URL=file_classification.db
-DATABASE_TYPE=sqlite
+/// 查找静态文件目录，支持从不同目录运行程序
+fn find_static_directory() -> std::io::Result<PathBuf> {
+    // 首先尝试从可执行文件所在目录查找
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let static_dir = exe_dir.join("static");
+            if PathBuf::from(&static_dir).exists() {
+                log::info!("找到静态资源目录: {:?}", static_dir);
+                return Ok(static_dir);
+            }
+        }
+    }
 
-# Web API 配置
-BIND_ADDRESS=127.0.0.1
-BIND_PORT=8082
+    // 然后尝试从当前工作目录查找
+    if let Ok(current_dir) = std::env::current_dir() {
+        let static_dir = current_dir.join("static");
+        if PathBuf::from(&static_dir).exists() {
+            log::info!("找到静态资源目录: {:?}", static_dir);
+            return Ok(static_dir);
+        }
 
-# 日志配置
-RUST_LOG=info
-RUST_LOG_FILE=debug
+        // 尝试从当前工作目录的子目录 file_classification_webapi 中查找
+        let static_dir = current_dir.join("file_classification_webapi").join("static");
+        if PathBuf::from(&static_dir).exists() {
+            log::info!("找到静态资源目录: {:?}", static_dir);
+            return Ok(static_dir);
+        }
+    }
 
-# CORS 配置
-CORS_ENABLED=true
-CORS_ORIGIN=http://localhost:8082
-"#;
-    
-    std::fs::write(".file_classification_env", default_content)?;
-    Ok(())
+    // 如果都没找到，则返回默认路径并让后续逻辑处理错误
+    if let Ok(current_dir) = std::env::current_dir() {
+        let static_dir = current_dir.join("static");
+        log::warn!("静态文件目录不存在: {:?}", static_dir);
+        Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("静态文件目录不存在: {:?}", static_dir)))
+    } else {
+        log::error!("无法确定静态文件目录位置");
+        Err(std::io::Error::new(std::io::ErrorKind::NotFound, "无法确定静态文件目录位置"))
+    }
+}
+
+// 静态文件服务处理器
+async fn index_handler() -> HttpResponse {
+    // 首先尝试从物理目录提供文件
+    match find_static_directory() {
+        Ok(static_dir) => {
+            let index_path = static_dir.join("index.html");
+            if index_path.exists() {
+                log::info!("从物理目录提供 index.html 文件: {:?}", index_path);
+                return HttpResponse::Ok()
+                    .content_type("text/html; charset=utf-8")
+                    .body(std::fs::read(index_path).unwrap_or_else(|_| Vec::new()));
+            }
+        }
+        Err(_) => {
+            // 物理目录不存在，回退到嵌入资源
+            log::info!("物理目录中未找到 index.html，回退到嵌入资源");
+        }
+    }
+
+    // 回退到嵌入资源
+    log::info!("从嵌入资源提供 index.html 文件");
+    handle_embedded_file("index.html")
+}
+
+// 静态资源处理器
+async fn static_handler(path: web::Path<String>) -> HttpResponse {
+    let path = path.into_inner();
+
+    // 首先尝试从物理目录提供文件
+    match find_static_directory() {
+        Ok(static_dir) => {
+            let file_path = static_dir.join(&path);
+            log::debug!("尝试从物理目录提供文件: {:?}, 请求路径: {}", file_path, path);
+
+            if file_path.exists() && file_path.is_file() {
+                // 确保请求的文件在 static 目录内，防止路径遍历攻击
+                if let Ok(abs_file_path) = file_path.canonicalize() {
+                    if abs_file_path.starts_with(&static_dir.canonicalize().unwrap_or(static_dir.clone())) {
+                        log::info!("从物理目录提供文件: {:?}", file_path);
+                        let content = std::fs::read(&file_path);
+                        match content {
+                            Ok(data) => {
+                                let mime = mime_guess::from_path(&path).first_or_octet_stream();
+                                return HttpResponse::Ok()
+                                    .content_type(mime.as_ref())
+                                    .body(data);
+                            }
+                            Err(e) => {
+                                log::error!("读取文件失败 {:?}: {}", file_path, e);
+                            }
+                        }
+                    } else {
+                        log::warn!("文件路径不在静态目录内: {:?}", file_path);
+                    }
+                }
+            } else {
+                log::debug!("文件不存在或不是文件: {:?}", file_path);
+            }
+        }
+        Err(e) => {
+            // 物理目录不存在，回退到嵌入资源
+            log::info!("查找物理目录失败: {}，回退到嵌入资源，请求路径: {}", e, path);
+        }
+    }
+
+    // 回退到嵌入资源
+    log::info!("从嵌入资源提供文件: {}", path);
+    handle_embedded_file(&path)
 }
 
 #[actix_web::main]

@@ -4,12 +4,12 @@ version = "0.2.0"
 edition = "2024"
 
 [dependencies]
+file_classification_common = { path = "../common" }
 file_classification_core = { path = "../file_classification_core" }
 clap = { version = "4.5", features = ["derive"] }
 dialoguer = "0.12.0"
 rustyline = "17.0.2"
 shlex = "1.3.0"
-dotenvy = { workspace = true }
 
 [[bin]]
 name = "file_classification_cli"

@@ -1,0 +1,10 @@
+[package]
+name = "file_classification_common"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+dotenvy = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3.23"
