@@ -1,0 +1,16 @@
+# File Classification 系统配置文件
+# 数据库配置
+DATABASE_URL=file_classification.db
+DATABASE_TYPE=sqlite
+
+# Web API 配置
+BIND_ADDRESS=127.0.0.1
+BIND_PORT=8082
+
+# 日志配置
+RUST_LOG=info
+RUST_LOG_FILE=debug
+
+# CORS 配置
+CORS_ENABLED=true
+CORS_ORIGIN=http://localhost:8082
