@@ -13,8 +13,8 @@ function listGroupTagsByFilter() {
 
     // 构造查询参数
     let params = new URLSearchParams();
-    if (groupId) params.append('group_id', groupId);
-    if (tagId) params.append('tag_id', tagId);
+    if (groupId) params.append('group_id', parseInt(groupId));
+    if (tagId) params.append('tag_id', parseInt(tagId));
 
     // 构造分页参数
     const options = {
@@ -24,8 +24,8 @@ function listGroupTagsByFilter() {
 
     // 保存当前条件
     currentGroupTagConditions = {};
-    if (groupId) currentGroupTagConditions.group_id = groupId;
-    if (tagId) currentGroupTagConditions.tag_id = tagId;
+    if (groupId) currentGroupTagConditions.group_id = parseInt(groupId);
+    if (tagId) currentGroupTagConditions.tag_id = parseInt(tagId);
 
     // 标记使用filter查询
     currentGroupTagQueryType = 'filter';

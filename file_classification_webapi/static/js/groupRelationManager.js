@@ -14,9 +14,9 @@ function listGroupRelationsByFilter() {
 
     // 构造查询参数
     let params = new URLSearchParams();
-    if (firstId) params.append('first_group_id', firstId);
-    if (secondId) params.append('second_group_id', secondId);
-    if (relationType) params.append('relation_type', relationType);
+    if (firstId) params.append('first_group_id', parseInt(firstId));
+    if (secondId) params.append('second_group_id', parseInt(secondId));
+    if (relationType) params.append('relation_type', parseInt(relationType));
 
     // 构造分页参数
     const options = {
@@ -26,9 +26,9 @@ function listGroupRelationsByFilter() {
 
     // 保存当前条件
     currentGroupRelationConditions = {};
-    if (firstId) currentGroupRelationConditions.first_group_id = firstId;
-    if (secondId) currentGroupRelationConditions.second_group_id = secondId;
-    if (relationType) currentGroupRelationConditions.relation_type = relationType;
+    if (firstId) currentGroupRelationConditions.first_group_id = parseInt(firstId);
+    if (secondId) currentGroupRelationConditions.second_group_id = parseInt(secondId);
+    if (relationType) currentGroupRelationConditions.relation_type = parseInt(relationType);
 
     // 标记使用filter查询
     currentGroupRelationQueryType = 'filter';

@@ -13,8 +13,8 @@ function listFileGroupsByFilter() {
 
     // 构造查询参数
     let params = new URLSearchParams();
-    if (fileId) params.append('file_id', fileId);
-    if (groupId) params.append('group_id', groupId);
+    if (fileId) params.append('file_id', parseInt(fileId));
+    if (groupId) params.append('group_id', parseInt(groupId));
 
     // 构造分页参数
     const options = {
@@ -24,8 +24,8 @@ function listFileGroupsByFilter() {
 
     // 保存当前条件
     currentFileGroupConditions = {};
-    if (fileId) currentFileGroupConditions.file_id = fileId;
-    if (groupId) currentFileGroupConditions.group_id = groupId;
+    if (fileId) currentFileGroupConditions.file_id = parseInt(fileId);
+    if (groupId) currentFileGroupConditions.group_id = parseInt(groupId);
 
     // 标记使用filter查询
     currentFileGroupQueryType = 'filter';

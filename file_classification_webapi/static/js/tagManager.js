@@ -24,7 +24,7 @@ function listTagsByFilter() {
 
     // 保存当前条件
     currentTagConditions = {};
-    if (tagId) currentTagConditions.id = tagId;
+    if (tagId) currentTagConditions.id = parseInt(tagId);
     if (tagName) currentTagConditions.name = tagName;
 
     // 标记使用filter查询
