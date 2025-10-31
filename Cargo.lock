@@ -947,6 +947,7 @@ dependencies = [
  "actix-web",
  "chrono",
  "diesel",
+ "dotenvy",
  "env_logger",
  "fern",
  "file_classification_common",

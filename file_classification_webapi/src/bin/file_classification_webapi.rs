@@ -3,27 +3,22 @@ mod handlers;
 mod utils;
 
 use actix_cors::Cors;
-use actix_files::NamedFile;
+use fern;
 use log;
+use rust_embed::RustEmbed;
 use std::env;
+use std::path::Path;
 use std::path::PathBuf;
-// 引入嵌入资源模块
-use crate::utils::embedded::{Assets};
+use crate::utils::database::establish_connection_pool;
+
+// 嵌入静态资源
+#[derive(RustEmbed)]
+#[folder = "static/"]
+struct Assets;
 
 // 引入数据库连接相关类型
 use file_classification_core::utils::database::{establish_connection, run_pending_migrations};
-use crate::utils::database::establish_connection_pool;
-// 引入环境变量加载工具
 use file_classification_common::env_loader::load_env_file;
-
-// 创建 CORS 中间件
-fn create_cors() -> Cors {
-    Cors::default()
-        .allow_any_origin()
-        .allow_any_method()
-        .allow_any_header()
-        .supports_credentials()
-}
 
 // 处理嵌入的文件资源
 fn handle_embedded_file(path: &str) -> HttpResponse {
@@ -35,7 +30,7 @@ fn handle_embedded_file(path: &str) -> HttpResponse {
                 .body(content.data)
         }
         None => {
-            // 避免递归调用，直接获取 index.html
+            // Avoid recursive call by directly getting index.html
             if path == "index.html" {
                 return HttpResponse::NotFound().body("404 Not Found");
             }
@@ -50,7 +45,7 @@ fn find_static_directory() -> std::io::Result<PathBuf> {
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let static_dir = exe_dir.join("static");
-            if PathBuf::from(&static_dir).exists() {
+            if Path::new(&static_dir).exists() {
                 log::info!("找到静态资源目录: {:?}", static_dir);
                 return Ok(static_dir);
             }
@@ -60,14 +55,14 @@ fn find_static_directory() -> std::io::Result<PathBuf> {
     // 然后尝试从当前工作目录查找
     if let Ok(current_dir) = std::env::current_dir() {
         let static_dir = current_dir.join("static");
-        if PathBuf::from(&static_dir).exists() {
+        if Path::new(&static_dir).exists() {
             log::info!("找到静态资源目录: {:?}", static_dir);
             return Ok(static_dir);
         }
 
         // 尝试从当前工作目录的子目录 file_classification_webapi 中查找
         let static_dir = current_dir.join("file_classification_webapi").join("static");
-        if PathBuf::from(&static_dir).exists() {
+        if Path::new(&static_dir).exists() {
             log::info!("找到静态资源目录: {:?}", static_dir);
             return Ok(static_dir);
         }
@@ -84,7 +79,6 @@ fn find_static_directory() -> std::io::Result<PathBuf> {
     }
 }
 
-// 静态文件服务处理器
 async fn index_handler() -> HttpResponse {
     // 首先尝试从物理目录提供文件
     match find_static_directory() {
@@ -108,7 +102,6 @@ async fn index_handler() -> HttpResponse {
     handle_embedded_file("index.html")
 }
 
-// 静态资源处理器
 async fn static_handler(path: web::Path<String>) -> HttpResponse {
     let path = path.into_inner();
 
@@ -154,10 +147,99 @@ async fn static_handler(path: web::Path<String>) -> HttpResponse {
     handle_embedded_file(&path)
 }
 
+/// 初始化日志系统，同时输出到终端和文件
+fn setup_logger() -> Result<(), fern::InitError> {
+    // 加载环境变量文件
+    if let Err(e) = load_env_file() {
+        log::error!("加载环境变量文件失败: {}", e);
+    }
+
+    // 创建 logs 目录（如果不存在）
+    std::fs::create_dir_all("logs")?;
+
+    // 获取当前日期时间作为日志文件名
+    let local_time = chrono::Local::now();
+    let date_str = local_time.format("%Y-%m-%d").to_string();
+    let log_file_path = format!("logs/{}.log", date_str);
+
+    // 获取终端日志等级
+    let console_log_level = env::var("RUST_LOG")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(log::LevelFilter::Info);
+
+    // 文件日志等级默认为 Debug
+    let file_log_level = env::var("RUST_LOG_FILE")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(log::LevelFilter::Debug);
+
+    // 创建日志分发器
+    let dispatch = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}][{}][{}] {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                record.level(),
+                record.target(),
+                message
+            ))
+        });
+
+    // 添加控制台输出
+    let dispatch = dispatch.chain(
+        fern::Dispatch::new()
+            .level(console_log_level)
+            .chain(std::io::stdout())
+    );
+
+    // 添加文件输出
+    let dispatch = dispatch.chain(
+        fern::Dispatch::new()
+            .level(file_log_level)
+            .chain(fern::log_file(log_file_path)?)
+    );
+
+    dispatch.apply()?;
+
+    Ok(())
+}
+
+/// 创建 CORS 配置
+fn create_cors() -> Cors {
+    // 从环境变量获取 CORS 配置
+    let cors_enabled = env::var("CORS_ENABLED")
+        .ok()
+        .and_then(|s| s.parse::<bool>().ok())
+        .unwrap_or(true); // 默认启用 CORS
+
+    let cors_origin = env::var("CORS_ORIGIN")
+        .ok()
+        .unwrap_or_else(|| "http://localhost:8082".to_string());
+
+    if cors_enabled {
+        log::info!("CORS 已启用，允许来源: {}", cors_origin);
+        Cors::default()
+            .allowed_origin(&cors_origin)
+            .allowed_origin("http://127.0.0.1:8082")
+            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+            .allowed_headers(vec![
+                actix_web::http::header::AUTHORIZATION,
+                actix_web::http::header::ACCEPT,
+                actix_web::http::header::CONTENT_TYPE,
+            ])
+            .supports_credentials()
+            .max_age(3600)
+    } else {
+        log::info!("CORS 已禁用");
+        Cors::default()
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // 初始化日志系统
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    // 初始化日志记录器
+    setup_logger().expect("日志系统初始化失败");
 
     // 输出日志等级信息
     let console_log_level = env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
