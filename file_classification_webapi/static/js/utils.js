@@ -10,8 +10,14 @@ function getInputValue(elementId) {
 function showMessage(message, type = 'info') {
     const messageContainer = document.getElementById('message-container');
     if (messageContainer) {
+        // 根据消息类型设置样式
+        let messageTypeClass = 'message-info';
+        if (type === 'success') messageTypeClass = 'message-success';
+        if (type === 'error') messageTypeClass = 'message-error';
+        if (type === 'warning') messageTypeClass = 'message-warning';
+
         messageContainer.innerHTML = `
-            <div class="message message-${type}">
+            <div class="message ${messageTypeClass}">
                 ${message}
                 <button class="close-button" onclick="this.parentElement.style.display='none'">&times;</button>
             </div>
@@ -228,4 +234,38 @@ function handleConfirm(result) {
 
     // 清除回调函数
     window.confirmCallback = null;
+}
+
+// 处理API响应的通用函数
+function handleApiResponse(response) {
+    // 对于新的响应格式 (code/data/msg)
+    if (response.code !== undefined) {
+        if (response.code === "SUCCESS") {
+            showMessage(response.msg || '操作成功', 'success');
+            return { success: true, data: response.data };
+        } else {
+            showMessage(response.msg || '操作失败', 'error');
+            return { success: false, data: response.data };
+        }
+    }
+    // 对于旧的响应格式 (success/data/message)
+    else if (response.success !== undefined) {
+        if (response.success) {
+            showMessage(response.message || '操作成功', 'success');
+            return { success: true, data: response.data };
+        } else {
+            showMessage(response.message || '操作失败', 'error');
+            return { success: false, data: response.data };
+        }
+    }
+    // 默认处理
+    else {
+        if (response.error) {
+            showMessage(response.error, 'error');
+            return { success: false };
+        } else {
+            showMessage('操作成功', 'success');
+            return { success: true, data: response };
+        }
+    }
 }

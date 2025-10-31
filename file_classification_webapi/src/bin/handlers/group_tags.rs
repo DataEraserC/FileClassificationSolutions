@@ -33,17 +33,12 @@ async fn api_list_group_tags_by_filter(
             let count = group_tags.len();
 
             // 构造成功的响应对象并返回
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(group_tags),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(group_tags, count)))
         }
 
         // 如果出现错误，则构造失败的响应对象并返回
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -68,17 +63,12 @@ async fn api_list_group_tags_by_conditions(
             let count = group_tags.len();
 
             // 构造成功的响应对象并返回
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(group_tags),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(group_tags, count)))
         }
 
         // 如果出现错误，则构造失败的响应对象并返回
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -101,15 +91,12 @@ async fn api_create_group_tag(
         Ok(_) =>
         // 成功时返回 Created 状态码及提示信息
             {
-                Ok(HttpResponse::Created().json(json!({
-					"success": true,
-					"message": "组标签关联创建成功"
-			})))
+                Ok(HttpResponse::Created().json(ApiResponse::success_with_msg((), "组标签关联创建成功")))
             }
 
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("CREATE_GROUP_TAG_FAILED", &e.to_string())),
         ),
     }
 }
@@ -132,15 +119,12 @@ async fn api_delete_group_tag(
         Ok(_) =>
         // 成功时返回 OK 状态码及确认消息
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": "组标签关联删除成功"
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg((), "组标签关联删除成功")))
             }
 
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_GROUP_TAG_FAILED", &e.to_string())),
         ),
     }
 }
@@ -163,16 +147,12 @@ async fn api_delete_group_tags_by_conditions(
         Ok(count) =>
         // 成功时返回删除条目数量
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功删除 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
             }
 
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_GROUP_TAG_FAILED", &e.to_string())),
         ),
     }
 }
@@ -202,17 +182,12 @@ async fn api_list_group_tags_by_conditions_with_options(
             let count = group_tags.len();
 
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(group_tags),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(group_tags, count)))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -239,17 +214,12 @@ async fn api_list_group_tags_by_filter_with_options(
             let count = group_tags.len();
 
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(group_tags),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(group_tags, count)))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -282,17 +252,12 @@ async fn api_list_group_tags_by_filter_with_pagination(
     match select_group_tags_by_filter_with_pagination(&mut conn, filter, options) {
         Ok(result) => {
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(result.clone()),
-                message: None,
-                count: Some(result.data.len()),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -322,17 +287,12 @@ async fn api_list_group_tags_by_conditions_with_pagination(
     match select_group_tags_by_conditions_with_pagination(&mut conn, conditions, options) {
         Ok(result) => {
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(result.clone()),
-                message: None,
-                count: Some(result.data.len()),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -355,15 +315,11 @@ async fn api_delete_group_tags_by_dtos(
         Ok(count) =>
         // 构造成功响应，包含删除记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功删除 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_GROUP_TAG_FAILED", &e.to_string())),
         ),
     }
 }

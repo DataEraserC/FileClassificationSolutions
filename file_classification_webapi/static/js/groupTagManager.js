@@ -41,13 +41,14 @@ function listGroupTagsByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderGroupTagTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderGroupTagTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupTagPages = data.data.total_pages || 1;
-                renderGroupTagPagination(data.data);
+                totalGroupTagPages = result.data.total_pages || 1;
+                renderGroupTagPagination(result.data);
             } else {
-                showMessage('组标签关联查询失败: ' + data.message, 'error');
+                showMessage('组标签关联查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -179,13 +180,14 @@ function searchGroupTagsByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderGroupTagTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderGroupTagTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupTagPages = data.data.total_pages || 1;
-                renderGroupTagPagination(data.data);
+                totalGroupTagPages = result.data.total_pages || 1;
+                renderGroupTagPagination(result.data);
             } else {
-                showMessage('组标签关联查询失败: ' + data.message, 'error');
+                showMessage('组标签关联查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -198,26 +200,10 @@ function searchGroupTagsByFilter() {
 document.addEventListener('DOMContentLoaded', function () {
     // 使用事件委托处理分页按钮点击
     document.addEventListener('click', function (e) {
-        // 处理组标签分页按钮点击
-        if (e.target.closest('#group-tags-pagination') && e.target.tagName === 'BUTTON') {
-            const button = e.target;
-            if (button.hasAttribute('onclick')) {
-                // 防止重复绑定事件
-                return;
-            }
-
-            const pageMatch = button.textContent.match(/(\d+)/);
-            if (button.textContent === '首页') {
-                changeGroupTagPage(1);
-            } else if (button.textContent === '上一页') {
-                changeGroupTagPage(currentGroupTagPage - 1);
-            } else if (button.textContent === '下一页') {
-                changeGroupTagPage(currentGroupTagPage + 1);
-            } else if (button.textContent === '末页') {
-                changeGroupTagPage(totalGroupTagPages);
-            } else if (pageMatch) {
-                changeGroupTagPage(parseInt(pageMatch[1]));
-            }
+        // 处理分页按钮点击事件
+        if (e.target.matches('.pagination-container button')) {
+            // 防止重复处理
+            e.preventDefault();
         }
     });
 });
@@ -226,7 +212,8 @@ document.addEventListener('DOMContentLoaded', function () {
 function changeGroupTagPageSize(size) {
     groupTagPageSize = parseInt(size);
     currentGroupTagPage = 1; // 重置到第一页
-    if (currentGroupTagConditions) {
+    // 根据查询类型选择接口
+    if (currentGroupTagQueryType === 'conditions') {
         searchGroupTagsByConditions(currentGroupTagConditions);
     } else {
         searchGroupTagsByFilter();
@@ -257,13 +244,15 @@ function createGroupTag() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组标签关联创建成功', 'success');
                 closeModal();
                 // 重新加载组标签列表
-                listGroupTagsByFilter();
+                currentGroupTagPage = 1;
+                searchGroupTagsByFilter();
             } else {
-                showMessage('组标签关联创建失败: ' + data.message, 'error');
+                showMessage('组标签关联创建失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -274,29 +263,25 @@ function createGroupTag() {
 
 function deleteGroupTag(groupId, tagId) {
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除组标签关联 [组ID: ${groupId}, 标签ID: ${tagId}] 吗？`, function (result) {
+    showConfirmDialog('确认删除', '确定要删除该组标签关联吗？', function (result) {
         if (result) {
-            const groupTagData = {
-                group_id: groupId,
-                tag_id: tagId
-            };
-
             const url = `${BASE_URL}/api/group-tags`;
             fetch(url, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(groupTagData)
+                body: JSON.stringify({ group_id: groupId, tag_id: tagId })
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    const result = handleApiResponse(data);
+                    if (result.success) {
                         showMessage('组标签关联删除成功', 'success');
                         // 重新加载组标签列表
-                        listGroupTagsByFilter();
+                        searchGroupTagsByFilter();
                     } else {
-                        showMessage('组标签关联删除失败: ' + data.message, 'error');
+                        showMessage('组标签关联删除失败: ' + (result.data?.message || '未知错误'), 'error');
                     }
                 })
                 .catch(error => {
@@ -307,31 +292,7 @@ function deleteGroupTag(groupId, tagId) {
     });
 }
 
-// 批量删除选中的组标签关联
-function deleteSelectedGroupTags() {
-    const selectedCheckboxes = document.querySelectorAll('.group-tag-checkbox:checked');
-    if (selectedCheckboxes.length === 0) {
-        showMessage('请至少选择一个组标签关联进行删除', 'warning');
-        return;
-    }
-
-    // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组标签关联吗？`, function (result) {
-        if (result) {
-            const groupTags = Array.from(selectedCheckboxes).map(cb => {
-                return {
-                    group_id: parseInt(cb.getAttribute('data-group-id')),
-                    tag_id: parseInt(cb.getAttribute('data-tag-id'))
-                };
-            });
-
-            // 使用新的delete by dtos接口
-            deleteGroupTagsByDtos(groupTags);
-        }
-    });
-}
-
-// 打开创建组标签关联对话框
+// 打开创建组标签对话框
 function openCreateGroupTagDialog() {
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = `
@@ -359,31 +320,39 @@ function openCreateGroupTagDialog() {
     document.getElementById('modal').style.display = 'block';
 }
 
-// 批量删除组标签关联（根据DTO列表）
-function deleteGroupTagsByDtos(dtos) {
-    const url = `${BASE_URL}/api/group-tags/delete/by-dtos`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dtos)
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showMessage('组标签关联批量删除成功', 'success');
-                closeModal();
-                // 重新加载组标签列表
-                listGroupTagsByFilter();
-            } else {
-                showMessage('组标签关联批量删除失败: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('组标签关联批量删除失败: ' + error.message, 'error');
-        });
+// 打开批量删除组标签对话框
+function openBatchDeleteGroupTagDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>批量删除组标签关联</h2>
+        <form id="batch-delete-group-tag-form">
+            <div class="form-group">
+                <label for="batch-delete-group-tag-conditions">删除条件 (JSON格式):</label>
+                <textarea id="batch-delete-group-tag-conditions" rows="5" placeholder='[{"GroupId": 1}, {"TagId": 1}]'></textarea>
+            </div>
+            <button type="submit">删除</button>
+            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+        </form>
+    `;
+
+    // 绑定表单提交事件
+    document.getElementById('batch-delete-group-tag-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('batch-delete-group-tag-conditions').value;
+        if (!conditionsJson) {
+            showMessage('请输入删除条件', 'warning');
+            return;
+        }
+
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            deleteGroupTagsByConditions(conditions);
+        } catch (e) {
+            showMessage('JSON格式错误: ' + e.message, 'error');
+        }
+    });
+
+    document.getElementById('modal').style.display = 'block';
 }
 
 function deleteGroupTagsByConditions(conditions) {
@@ -397,13 +366,14 @@ function deleteGroupTagsByConditions(conditions) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组标签关联批量删除成功', 'success');
                 closeModal();
                 // 重新加载组标签列表
-                listGroupTagsByFilter();
+                searchGroupTagsByFilter();
             } else {
-                showMessage('组标签关联批量删除失败: ' + data.message, 'error');
+                showMessage('组标签关联批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -416,7 +386,7 @@ function deleteGroupTagsByConditions(conditions) {
 function openComplexSearchGroupTagDialog() {
     const modalBody = document.getElementById('modal-body');
     modalBody.innerHTML = `
-        <h2>复杂查询组标签关联</h2>
+        <h2>复杂查询组标签</h2>
         <div class="tabs">
             <button class="tab-button active" onclick="switchComplexSearchTab('visual')">可视化查询</button>
             <button class="tab-button" onclick="switchComplexSearchTab('json')">JSON查询</button>
@@ -443,21 +413,23 @@ function openComplexSearchGroupTagDialog() {
                 <div class="form-group">
                     <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
                 </div>
-                <div id="visual-search-conditions"></div>
-                <button type="submit" class="btn-primary">查询</button>
-                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+                <div class="form-group">
+                    <label>已添加的条件:</label>
+                    <div id="visual-search-conditions"></div>
+                </div>
+                <button type="button" onclick="performVisualSearch()">查询</button>
             </form>
         </div>
-        <div id="json-search" class="tab-content">
+        <div id="json-search" class="tab-content" style="display: none;">
             <form id="json-group-tag-search-form">
                 <div class="form-group">
                     <label for="complex-search-group-tag-conditions">查询条件 (JSON格式):</label>
-                    <textarea id="complex-search-group-tag-conditions" rows="5" placeholder='[{"GroupId": 1}]'></textarea>
+                    <textarea id="complex-search-group-tag-conditions" rows="5" placeholder='[{"GroupId": 1}, {"TagId": 1}]'></textarea>
                 </div>
-                <button type="submit" class="btn-primary">查询</button>
-                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+                <button type="submit">查询</button>
             </form>
         </div>
+        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
 
     // 绑定表单提交事件
@@ -504,35 +476,19 @@ function searchGroupTagsByConditions(conditions) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 closeModal();
-                renderGroupTagTable(data.data.data || []);
+                renderGroupTagTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupTagPages = data.data.total_pages || 1;
-                renderGroupTagPagination(data.data);
+                totalGroupTagPages = result.data.total_pages || 1;
+                renderGroupTagPagination(result.data);
             } else {
-                showMessage('组标签关联查询失败: ' + data.message, 'error');
+                showMessage('组标签关联查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('组标签关联查询失败: ' + error.message, 'error');
         });
-}
-
-// 重置组标签过滤器
-function resetGroupTagFilter() {
-    document.getElementById('group-tag-group-id').value = '';
-    document.getElementById('group-tag-tag-id').value = '';
-    // 重置分页参数
-    currentGroupTagPage = 1;
-    listGroupTagsByFilter(); // 重置后重新搜索
-}
-
-// 切换全选组标签
-function toggleAllGroupTags(source) {
-    const checkboxes = document.querySelectorAll('.group-tag-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = source.checked;
-    });
 }

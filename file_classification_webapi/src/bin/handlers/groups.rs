@@ -31,16 +31,11 @@ async fn api_list_groups_by_filter(
         Ok(groups) => {
             let count = groups.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(groups),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(groups, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -67,17 +62,12 @@ async fn api_list_groups_by_filter_with_options(
             let count = groups.len();
 
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(groups),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(groups, count)))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -102,23 +92,18 @@ async fn api_get_group_by_id(
     match get_group_by_id(&mut conn, group_id) {
         Ok(group) => {
             // 构造成功响应，返回单个组
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(group),
-                message: None,
-                count: Some(1),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(group)))
         }
         // 组未找到
         Err(diesel::result::Error::NotFound) => {
             Ok(
                 HttpResponse::NotFound()
-                    .json(ApiError { success: false, message: "组未找到".to_string() }),
+                    .json(ApiResponse::<()>::error_with_code("GROUP_NOT_FOUND", "组未找到")),
             )
         }
         // 其他错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -141,16 +126,11 @@ async fn api_list_groups_by_conditions(
         Ok(groups) => {
             let count = groups.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(groups),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(groups, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -176,11 +156,11 @@ async fn api_create_group(
         Ok(group) =>
         // 构造成功响应，返回创建的组信息
             {
-                Ok(HttpResponse::Created().json(ApiResponse::from(group)))
+                Ok(HttpResponse::Created().json(ApiResponse::success(group)))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("CREATE_GROUP_FAILED", &e.to_string())),
         ),
     }
 }
@@ -206,15 +186,11 @@ async fn api_update_groups_by_conditions(
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功更新 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功更新 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("UPDATE_GROUP_FAILED", &e.to_string())),
         ),
     }
 }
@@ -240,14 +216,11 @@ async fn api_delete_group_by_id(
         Ok(_) =>
         // 构造成功响应
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": "组删除成功"
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg((), "组删除成功")))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_GROUP_FAILED", &e.to_string())),
         ),
     }
 }
@@ -273,16 +246,11 @@ async fn api_list_groups_by_file_id(
         Ok(groups) => {
             let count = groups.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(groups),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(groups, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -308,16 +276,11 @@ async fn api_list_groups_by_tag_id(
         Ok(groups) => {
             let count = groups.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(groups),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(groups, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -344,15 +307,11 @@ async fn api_update_group_by_id(
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-                    "success": true,
-                    "message": format!("成功更新 {} 条记录", count),
-                    "count": count
-                })))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功更新 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("UPDATE_GROUP_FAILED", &e.to_string())),
         ),
     }
 }
@@ -375,15 +334,11 @@ async fn api_delete_groups_by_conditions(
         Ok(count) =>
         // 构造成功响应，包含删除记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功删除 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_GROUP_FAILED", &e.to_string())),
         ),
     }
 }
@@ -405,16 +360,11 @@ async fn api_get_group_tree(path: web::Path<i32>, pool: web::Data<DbPool>) -> Re
     match get_group_tree(&mut conn, group_id) {
         Ok(tree) => {
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(tree),
-                message: None,
-                count: Some(1),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(tree)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -444,17 +394,12 @@ async fn api_list_groups_by_conditions_with_options(
             let count = groups.len();
 
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(groups),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(groups, count)))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -477,15 +422,11 @@ async fn api_delete_groups_by_ids(
         Ok(count) =>
         // 构造成功响应，包含删除记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功删除 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_GROUP_FAILED", &e.to_string())),
         ),
     }
 }
@@ -524,17 +465,12 @@ async fn api_list_groups_by_filter_with_pagination(
     match select_groups_by_filter_with_pagination(&mut conn, filter, options) {
         Ok(result) => {
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(result.clone()),
-                message: None,
-                count: Some(result.data.len()),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -564,17 +500,12 @@ async fn api_list_groups_by_conditions_with_pagination(
     match select_groups_by_conditions_with_pagination(&mut conn, conditions, options) {
         Ok(result) => {
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(result.clone()),
-                message: None,
-                count: Some(result.data.len()),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }

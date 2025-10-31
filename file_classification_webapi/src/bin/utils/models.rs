@@ -2,23 +2,73 @@
 
 use serde::Serialize;
 
-// 通用响应结构
+// 通用响应结构，符合code/data/msg格式
 #[derive(Debug, Serialize)]
 pub struct ApiResponse<T> {
-    pub success: bool,
+    pub code: String,
     pub data: Option<T>,
-    pub message: Option<String>,
+    pub msg: String,
     pub count: Option<usize>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
-    pub success: bool,
-    pub message: String,
+    pub code: String,
+    pub msg: String,
 }
 
-impl<T> From<T> for ApiResponse<T> {
-    fn from(data: T) -> Self {
-        Self { success: true, data: Some(data), message: None, count: None }
+impl<T> ApiResponse<T> {
+    pub fn success(data: T) -> Self {
+        Self {
+            code: "SUCCESS".to_string(),
+            data: Some(data),
+            msg: "Operation successful".to_string(),
+            count: None,
+        }
+    }
+    
+    pub fn success_with_msg(data: T, msg: &str) -> Self {
+        Self {
+            code: "SUCCESS".to_string(),
+            data: Some(data),
+            msg: msg.to_string(),
+            count: None,
+        }
+    }
+    
+    pub fn success_with_count(data: T, count: usize) -> Self {
+        Self {
+            code: "SUCCESS".to_string(),
+            data: Some(data),
+            msg: "Operation successful".to_string(),
+            count: Some(count),
+        }
+    }
+    
+    pub fn error(msg: &str) -> Self {
+        Self {
+            code: "ERROR".to_string(),
+            data: None,
+            msg: msg.to_string(),
+            count: None,
+        }
+    }
+    
+    pub fn error_with_code(code: &str, msg: &str) -> Self {
+        Self {
+            code: code.to_string(),
+            data: None,
+            msg: msg.to_string(),
+            count: None,
+        }
+    }
+}
+
+impl ApiError {
+    pub fn new(code: &str, msg: &str) -> Self {
+        Self {
+            code: code.to_string(),
+            msg: msg.to_string(),
+        }
     }
 }

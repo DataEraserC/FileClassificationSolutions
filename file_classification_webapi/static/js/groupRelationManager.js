@@ -44,13 +44,14 @@ function listGroupRelationsByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderGroupRelationTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderGroupRelationTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupRelationPages = data.data.total_pages || 1;
-                renderGroupRelationPagination(data.data);
+                totalGroupRelationPages = result.data.total_pages || 1;
+                renderGroupRelationPagination(result.data);
             } else {
-                showMessage('组关系查询失败: ' + data.message, 'error');
+                showMessage('组关系查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -184,13 +185,14 @@ function searchGroupRelationsByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderGroupRelationTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderGroupRelationTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupRelationPages = data.data.total_pages || 1;
-                renderGroupRelationPagination(data.data);
+                totalGroupRelationPages = result.data.total_pages || 1;
+                renderGroupRelationPagination(result.data);
             } else {
-                showMessage('组关系查询失败: ' + data.message, 'error');
+                showMessage('组关系查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -203,26 +205,10 @@ function searchGroupRelationsByFilter() {
 document.addEventListener('DOMContentLoaded', function () {
     // 使用事件委托处理分页按钮点击
     document.addEventListener('click', function (e) {
-        // 处理组关系分页按钮点击
-        if (e.target.closest('#group-relations-pagination') && e.target.tagName === 'BUTTON') {
-            const button = e.target;
-            if (button.hasAttribute('onclick')) {
-                // 防止重复绑定事件
-                return;
-            }
-
-            const pageMatch = button.textContent.match(/(\d+)/);
-            if (button.textContent === '首页') {
-                changeGroupRelationPage(1);
-            } else if (button.textContent === '上一页') {
-                changeGroupRelationPage(currentGroupRelationPage - 1);
-            } else if (button.textContent === '下一页') {
-                changeGroupRelationPage(currentGroupRelationPage + 1);
-            } else if (button.textContent === '末页') {
-                changeGroupRelationPage(totalGroupRelationPages);
-            } else if (pageMatch) {
-                changeGroupRelationPage(parseInt(pageMatch[1]));
-            }
+        // 处理分页按钮点击事件
+        if (e.target.matches('.pagination-container button')) {
+            // 防止重复处理
+            e.preventDefault();
         }
     });
 });
@@ -231,7 +217,8 @@ document.addEventListener('DOMContentLoaded', function () {
 function changeGroupRelationPageSize(size) {
     groupRelationPageSize = parseInt(size);
     currentGroupRelationPage = 1; // 重置到第一页
-    if (currentGroupRelationConditions) {
+    // 根据查询类型选择接口
+    if (currentGroupRelationQueryType === 'conditions') {
         searchGroupRelationsByConditions(currentGroupRelationConditions);
     } else {
         searchGroupRelationsByFilter();
@@ -264,13 +251,15 @@ function createGroupRelation() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组关系创建成功', 'success');
                 closeModal();
                 // 重新加载组关系列表
-                listGroupRelationsByFilter();
+                currentGroupRelationPage = 1;
+                searchGroupRelationsByFilter();
             } else {
-                showMessage('组关系创建失败: ' + data.message, 'error');
+                showMessage('组关系创建失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -281,61 +270,35 @@ function createGroupRelation() {
 
 function deleteGroupRelation(firstId, secondId, relationType) {
     // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除组关系 [第一个组ID: ${firstId}, 第二个组ID: ${secondId}, 关系类型: ${relationType}] 吗？`, function (result) {
+    showConfirmDialog('确认删除', '确定要删除该组关系吗？', function (result) {
         if (result) {
-            const groupRelationData = {
-                first_group_id: firstId,
-                second_group_id: secondId,
-                relation_type: relationType
-            };
-
             const url = `${BASE_URL}/api/group-relations`;
             fetch(url, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(groupRelationData)
+                body: JSON.stringify({ 
+                    first_group_id: firstId, 
+                    second_group_id: secondId, 
+                    relation_type: relationType 
+                })
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    const result = handleApiResponse(data);
+                    if (result.success) {
                         showMessage('组关系删除成功', 'success');
                         // 重新加载组关系列表
-                        listGroupRelationsByFilter();
+                        searchGroupRelationsByFilter();
                     } else {
-                        showMessage('组关系删除失败: ' + data.message, 'error');
+                        showMessage('组关系删除失败: ' + (result.data?.message || '未知错误'), 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
                     showMessage('组关系删除失败: ' + error.message, 'error');
                 });
-        }
-    });
-}
-
-// 批量删除选中的组关系
-function deleteSelectedGroupRelations() {
-    const selectedCheckboxes = document.querySelectorAll('.group-relation-checkbox:checked');
-    if (selectedCheckboxes.length === 0) {
-        showMessage('请至少选择一个组关系进行删除', 'warning');
-        return;
-    }
-
-    // 使用页面弹窗替换原生confirm
-    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组关系吗？`, function (result) {
-        if (result) {
-            const groupRelations = Array.from(selectedCheckboxes).map(cb => {
-                return {
-                    first_group_id: parseInt(cb.getAttribute('data-first-id')),
-                    second_group_id: parseInt(cb.getAttribute('data-second-id')),
-                    relation_type: parseInt(cb.getAttribute('data-relation-type'))
-                };
-            });
-
-            // 使用新的delete by dtos接口
-            deleteGroupRelationsByDtos(groupRelations);
         }
     });
 }
@@ -347,16 +310,16 @@ function openCreateGroupRelationDialog() {
         <h2>新增组关系</h2>
         <form id="create-group-relation-form">
             <div class="form-group">
-                <label for="create-group-relation-first-id">第一个组ID:</label>
+                <label for="create-group-relation-first-id">第一组ID:</label>
                 <input type="number" id="create-group-relation-first-id" required>
             </div>
             <div class="form-group">
-                <label for="create-group-relation-second-id">第二个组ID:</label>
+                <label for="create-group-relation-second-id">第二组ID:</label>
                 <input type="number" id="create-group-relation-second-id" required>
             </div>
             <div class="form-group">
                 <label for="create-group-relation-type">关系类型:</label>
-                <input type="number" id="create-group-relation-type" value="1" required>
+                <input type="number" id="create-group-relation-type" required>
             </div>
             <button type="submit" class="btn-primary">创建</button>
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
@@ -372,31 +335,39 @@ function openCreateGroupRelationDialog() {
     document.getElementById('modal').style.display = 'block';
 }
 
-// 批量删除组关系（根据DTO列表）
-function deleteGroupRelationsByDtos(dtos) {
-    const url = `${BASE_URL}/api/group-relations/delete/by-dtos`;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(dtos)
-    })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                showMessage('组关系批量删除成功', 'success');
-                closeModal();
-                // 重新加载组关系列表
-                listGroupRelationsByFilter();
-            } else {
-                showMessage('组关系批量删除失败: ' + data.message, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('组关系批量删除失败: ' + error.message, 'error');
-        });
+// 打开批量删除组关系对话框
+function openBatchDeleteGroupRelationDialog() {
+    const modalBody = document.getElementById('modal-body');
+    modalBody.innerHTML = `
+        <h2>批量删除组关系</h2>
+        <form id="batch-delete-group-relation-form">
+            <div class="form-group">
+                <label for="batch-delete-group-relation-conditions">删除条件 (JSON格式):</label>
+                <textarea id="batch-delete-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1}, {"SecondGroupId": 1}]'></textarea>
+            </div>
+            <button type="submit">删除</button>
+            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+        </form>
+    `;
+
+    // 绑定表单提交事件
+    document.getElementById('batch-delete-group-relation-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const conditionsJson = document.getElementById('batch-delete-group-relation-conditions').value;
+        if (!conditionsJson) {
+            showMessage('请输入删除条件', 'warning');
+            return;
+        }
+
+        try {
+            const conditions = JSON.parse(conditionsJson);
+            deleteGroupRelationsByConditions(conditions);
+        } catch (e) {
+            showMessage('JSON格式错误: ' + e.message, 'error');
+        }
+    });
+
+    document.getElementById('modal').style.display = 'block';
 }
 
 function deleteGroupRelationsByConditions(conditions) {
@@ -410,13 +381,14 @@ function deleteGroupRelationsByConditions(conditions) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组关系批量删除成功', 'success');
                 closeModal();
                 // 重新加载组关系列表
-                listGroupRelationsByFilter();
+                searchGroupRelationsByFilter();
             } else {
-                showMessage('组关系批量删除失败: ' + data.message, 'error');
+                showMessage('组关系批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -457,21 +429,23 @@ function openComplexSearchGroupRelationDialog() {
                 <div class="form-group">
                     <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
                 </div>
-                <div id="visual-search-conditions"></div>
-                <button type="submit" class="btn-primary">查询</button>
-                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+                <div class="form-group">
+                    <label>已添加的条件:</label>
+                    <div id="visual-search-conditions"></div>
+                </div>
+                <button type="button" onclick="performVisualSearch()">查询</button>
             </form>
         </div>
-        <div id="json-search" class="tab-content">
+        <div id="json-search" class="tab-content" style="display: none;">
             <form id="json-group-relation-search-form">
                 <div class="form-group">
                     <label for="complex-search-group-relation-conditions">查询条件 (JSON格式):</label>
-                    <textarea id="complex-search-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1}]'></textarea>
+                    <textarea id="complex-search-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1}, {"SecondGroupId": 1}]'></textarea>
                 </div>
-                <button type="submit" class="btn-primary">查询</button>
-                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+                <button type="submit">查询</button>
             </form>
         </div>
+        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
 
     // 绑定表单提交事件
@@ -518,36 +492,19 @@ function searchGroupRelationsByConditions(conditions) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 closeModal();
-                renderGroupRelationTable(data.data.data || []);
+                renderGroupRelationTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupRelationPages = data.data.total_pages || 1;
-                renderGroupRelationPagination(data.data);
+                totalGroupRelationPages = result.data.total_pages || 1;
+                renderGroupRelationPagination(result.data);
             } else {
-                showMessage('组关系查询失败: ' + data.message, 'error');
+                showMessage('组关系查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('组关系查询失败: ' + error.message, 'error');
         });
-}
-
-// 重置组关系过滤器
-function resetGroupRelationFilter() {
-    document.getElementById('group-relation-first-id').value = '';
-    document.getElementById('group-relation-second-id').value = '';
-    document.getElementById('group-relation-type').value = '';
-    // 重置分页参数
-    currentGroupRelationPage = 1;
-    listGroupRelationsByFilter(); // 重置后重新搜索
-}
-
-// 切换全选组关系
-function toggleAllGroupRelations(source) {
-    const checkboxes = document.querySelectorAll('.group-relation-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = source.checked;
-    });
 }

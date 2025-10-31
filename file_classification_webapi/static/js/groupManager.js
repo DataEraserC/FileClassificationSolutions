@@ -41,11 +41,12 @@ function listGroupsByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderGroupTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderGroupTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupPages = data.data.total_pages || 1;
-                renderGroupPagination(data.data);
+                totalGroupPages = result.data.total_pages || 1;
+                renderGroupPagination(result.data);
             } else {
                 renderGroupTable([]);
                 renderGroupPagination({page: 1, total_pages: 1, total: 0});
@@ -192,14 +193,15 @@ function createGroup() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组创建成功', 'success');
                 closeModal();
                 // 重新加载组列表
                 currentGroupPage = 1;
                 listGroupsByFilter();
             } else {
-                showMessage('组创建失败: ' + data.message, 'error');
+                showMessage('组创建失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -233,13 +235,14 @@ function updateGroup() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组更新成功', 'success');
                 closeModal();
                 // 重新加载组列表
                 listGroupsByFilter();
             } else {
-                showMessage('组更新失败: ' + data.message, 'error');
+                showMessage('组更新失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -258,12 +261,13 @@ function deleteGroup(groupId) {
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    const result = handleApiResponse(data);
+                    if (result.success) {
                         showMessage('组删除成功', 'success');
                         // 重新加载组列表
                         listGroupsByFilter();
                     } else {
-                        showMessage('组删除失败: ' + data.message, 'error');
+                        showMessage('组删除失败: ' + (result.data?.message || '未知错误'), 'error');
                     }
                 })
                 .catch(error => {
@@ -328,8 +332,9 @@ function openEditGroupDialog(groupId) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const group = data.data;
+            const result = handleApiResponse(data);
+            if (result.success) {
+                const group = result.data;
                 const modalBody = document.getElementById('modal-body');
                 modalBody.innerHTML = `
                     <h2>编辑组</h2>
@@ -359,7 +364,7 @@ function openEditGroupDialog(groupId) {
 
                 document.getElementById('modal').style.display = 'block';
             } else {
-                showMessage('获取组信息失败: ' + data.message, 'error');
+                showMessage('获取组信息失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -384,7 +389,7 @@ function openBatchDeleteGroupDialog() {
             <form id="batch-delete-group-form">
                 <input type="hidden" id="selected-group-ids" value='${JSON.stringify(selectedGroupIds)}'>
                 <button type="submit">删除选中组</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
     } else {
@@ -396,7 +401,7 @@ function openBatchDeleteGroupDialog() {
                     <textarea id="batch-delete-group-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
                 </div>
                 <button type="submit">删除</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
     }
@@ -447,13 +452,14 @@ function deleteGroupsByIds(groupIds) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组批量删除成功', 'success');
                 closeModal();
                 // 重新加载组列表
                 listGroupsByFilter();
             } else {
-                showMessage('组批量删除失败: ' + data.message, 'error');
+                showMessage('组批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -473,13 +479,14 @@ function deleteGroupsByConditions(conditions) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('组批量删除成功', 'success');
                 closeModal();
                 // 重新加载组列表
                 listGroupsByFilter();
             } else {
-                showMessage('组批量删除失败: ' + data.message, 'error');
+                showMessage('组批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -541,7 +548,7 @@ function openComplexSearchGroupDialog() {
                 <button type="submit">查询</button>
             </form>
         </div>
-        <button type="button" onclick="closeModal()">取消</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
 
     // 绑定表单提交事件
@@ -588,14 +595,15 @@ function searchGroupsByConditions(conditions) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 closeModal();
-                renderGroupTable(data.data.data || []);
+                renderGroupTable(result.data.data || []);
                 // 更新分页信息
-                totalGroupPages = data.data.total_pages || 1;
-                renderGroupPagination(data.data);
+                totalGroupPages = result.data.total_pages || 1;
+                renderGroupPagination(result.data);
             } else {
-                showMessage('组查询失败: ' + data.message, 'error');
+                showMessage('组查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -611,11 +619,12 @@ function showGroupTree(groupId) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                renderGroupTree(data.data);
+            const result = handleApiResponse(data);
+            if (result.success) {
+                renderGroupTree(result.data);
                 document.getElementById('group-tree-modal').style.display = 'block';
             } else {
-                showMessage('获取组树失败: ' + data.message, 'error');
+                showMessage('获取组树失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {

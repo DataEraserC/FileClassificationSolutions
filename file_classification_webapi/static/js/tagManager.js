@@ -41,11 +41,12 @@ function listTagsByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderTagTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderTagTable(result.data.data || []);
                 // 更新分页信息
-                totalTagPages = data.data.total_pages || 1;
-                renderTagPagination(data.data);
+                totalTagPages = result.data.total_pages || 1;
+                renderTagPagination(result.data);
             } else {
                 renderTagTable([]);
                 renderTagPagination({page: 1, total_pages: 1, total: 0});
@@ -190,14 +191,15 @@ function createTag() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('标签创建成功', 'success');
                 closeModal();
                 // 重新加载标签列表
                 currentTagPage = 1;
                 listTagsByFilter();
             } else {
-                showMessage('标签创建失败: ' + data.message, 'error');
+                showMessage('标签创建失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -231,13 +233,14 @@ function updateTag() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('标签更新成功', 'success');
                 closeModal();
                 // 重新加载标签列表
                 listTagsByFilter();
             } else {
-                showMessage('标签更新失败: ' + data.message, 'error');
+                showMessage('标签更新失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -256,12 +259,13 @@ function deleteTag(tagId) {
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    const result = handleApiResponse(data);
+                    if (result.success) {
                         showMessage('标签删除成功', 'success');
                         // 重新加载标签列表
                         listTagsByFilter();
                     } else {
-                        showMessage('标签删除失败: ' + data.message, 'error');
+                        showMessage('标签删除失败: ' + (result.data?.message || '未知错误'), 'error');
                     }
                 })
                 .catch(error => {
@@ -326,8 +330,9 @@ function openEditTagDialog(tagId) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const tag = data.data;
+            const result = handleApiResponse(data);
+            if (result.success) {
+                const tag = result.data;
                 const modalBody = document.getElementById('modal-body');
                 modalBody.innerHTML = `
                     <h2>编辑标签</h2>
@@ -357,7 +362,7 @@ function openEditTagDialog(tagId) {
 
                 document.getElementById('modal').style.display = 'block';
             } else {
-                showMessage('获取标签信息失败: ' + data.message, 'error');
+                showMessage('获取标签信息失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -381,7 +386,7 @@ function openBatchDeleteTagDialog() {
             <p>已选择 ${selectedTagIds.length} 个标签</p>
             <form id="batch-delete-tag-form">
                 <input type="hidden" id="selected-tag-ids" value='${JSON.stringify(selectedTagIds)}'>
-                <button type="submit" class="btn-primary">删除选中标签</button>
+                <button type="submit">删除选中标签</button>
                 <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
@@ -393,7 +398,7 @@ function openBatchDeleteTagDialog() {
                     <label for="batch-delete-tag-conditions">删除条件 (JSON格式):</label>
                     <textarea id="batch-delete-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
                 </div>
-                <button type="submit" class="btn-primary">删除</button>
+                <button type="submit">删除</button>
                 <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
@@ -445,13 +450,14 @@ function deleteTagsByIds(tagIds) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('标签批量删除成功', 'success');
                 closeModal();
                 // 重新加载标签列表
                 listTagsByFilter();
             } else {
-                showMessage('标签批量删除失败: ' + data.message, 'error');
+                showMessage('标签批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -471,13 +477,14 @@ function deleteTagsByConditions(conditions) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('标签批量删除成功', 'success');
                 closeModal();
                 // 重新加载标签列表
                 listTagsByFilter();
             } else {
-                showMessage('标签批量删除失败: ' + data.message, 'error');
+                showMessage('标签批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -526,7 +533,7 @@ function openComplexSearchTagDialog() {
                     <label>已添加的条件:</label>
                     <div id="visual-search-conditions"></div>
                 </div>
-                <button type="button" class="btn-primary" onclick="performVisualSearch()">查询</button>
+                <button type="button" onclick="performVisualSearch()">查询</button>
             </form>
         </div>
         <div id="json-search" class="tab-content" style="display: none;">
@@ -535,7 +542,7 @@ function openComplexSearchTagDialog() {
                     <label for="complex-search-tag-conditions">查询条件 (JSON格式):</label>
                     <textarea id="complex-search-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
                 </div>
-                <button type="submit" class="btn-primary">查询</button>
+                <button type="submit">查询</button>
             </form>
         </div>
         <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
@@ -585,18 +592,44 @@ function searchTagsByConditions(conditions) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 closeModal();
-                renderTagTable(data.data.data || []);
+                renderTagTable(result.data.data || []);
                 // 更新分页信息
-                totalTagPages = data.data.total_pages || 1;
-                renderTagPagination(data.data);
+                totalTagPages = result.data.total_pages || 1;
+                renderTagPagination(result.data);
             } else {
-                showMessage('标签查询失败: ' + data.message, 'error');
+                showMessage('标签查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('标签查询失败: ' + error.message, 'error');
+        });
+}
+
+// 根据组ID获取标签列表
+function listTagsByGroupId() {
+    const groupId = getInputValue('tag-group-id');
+    if (!groupId) {
+        showMessage('请输入组ID', 'warning');
+        return;
+    }
+
+    const url = `${BASE_URL}/api/tags/group/${groupId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                renderTagTable(result.data || []);
+            } else {
+                showMessage('获取标签失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取标签失败: ' + error.message, 'error');
         });
 }

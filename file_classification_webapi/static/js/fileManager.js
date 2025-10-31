@@ -43,11 +43,12 @@ function listFilesByFilter() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.data) {
-                renderFileTable(data.data.data || []);
+            const result = handleApiResponse(data);
+            if (result.success && result.data) {
+                renderFileTable(result.data.data || []);
                 // 更新分页信息
-                totalFilePages = data.data.total_pages || 1;
-                renderFilePagination(data.data);
+                totalFilePages = result.data.total_pages || 1;
+                renderFilePagination(result.data);
             } else {
                 renderFileTable([]);
                 renderFilePagination({page: 1, total_pages: 1, total: 0});
@@ -180,10 +181,11 @@ function getFileById() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                renderFileTable([data.data]);
+            const result = handleApiResponse(data);
+            if (result.success) {
+                renderFileTable([result.data]);
             } else {
-                showMessage('获取文件失败: ' + data.message, 'error');
+                showMessage('获取文件失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -218,14 +220,15 @@ function createFile() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('文件创建成功', 'success');
                 closeModal();
                 // 重新加载文件列表
                 currentFilePage = 1;
                 listFilesByFilter();
             } else {
-                showMessage('文件创建失败: ' + data.message, 'error');
+                showMessage('文件创建失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -261,13 +264,14 @@ function updateFile() {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('文件更新成功', 'success');
                 closeModal();
                 // 重新加载文件列表
                 listFilesByFilter();
             } else {
-                showMessage('文件更新失败: ' + data.message, 'error');
+                showMessage('文件更新失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -286,12 +290,13 @@ function deleteFile(fileId) {
             })
                 .then(response => response.json())
                 .then(data => {
-                    if (data.success) {
+                    const result = handleApiResponse(data);
+                    if (result.success) {
                         showMessage('文件删除成功', 'success');
                         // 重新加载文件列表
                         listFilesByFilter();
                     } else {
-                        showMessage('文件删除失败: ' + data.message, 'error');
+                        showMessage('文件删除失败: ' + (result.data?.message || '未知错误'), 'error');
                     }
                 })
                 .catch(error => {
@@ -360,8 +365,9 @@ function openEditFileDialog(fileId) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                const file = data.data;
+            const result = handleApiResponse(data);
+            if (result.success) {
+                const file = result.data;
                 const modalBody = document.getElementById('modal-body');
                 modalBody.innerHTML = `
                     <h2>编辑文件</h2>
@@ -395,7 +401,7 @@ function openEditFileDialog(fileId) {
 
                 document.getElementById('modal').style.display = 'block';
             } else {
-                showMessage('获取文件信息失败: ' + data.message, 'error');
+                showMessage('获取文件信息失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -420,7 +426,7 @@ function openBatchDeleteFileDialog() {
             <form id="batch-delete-file-form">
                 <input type="hidden" id="selected-file-ids" value='${JSON.stringify(selectedFileIds)}'>
                 <button type="submit">删除选中文件</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
     } else {
@@ -429,10 +435,10 @@ function openBatchDeleteFileDialog() {
             <form id="batch-delete-file-form">
                 <div class="form-group">
                     <label for="batch-delete-file-conditions">删除条件 (JSON格式):</label>
-                    <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+                    <textarea id="batch-delete-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type_": "example"}]'></textarea>
                 </div>
                 <button type="submit">删除</button>
-                <button type="button" onclick="closeModal()">取消</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
             </form>
         `;
     }
@@ -483,13 +489,41 @@ function deleteFilesByIds(fileIds) {
     })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 showMessage('文件批量删除成功', 'success');
                 closeModal();
                 // 重新加载文件列表
                 listFilesByFilter();
             } else {
-                showMessage('文件批量删除失败: ' + data.message, 'error');
+                showMessage('文件批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件批量删除失败: ' + error.message, 'error');
+        });
+}
+
+function deleteFilesByConditions(conditions) {
+    const url = `${BASE_URL}/api/files/delete/by-conditions`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(conditions)
+    })
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                showMessage('文件批量删除成功', 'success');
+                closeModal();
+                // 重新加载文件列表
+                listFilesByFilter();
+            } else {
+                showMessage('文件批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
@@ -513,7 +547,7 @@ function openComplexSearchFileDialog() {
                     <label for="visual-search-field">查询字段:</label>
                     <select id="visual-search-field">
                         <option value="Id">ID</option>
-                        <option value="Type">类型</option>
+                        <option value="Type_">类型</option>
                         <option value="Path">路径</option>
                         <option value="ReferenceCount">引用计数</option>
                         <option value="GroupId">组ID</option>
@@ -546,12 +580,12 @@ function openComplexSearchFileDialog() {
             <form id="json-file-search-form">
                 <div class="form-group">
                     <label for="complex-search-file-conditions">查询条件 (JSON格式):</label>
-                    <textarea id="complex-search-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type": "txt"}]'></textarea>
+                    <textarea id="complex-search-file-conditions" rows="5" placeholder='[{"Id": 1}, {"Type_": "example"}]'></textarea>
                 </div>
                 <button type="submit">查询</button>
             </form>
         </div>
-        <button type="button" onclick="closeModal()">取消</button>
+        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
 
     // 绑定表单提交事件
@@ -598,18 +632,44 @@ function searchFilesByConditions(conditions) {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
+            const result = handleApiResponse(data);
+            if (result.success) {
                 closeModal();
-                renderFileTable(data.data.data || []);
+                renderFileTable(result.data.data || []);
                 // 更新分页信息
-                totalFilePages = data.data.total_pages || 1;
-                renderFilePagination(data.data);
+                totalFilePages = result.data.total_pages || 1;
+                renderFilePagination(result.data);
             } else {
-                showMessage('文件查询失败: ' + data.message, 'error');
+                showMessage('文件查询失败: ' + (result.data?.message || '未知错误'), 'error');
             }
         })
         .catch(error => {
             console.error('Error:', error);
             showMessage('文件查询失败: ' + error.message, 'error');
+        });
+}
+
+// 根据组ID获取文件列表
+function listFilesByGroupId() {
+    const groupId = getInputValue('file-group-id');
+    if (!groupId) {
+        showMessage('请输入组ID', 'warning');
+        return;
+    }
+
+    const url = `${BASE_URL}/api/files/group/${groupId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                renderFileTable(result.data || []);
+            } else {
+                showMessage('获取文件失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取文件失败: ' + error.message, 'error');
         });
 }

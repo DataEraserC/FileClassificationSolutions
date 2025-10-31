@@ -29,16 +29,11 @@ async fn api_list_files_by_filter(
         Ok(files) => {
             let count = files.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(files),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(files, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -65,17 +60,12 @@ async fn api_list_files_by_filter_with_options(
             let count = files.len();
 
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(files),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(files, count)))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -97,23 +87,18 @@ async fn api_get_file_by_id(path: web::Path<i32>, pool: web::Data<DbPool>) -> Re
     match get_file_by_id(&mut conn, file_id) {
         Ok(file) => {
             // 构造成功响应，返回单个文件
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(file),
-                message: None,
-                count: Some(1),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(file)))
         }
         // 文件未找到
         Err(diesel::result::Error::NotFound) => {
             Ok(
                 HttpResponse::NotFound()
-                    .json(ApiError { success: false, message: "文件未找到".to_string() }),
+                    .json(ApiResponse::<()>::error_with_code("FILE_NOT_FOUND", "文件未找到")),
             )
         }
         // 其他错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -136,16 +121,11 @@ async fn api_list_files_by_conditions(
         Ok(files) => {
             let count = files.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(files),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(files, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -171,15 +151,11 @@ async fn api_update_files_by_conditions(
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功更新 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功更新 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("UPDATE_FILE_FAILED", &e.to_string())),
         ),
     }
 }
@@ -205,21 +181,18 @@ async fn api_delete_file_by_id(
         Ok(_) =>
         // 构造成功响应
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": "文件删除成功"
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg((), "文件删除成功")))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_FILE_FAILED", &e.to_string())),
         ),
     }
 }
 
 /// 根据组ID获取文件列表
 ///
-/// 根据文件组ID获取该组下的所有文件
+/// 根据组ID获取关联的所有文件
 ///
 /// 请求路径: GET /api/files/group/{group_id}
 #[get("/api/files/group/{group_id}")]
@@ -238,16 +211,11 @@ async fn api_list_files_by_group_id(
         Ok(files) => {
             let count = files.len();
             // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(files),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(files, count)))
         }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -274,15 +242,11 @@ async fn api_update_file_by_id(
         Ok(count) =>
         // 构造成功响应，包含更新记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-                    "success": true,
-                    "message": format!("成功更新 {} 条记录", count),
-                    "count": count
-                })))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功更新 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("UPDATE_FILE_FAILED", &e.to_string())),
         ),
     }
 }
@@ -305,15 +269,11 @@ async fn api_delete_files_by_conditions(
         Ok(count) =>
         // 构造成功响应，包含删除记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功删除 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_FILE_FAILED", &e.to_string())),
         ),
     }
 }
@@ -343,17 +303,12 @@ async fn api_list_files_by_conditions_with_options(
             let count = files.len();
 
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(files),
-                message: None,
-                count: Some(count),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(files, count)))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
@@ -379,11 +334,11 @@ async fn api_create_file(
         Ok(file) =>
         // 构造成功响应，返回创建的文件信息
             {
-                Ok(HttpResponse::Created().json(ApiResponse::from(file)))
+                Ok(HttpResponse::Created().json(ApiResponse::success(file)))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("CREATE_FILE_FAILED", &e.to_string())),
         ),
     }
 }
@@ -406,15 +361,11 @@ async fn api_delete_files_by_ids(
         Ok(count) =>
         // 构造成功响应，包含删除记录数
             {
-                Ok(HttpResponse::Ok().json(json!({
-					"success": true,
-					"message": format!("成功删除 {} 条记录", count),
-					"count": count
-			})))
+                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
             }
         // 错误处理
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_FILE_FAILED", &e.to_string())),
         ),
     }
 }
@@ -450,24 +401,19 @@ async fn api_list_files_by_filter_with_pagination(
     match select_files_by_filter_with_pagination(&mut conn, filter, options) {
         Ok(result) => {
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(result.clone()),
-                message: None,
-                count: Some(result.data.len()),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
 
 /// 根据条件分页搜索文件
 ///
-/// 此接口允许客户端传递条件和分页参数，以分页方式检索数据
+/// 此接口允许客户端传递分页参数，以分页方式检索数据
 ///
 /// 请求路径: GET /api/files/search/by-conditions-with-pagination
 #[get("/api/files/search/by-conditions-with-pagination")]
@@ -481,7 +427,7 @@ async fn api_list_files_by_conditions_with_pagination(
     let options_str = query_map.get("options").cloned().unwrap_or_default();
 
     let conditions: Vec<FileCondition> = serde_json::from_str(&conditions_str).unwrap_or_else(|_| Vec::new());
-    let options: file_classification_core::model::models::FileQueryOptions = serde_json::from_str(&options_str).unwrap_or_default();
+    let options: file_classification_core::model::models::FileQueryOptions = serde_json::from_str(&options_str)?;
 
     // 获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
@@ -490,17 +436,12 @@ async fn api_list_files_by_conditions_with_pagination(
     match select_files_by_conditions_with_pagination(&mut conn, conditions, options) {
         Ok(result) => {
             // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse {
-                success: true,
-                data: Some(result.clone()),
-                message: None,
-                count: Some(result.data.len()),
-            }))
+            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
         }
 
         // 处理错误情况
         Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiError { success: false, message: e.to_string() }),
+            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
         ),
     }
 }
