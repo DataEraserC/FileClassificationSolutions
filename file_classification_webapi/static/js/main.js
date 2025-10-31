@@ -256,3 +256,152 @@ function handleMobileBottomNav() {
         });
     }
 }
+
+// main.js - 主程序入口文件
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function () {
+    // 加载所有部分页面
+    loadPartials();
+
+    // 初始化路由
+    initRouter();
+
+    // 监听窗口大小变化，处理响应式布局
+    window.addEventListener('resize', handleResponsiveLayout);
+    
+    // 初始检查屏幕大小
+    handleResponsiveLayout();
+});
+
+// 加载所有部分页面
+function loadPartials() {
+    // 定义需要加载的部分页面
+    const partials = [
+        { placeholder: 'header-placeholder', file: 'partials/header.html' },
+        { placeholder: 'sidebar-placeholder', file: 'partials/sidebar.html' },
+        { placeholder: 'home-placeholder', file: 'partials/home.html' },
+        { placeholder: 'files-placeholder', file: 'partials/files.html' },
+        { placeholder: 'groups-placeholder', file: 'partials/groups.html' },
+        { placeholder: 'tags-placeholder', file: 'partials/tags.html' },
+        { placeholder: 'file-groups-placeholder', file: 'partials/file-groups.html' },
+        { placeholder: 'group-tags-placeholder', file: 'partials/group-tags.html' },
+        { placeholder: 'group-relations-placeholder', file: 'partials/group-relations.html' },
+        { placeholder: 'modal-placeholder', file: 'partials/modal.html' }
+    ];
+
+    // 逐个加载部分页面
+    partials.forEach(partial => {
+        fetch(partial.file)
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById(partial.placeholder).innerHTML = data;
+            })
+            .catch(error => {
+                console.error(`加载 ${partial.file} 失败:`, error);
+            });
+    });
+}
+
+// 初始化路由
+function initRouter() {
+    // 监听浏览器前进后退事件
+    window.addEventListener('popstate', function (event) {
+        navigateToFragment();
+    });
+
+    // 初始导航
+    navigateToFragment();
+
+    // 绑定导航链接事件
+    document.addEventListener('click', function (event) {
+        const navLink = event.target.closest('.nav-link');
+        if (navLink) {
+            event.preventDefault();
+            const target = navLink.getAttribute('href').substring(1); // 移除 # 前缀
+            navigateTo(target);
+            
+            // 在移动端点击导航链接后隐藏导航栏
+            hideMobileNavbar();
+        }
+    });
+}
+
+// 导航到指定片段
+function navigateTo(fragment) {
+    // 更新浏览器历史记录
+    history.pushState(null, '', `#${fragment}`);
+
+    // 执行导航
+    navigateToFragment();
+}
+
+// 执行实际的导航操作
+function navigateToFragment() {
+    // 隐藏所有内容区域
+    const contentSections = document.querySelectorAll('.tab-content');
+    contentSections.forEach(section => {
+        section.style.display = 'none';
+    });
+
+    // 获取目标片段
+    const fragment = window.location.hash.substring(1) || 'home';
+
+    // 显示目标内容区域
+    const targetSection = document.getElementById(fragment);
+    if (targetSection) {
+        targetSection.style.display = 'block';
+    }
+
+    // 更新导航链接的活动状态
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === `#${fragment}`) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// 处理响应式布局
+function handleResponsiveLayout() {
+    const isMobile = window.innerWidth <= 768;
+    
+    // 获取侧边栏和移动端导航栏元素
+    const sidebar = document.querySelector('.sidebar');
+    const mobileNavbar = document.querySelector('.mobile-navbar');
+    
+    if (isMobile) {
+        // 移动端：隐藏侧边栏，显示底部导航栏
+        if (sidebar) {
+            sidebar.style.display = 'none';
+        }
+        if (mobileNavbar) {
+            mobileNavbar.style.display = 'block';
+        }
+    } else {
+        // 桌面端：显示侧边栏，隐藏底部导航栏
+        if (sidebar) {
+            sidebar.style.display = 'flex';
+        }
+        if (mobileNavbar) {
+            mobileNavbar.style.display = 'none';
+        }
+    }
+}
+
+// 隐藏移动端导航栏（用于点击导航项后自动隐藏）
+function hideMobileNavbar() {
+    const mobileNavbar = document.querySelector('.mobile-navbar');
+    if (mobileNavbar) {
+        // 可以添加动画效果，这里简单地隐藏
+        mobileNavbar.style.display = 'none';
+        
+        // 延迟一段时间后重新显示，确保用户仍然可以看到导航栏
+        setTimeout(() => {
+            if (window.innerWidth <= 768) {
+                mobileNavbar.style.display = 'block';
+            }
+        }, 100);
+    }
+}

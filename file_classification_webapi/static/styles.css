@@ -175,6 +175,59 @@ header h1 {
     transform: rotate(180deg);
 }
 
+/* 移动端底部导航栏样式 */
+.mobile-navbar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: #343a40;
+    color: white;
+    padding: 0.5rem 0;
+    z-index: 1000;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.mobile-navbar ul {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mobile-navbar ul li {
+    flex: 1;
+    text-align: center;
+}
+
+.mobile-navbar ul li a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0;
+    color: #ccc;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.mobile-navbar ul li a:hover,
+.mobile-navbar ul li a.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.mobile-navbar .nav-icon {
+    font-size: 1.2em;
+    margin-bottom: 0.25rem;
+    margin-left: 0;
+}
+
+.mobile-navbar .nav-text {
+    font-size: 0.75rem;
+}
+
 /* 主内容区样式 */
 .content {
     flex: 1;
@@ -525,63 +578,67 @@ body.dark-mode .tree-node-info {
     top: 20px;
     right: 20px;
     z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
 }
 
 .message {
     padding: 15px 20px;
-    margin-bottom: 10px;
     border-radius: 4px;
     position: relative;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-    animation: fadeInOut 3s ease-in-out;
+    min-width: 250px;
+    background-clip: padding-box;
+    border: 1px solid transparent;
 }
 
 .message-info {
     background-color: #d1ecf1;
     color: #0c5460;
-    border: 1px solid #bee5eb;
+    border-color: #bee5eb;
 }
 
 .message-success {
     background-color: #d4edda;
     color: #155724;
-    border: 1px solid #c3e6cb;
+    border-color: #c3e6cb;
 }
 
 .message-warning {
     background-color: #fff3cd;
     color: #856404;
-    border: 1px solid #ffeaa7;
+    border-color: #ffeaa7;
 }
 
 .message-error {
     background-color: #f8d7da;
     color: #721c24;
-    border: 1px solid #f5c6cb;
+    border-color: #f5c6cb;
 }
 
 body.dark-mode .message-info {
     background-color: #0d6efd;
     color: #fff;
-    border: 1px solid #0b5ed7;
+    border-color: #0b5ed7;
 }
 
 body.dark-mode .message-success {
     background-color: #198754;
     color: #fff;
-    border: 1px solid #157347;
+    border-color: #157347;
 }
 
 body.dark-mode .message-warning {
     background-color: #ffc107;
     color: #000;
-    border: 1px solid #ffca2c;
+    border-color: #ffca2c;
 }
 
 body.dark-mode .message-error {
     background-color: #dc3545;
     color: #fff;
-    border: 1px solid #bb2d3b;
+    border-color: #bb2d3b;
 }
 
 .close-button {
@@ -603,19 +660,19 @@ body.dark-mode .message-error {
 @keyframes fadeInOut {
     0% {
         opacity: 0;
-        transform: translateY(-20px);
+        transform: translateX(100%);
     }
     10% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
     90% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
     100% {
         opacity: 0;
-        transform: translateY(-20px);
+        transform: translateX(100%);
     }
 }
 
@@ -999,252 +1056,65 @@ body.dark-mode .pagination-size {
     transition: all 0.3s;
 }
 
-body.dark-mode .pagination-size select {
-    background-color: #404040;
-    color: #f0f0f0;
-    border-color: #5a5a5a;
-}
-
-.pagination-size select:focus {
-    outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-body.dark-mode .pagination-size select:focus {
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
-}
-
-/* 响应式分页控件 */
-@media (max-width: 768px) {
-    .pagination-container {
-        padding: 10px 5px;
-    }
-
-    .pagination-controls {
-        gap: 3px;
-    }
-
-    .pagination-controls button {
-        padding: 6px 10px;
-        font-size: 13px;
-        min-width: 35px;
-    }
-
-    .pagination-info {
-        font-size: 14px;
-        text-align: center;
-    }
-
-    .pagination-size {
-        font-size: 13px;
-    }
-
-    .pagination-size select {
-        padding: 5px 8px;
-        font-size: 13px;
-    }
-}
-
-@media (max-width: 480px) {
-    .pagination-controls button {
-        padding: 5px 8px;
-        font-size: 12px;
-        min-width: 30px;
-    }
-
-    .pagination-info {
-        font-size: 13px;
-    }
-
-    .pagination-size {
-        font-size: 12px;
-        flex-direction: column;
-        gap: 5px;
-    }
-}
-
 /* 响应式设计 */
 @media (max-width: 768px) {
-    .main-container {
-        flex-direction: column;
-    }
-
-    /* 方案1: 底部导航栏 */
     .sidebar {
-        width: 100%;
-        padding: 0;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: auto;
-        z-index: 1000;
-    }
-
-    .sidebar.collapsed {
-        width: 100%;
-    }
-
-    .sidebar-toggle {
         display: none;
     }
-
-    .sidebar nav {
-        padding: 0;
-    }
-
-    .sidebar ul {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-around;
-        align-items: center;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-    }
-
-    .sidebar ul li {
-        margin: 0;
-        flex: 1;
-    }
-
-    .sidebar ul li a {
-        padding: 1rem 0.5rem;
-        border-bottom: none;
-        border-left: none;
-        text-align: center;
-        flex-direction: column;
-        font-size: 0.8rem;
-        min-height: 60px;
-    }
-
-    .sidebar.collapsed ul li a {
-        padding: 1rem 0.5rem;
-    }
-
-    .nav-text {
-        display: block;
-        font-size: 0.7rem;
-        margin-top: 0.25rem;
-        margin-left: 0;
-    }
-
-    .nav-icon {
-        margin-left: 0;
-        font-size: 1.2rem;
-    }
-
-    .sidebar.collapsed .nav-text {
+    
+    .mobile-navbar {
         display: block;
     }
-
-    /* 调整主内容区域，避免被底部导航栏遮挡 */
+    
+    .main-container {
+        padding-bottom: 60px; /* 为底部导航栏留出空间 */
+    }
+    
     .content {
-        margin-bottom: 60px;
+        padding: 0.5rem;
     }
-
-    .search-form .form-row {
-        flex-direction: column;
+    
+    .tab-content {
+        padding: 1rem;
     }
-
+    
     .search-form .form-group {
-        min-width: 100%;
+        min-width: 100px;
     }
-
-    .form-row {
-        flex-direction: column;
-    }
-
-    .form-group {
-        min-width: 100%;
-    }
-
-    header {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-
-    .theme-toggle {
-        align-self: flex-end;
-    }
-
-    .modal-content {
-        width: 95%;
-        margin: 20% auto;
-    }
-}
-
-@media (max-width: 480px) {
-    /* 在小屏幕上进一步优化 */
-    .sidebar ul li a {
-        padding: 0.75rem 0.25rem;
-        min-height: 50px;
-        font-size: 0.7rem;
-    }
-
-    .nav-icon {
-        font-size: 1rem;
-    }
-
-    .nav-text {
-        font-size: 0.6rem;
-    }
-
-    .content {
-        margin-bottom: 50px;
-    }
-
-    .toolbar button {
-        margin-bottom: 0.5rem;
-        display: inline-block;
-    }
-
+    
     table {
-        font-size: 0.8rem;
+        font-size: 0.9rem;
     }
-
+    
     table th,
     table td {
-        padding: 0.5rem 0.25rem;
+        padding: 0.5rem;
+    }
+    
+    .action-button {
+        padding: 0.1rem 0.25rem;
+        font-size: 0.7rem;
+        min-height: 24px;
+        min-width: 24px;
+    }
+    
+    /* 移动端底部导航栏优化 */
+    .mobile-navbar ul li a {
+        padding: 0.25rem 0;
+    }
+    
+    .mobile-navbar .nav-icon {
+        font-size: 1rem;
+        margin-bottom: 0.1rem;
+    }
+    
+    .mobile-navbar .nav-text {
+        font-size: 0.6rem;
     }
 }
 
-/* 通用按钮样式 */
-button {
-    outline: none;
-    font-family: "Microsoft YaHei", Arial, sans-serif;
-}
-
-button:focus {
-    outline: 2px solid #007bff;
-    outline-offset: 2px;
-}
-
-body.dark-mode button:focus {
-    outline: 2px solid #007bff;
-}
-
-/* 确认对话框样式 */
-.confirm-dialog {
-    text-align: center;
-}
-
-.confirm-dialog p {
-    margin: 20px 0;
-    font-size: 1.1rem;
-}
-
-.confirm-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 20px;
-}
-
-.confirm-buttons .btn-primary,
-.confirm-buttons .btn-secondary {
-    min-width: 80px;
+@media (min-width: 769px) {
+    .mobile-navbar {
+        display: none;
+    }
 }

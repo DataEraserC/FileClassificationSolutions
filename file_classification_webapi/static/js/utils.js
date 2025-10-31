@@ -6,7 +6,7 @@ function getInputValue(elementId) {
     return element ? element.value.trim() : '';
 }
 
-// 显示消息
+// 显示消息 - 支持多个实例
 function showMessage(message, type = 'info') {
     const messageContainer = document.getElementById('message-container');
     if (messageContainer) {
@@ -16,17 +16,24 @@ function showMessage(message, type = 'info') {
         if (type === 'error') messageTypeClass = 'message-error';
         if (type === 'warning') messageTypeClass = 'message-warning';
 
-        messageContainer.innerHTML = `
+        // 创建消息元素
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message';
+        messageElement.innerHTML = `
             <div class="message ${messageTypeClass}">
                 ${message}
-                <button class="close-button" onclick="this.parentElement.style.display='none'">&times;</button>
+                <button class="close-button" onclick="this.parentElement.parentElement.remove()">&times;</button>
             </div>
         `;
-        messageContainer.style.display = 'block';
+
+        // 添加到消息容器
+        messageContainer.appendChild(messageElement);
 
         // 3秒后自动隐藏消息
         setTimeout(() => {
-            messageContainer.style.display = 'none';
+            if (messageElement.parentElement) {
+                messageElement.remove();
+            }
         }, 3000);
     }
 }
@@ -241,9 +248,13 @@ function handleApiResponse(response) {
     // 对于新的响应格式 (code/data/msg)
     if (response.code !== undefined) {
         if (response.code === "SUCCESS") {
-            showMessage(response.msg || '操作成功', 'success');
+            // 只有当msg存在且不为空时才显示消息
+            if (response.msg && response.msg.trim() !== '') {
+                showMessage(response.msg, 'success');
+            }
             return { success: true, data: response.data };
         } else {
+            // 显示错误消息
             showMessage(response.msg || '操作失败', 'error');
             return { success: false, data: response.data };
         }
