@@ -198,26 +198,36 @@ function searchGroupTagsByFilter() {
 
 // 在页面加载完成后绑定分页控件事件
 document.addEventListener('DOMContentLoaded', function () {
-    // 使用事件委托处理分页按钮点击
-    document.addEventListener('click', function (e) {
-        // 处理分页按钮点击事件
-        if (e.target.matches('.pagination-container button')) {
-            // 防止重复处理
-            e.preventDefault();
-        }
-    });
+    // 绑定分页控件事件
+    const groupTagPagination = document.getElementById('group-tags-pagination');
+    if (groupTagPagination) {
+        groupTagPagination.addEventListener('click', function (event) {
+            const target = event.target;
+            if (target.tagName === 'BUTTON' && !target.disabled) {
+                const page = parseInt(target.textContent);
+                if (!isNaN(page)) {
+                    changeGroupTagPage(page);
+                }
+            }
+        });
+    }
 });
 
-// 改变每页大小
-function changeGroupTagPageSize(size) {
-    groupTagPageSize = parseInt(size);
-    currentGroupTagPage = 1; // 重置到第一页
-    // 根据查询类型选择接口
-    if (currentGroupTagQueryType === 'conditions') {
-        searchGroupTagsByConditions(currentGroupTagConditions);
-    } else {
-        searchGroupTagsByFilter();
-    }
+// 重置组标签过滤器
+function resetGroupTagFilter() {
+    document.getElementById('group-tag-group-id').value = '';
+    document.getElementById('group-tag-tag-id').value = '';
+    // 重置分页参数
+    currentGroupTagPage = 1;
+    listGroupTagsByFilter(); // 重置后重新搜索
+}
+
+// 切换全选组标签
+function toggleAllGroupTags(source) {
+    const checkboxes = document.querySelectorAll('.group-tag-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
 }
 
 function createGroupTag() {
@@ -225,7 +235,7 @@ function createGroupTag() {
     const tagId = getInputValue('create-group-tag-tag-id');
 
     if (!groupId || !tagId) {
-        showMessage('请填写完整的组标签信息', 'warning');
+        showMessage('请填写完整的组标签关联信息', 'warning');
         return;
     }
 
@@ -292,6 +302,29 @@ function deleteGroupTag(groupId, tagId) {
     });
 }
 
+// 批量删除选中的组标签
+function deleteSelectedGroupTags() {
+    const selectedCheckboxes = document.querySelectorAll('.group-tag-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        showMessage('请至少选择一个组标签关联进行删除', 'warning');
+        return;
+    }
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组标签关联吗？`, function (result) {
+        if (result) {
+            // 构造DTO数组
+            const dtos = Array.from(selectedCheckboxes).map(cb => ({
+                group_id: parseInt(cb.getAttribute('data-group-id')),
+                tag_id: parseInt(cb.getAttribute('data-tag-id'))
+            }));
+
+            // 使用新的delete by dtos接口
+            deleteGroupTagsByDtos(dtos);
+        }
+    });
+}
+
 // 打开创建组标签对话框
 function openCreateGroupTagDialog() {
     const modalBody = document.getElementById('modal-body');
@@ -323,21 +356,59 @@ function openCreateGroupTagDialog() {
 // 打开批量删除组标签对话框
 function openBatchDeleteGroupTagDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除组标签关联</h2>
-        <form id="batch-delete-group-tag-form">
-            <div class="form-group">
-                <label for="batch-delete-group-tag-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-group-tag-conditions" rows="5" placeholder='[{"GroupId": 1}, {"TagId": 1}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
-        </form>
-    `;
+
+    // 获取当前选中的组标签ID
+    const selectedGroupTagCheckboxes = document.querySelectorAll('.group-tag-checkbox:checked');
+    const selectedGroupTagIds = Array.from(selectedGroupTagCheckboxes).map(cb => ({
+        group_id: parseInt(cb.getAttribute('data-group-id')),
+        tag_id: parseInt(cb.getAttribute('data-tag-id'))
+    }));
+
+    let formContent;
+    if (selectedGroupTagIds.length > 0) {
+        formContent = `
+            <h2>批量删除组标签关联</h2>
+            <p>已选择 ${selectedGroupTagIds.length} 个组标签关联</p>
+            <form id="batch-delete-group-tag-form">
+                <input type="hidden" id="selected-group-tag-ids" value='${JSON.stringify(selectedGroupTagIds)}'>
+                <button type="submit">删除选中组标签关联</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除组标签关联</h2>
+            <form id="batch-delete-group-tag-form">
+                <div class="form-group">
+                    <label for="batch-delete-group-tag-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-group-tag-conditions" rows="5" placeholder='[{"GroupId": 1}, {"TagId": 1}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+
+    modalBody.innerHTML = formContent;
 
     // 绑定表单提交事件
     document.getElementById('batch-delete-group-tag-form').addEventListener('submit', function (e) {
         e.preventDefault();
+
+        // 如果有选中的组标签ID，使用delete by dtos
+        const selectedIdsInput = document.getElementById('selected-group-tag-ids');
+        if (selectedIdsInput) {
+            const groupTagDtos = JSON.parse(selectedIdsInput.value);
+            // 确保数值字段是数字类型
+            const fixedGroupTagDtos = groupTagDtos.map(dto => ({
+                group_id: parseInt(dto.group_id),
+                tag_id: parseInt(dto.tag_id)
+            }));
+            deleteGroupTagsByDtos(fixedGroupTagDtos);
+            return;
+        }
+
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-group-tag-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -353,6 +424,34 @@ function openBatchDeleteGroupTagDialog() {
     });
 
     document.getElementById('modal').style.display = 'block';
+}
+
+// 根据DTO列表批量删除组标签（根据ID列表）
+function deleteGroupTagsByDtos(dtos) {
+    const url = `${BASE_URL}/api/group-tags/delete/by-dtos`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dtos)
+    })
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                showMessage('组标签关联批量删除成功', 'success');
+                closeModal();
+                // 重新加载组标签列表
+                searchGroupTagsByFilter();
+            } else {
+                showMessage('组标签关联批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组标签关联批量删除失败: ' + error.message, 'error');
+        });
 }
 
 function deleteGroupTagsByConditions(conditions) {

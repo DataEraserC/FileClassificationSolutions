@@ -67,18 +67,26 @@ function renderFileGroupTable(fileGroups) {
         return;
     }
 
-    tbody.innerHTML = fileGroups.map(fg => `
+    tbody.innerHTML = fileGroups.map(fg => {
+        // 根据关系类型显示对应的文本
+        let relationTypeText = fg.relation_type;
+        if (fg.relation_type === 1) {
+            relationTypeText = '文件与文件主组关系';
+        }
+        
+        return `
         <tr>
-            <td><input type="checkbox" class="file-group-checkbox" data-file-id="${fg.file_id}" data-group-id="${fg.group_id}"></td>
+            <td><input type="checkbox" class="file-group-checkbox" data-file-id="${fg.file_id}" data-group-id="${fg.group_id}" data-relation-type="${fg.relation_type}"></td>
             <td>${fg.file_id}</td>
             <td>${fg.group_id}</td>
+            <td>${relationTypeText}</td>
             <td>
                 <div class="table-actions">
-                    <button class="action-button delete" onclick="deleteFileGroup(${fg.file_id}, ${fg.group_id})">删除</button>
+                    <button class="action-button delete" onclick="deleteFileGroup(${fg.file_id}, ${fg.group_id}, ${fg.relation_type})">删除</button>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 // 渲染文件组分页控件
@@ -198,40 +206,52 @@ function searchFileGroupsByFilter() {
 
 // 在页面加载完成后绑定分页控件事件
 document.addEventListener('DOMContentLoaded', function () {
-    // 使用事件委托处理分页按钮点击
-    document.addEventListener('click', function (e) {
-        // 处理分页按钮点击事件
-        if (e.target.matches('.pagination-container button')) {
-            // 防止重复处理
-            e.preventDefault();
-        }
-    });
+    // 绑定分页控件事件
+    const fileGroupPagination = document.getElementById('file-groups-pagination');
+    if (fileGroupPagination) {
+        fileGroupPagination.addEventListener('click', function (event) {
+            const target = event.target;
+            if (target.tagName === 'BUTTON' && !target.disabled) {
+                const page = parseInt(target.textContent);
+                if (!isNaN(page)) {
+                    changeFileGroupPage(page);
+                }
+            }
+        });
+    }
 });
 
-// 改变每页大小
-function changeFileGroupPageSize(size) {
-    fileGroupPageSize = parseInt(size);
-    currentFileGroupPage = 1; // 重置到第一页
-    // 根据查询类型选择接口
-    if (currentFileGroupQueryType === 'conditions') {
-        searchFileGroupsByConditions(currentFileGroupConditions);
-    } else {
-        searchFileGroupsByFilter();
-    }
+// 重置文件组过滤器
+function resetFileGroupFilter() {
+    document.getElementById('file-group-file-id').value = '';
+    document.getElementById('file-group-group-id').value = '';
+    // 重置分页参数
+    currentFileGroupPage = 1;
+    listFileGroupsByFilter(); // 重置后重新搜索
+}
+
+// 切换全选文件组
+function toggleAllFileGroups(source) {
+    const checkboxes = document.querySelectorAll('.file-group-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
 }
 
 function createFileGroup() {
     const fileId = getInputValue('create-file-group-file-id');
     const groupId = getInputValue('create-file-group-group-id');
+    const relationType = getInputValue('create-file-group-relation-type');
 
-    if (!fileId || !groupId) {
-        showMessage('请填写完整的文件组信息', 'warning');
+    if (!fileId || !groupId || !relationType) {
+        showMessage('请填写完整的文件组关联信息', 'warning');
         return;
     }
 
     const fileGroupData = {
         file_id: parseInt(fileId),
-        group_id: parseInt(groupId)
+        group_id: parseInt(groupId),
+        relation_type: parseInt(relationType)
     };
 
     const url = `${BASE_URL}/api/file-groups`;
@@ -261,7 +281,7 @@ function createFileGroup() {
         });
 }
 
-function deleteFileGroup(fileId, groupId) {
+function deleteFileGroup(fileId, groupId, relationType) {
     // 使用页面弹窗替换原生confirm
     showConfirmDialog('确认删除', '确定要删除该文件组关联吗？', function (result) {
         if (result) {
@@ -271,7 +291,11 @@ function deleteFileGroup(fileId, groupId) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ file_id: fileId, group_id: groupId })
+                body: JSON.stringify({ 
+                    file_id: fileId, 
+                    group_id: groupId,
+                    relation_type: relationType
+                })
             })
                 .then(response => response.json())
                 .then(data => {
@@ -292,6 +316,30 @@ function deleteFileGroup(fileId, groupId) {
     });
 }
 
+// 批量删除选中的文件组
+function deleteSelectedFileGroups() {
+    const selectedCheckboxes = document.querySelectorAll('.file-group-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        showMessage('请至少选择一个文件组关联进行删除', 'warning');
+        return;
+    }
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个文件组关联吗？`, function (result) {
+        if (result) {
+            // 构造DTO数组
+            const dtos = Array.from(selectedCheckboxes).map(cb => ({
+                file_id: parseInt(cb.getAttribute('data-file-id')),
+                group_id: parseInt(cb.getAttribute('data-group-id')),
+                relation_type: parseInt(cb.getAttribute('data-relation-type'))
+            }));
+
+            // 使用新的delete by dtos接口
+            deleteFileGroupsByDtos(dtos);
+        }
+    });
+}
+
 // 打开创建文件组对话框
 function openCreateFileGroupDialog() {
     const modalBody = document.getElementById('modal-body');
@@ -305,6 +353,11 @@ function openCreateFileGroupDialog() {
             <div class="form-group">
                 <label for="create-file-group-group-id">组ID:</label>
                 <input type="number" id="create-file-group-group-id" required>
+            </div>
+            <div class="form-group">
+                <label for="create-file-group-relation-type">关联类型:</label>
+                <input type="number" id="create-file-group-relation-type" required>
+                <div class="form-help">1 = 文件与文件主组关系</div>
             </div>
             <button type="submit" class="btn-primary">创建</button>
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
@@ -323,21 +376,61 @@ function openCreateFileGroupDialog() {
 // 打开批量删除文件组对话框
 function openBatchDeleteFileGroupDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除文件组关联</h2>
-        <form id="batch-delete-file-group-form">
-            <div class="form-group">
-                <label for="batch-delete-file-group-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-file-group-conditions" rows="5" placeholder='[{"FileId": 1}, {"GroupId": 1}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
-        </form>
-    `;
+
+    // 获取当前选中的文件组ID
+    const selectedFileGroupCheckboxes = document.querySelectorAll('.file-group-checkbox:checked');
+    const selectedFileGroupIds = Array.from(selectedFileGroupCheckboxes).map(cb => ({
+        file_id: parseInt(cb.getAttribute('data-file-id')),
+        group_id: parseInt(cb.getAttribute('data-group-id')),
+        relation_type: parseInt(cb.getAttribute('data-relation-type'))
+    }));
+
+    let formContent;
+    if (selectedFileGroupIds.length > 0) {
+        formContent = `
+            <h2>批量删除文件组关联</h2>
+            <p>已选择 ${selectedFileGroupIds.length} 个文件组关联</p>
+            <form id="batch-delete-file-group-form">
+                <input type="hidden" id="selected-file-group-ids" value='${JSON.stringify(selectedFileGroupIds)}'>
+                <button type="submit">删除选中文件组关联</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除文件组关联</h2>
+            <form id="batch-delete-file-group-form">
+                <div class="form-group">
+                    <label for="batch-delete-file-group-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-file-group-conditions" rows="5" placeholder='[{"FileId": 1}, {"GroupId": 1}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+
+    modalBody.innerHTML = formContent;
 
     // 绑定表单提交事件
     document.getElementById('batch-delete-file-group-form').addEventListener('submit', function (e) {
         e.preventDefault();
+
+        // 如果有选中的文件组ID，使用delete by dtos
+        const selectedIdsInput = document.getElementById('selected-file-group-ids');
+        if (selectedIdsInput) {
+            const fileGroupDtos = JSON.parse(selectedIdsInput.value);
+            // 确保数值字段是数字类型
+            const fixedFileGroupDtos = fileGroupDtos.map(dto => ({
+                file_id: parseInt(dto.file_id),
+                group_id: parseInt(dto.group_id),
+                relation_type: parseInt(dto.relation_type)
+            }));
+            deleteFileGroupsByDtos(fixedFileGroupDtos);
+            return;
+        }
+
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-file-group-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -353,6 +446,34 @@ function openBatchDeleteFileGroupDialog() {
     });
 
     document.getElementById('modal').style.display = 'block';
+}
+
+// 根据DTO列表批量删除文件组（根据ID列表）
+function deleteFileGroupsByDtos(dtos) {
+    const url = `${BASE_URL}/api/file-groups/delete/by-dtos`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dtos)
+    })
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                showMessage('文件组关联批量删除成功', 'success');
+                closeModal();
+                // 重新加载文件组列表
+                searchFileGroupsByFilter();
+            } else {
+                showMessage('文件组关联批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('文件组关联批量删除失败: ' + error.message, 'error');
+        });
 }
 
 function deleteFileGroupsByConditions(conditions) {

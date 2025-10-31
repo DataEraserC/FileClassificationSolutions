@@ -70,19 +70,26 @@ function renderGroupRelationTable(groupRelations) {
         return;
     }
 
-    tbody.innerHTML = groupRelations.map(relation => `
+    tbody.innerHTML = groupRelations.map(relation => {
+        // 根据关系类型显示对应的文本
+        let relationTypeText = relation.relation_type;
+        if (relation.relation_type === 1) {
+            relationTypeText = '父与子关系';
+        }
+        
+        return `
         <tr>
             <td><input type="checkbox" class="group-relation-checkbox" data-first-id="${relation.first_group_id}" data-second-id="${relation.second_group_id}" data-relation-type="${relation.relation_type}"></td>
             <td>${relation.first_group_id}</td>
             <td>${relation.second_group_id}</td>
-            <td>${relation.relation_type}</td>
+            <td>${relationTypeText}</td>
             <td>
                 <div class="table-actions">
                     <button class="action-button delete" onclick="deleteGroupRelation(${relation.first_group_id}, ${relation.second_group_id}, ${relation.relation_type})">删除</button>
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 
 // 渲染组关系分页控件
@@ -203,26 +210,37 @@ function searchGroupRelationsByFilter() {
 
 // 在页面加载完成后绑定分页控件事件
 document.addEventListener('DOMContentLoaded', function () {
-    // 使用事件委托处理分页按钮点击
-    document.addEventListener('click', function (e) {
-        // 处理分页按钮点击事件
-        if (e.target.matches('.pagination-container button')) {
-            // 防止重复处理
-            e.preventDefault();
-        }
-    });
+    // 绑定分页控件事件
+    const groupRelationPagination = document.getElementById('group-relations-pagination');
+    if (groupRelationPagination) {
+        groupRelationPagination.addEventListener('click', function (event) {
+            const target = event.target;
+            if (target.tagName === 'BUTTON' && !target.disabled) {
+                const page = parseInt(target.textContent);
+                if (!isNaN(page)) {
+                    changeGroupRelationPage(page);
+                }
+            }
+        });
+    }
 });
 
-// 改变每页大小
-function changeGroupRelationPageSize(size) {
-    groupRelationPageSize = parseInt(size);
-    currentGroupRelationPage = 1; // 重置到第一页
-    // 根据查询类型选择接口
-    if (currentGroupRelationQueryType === 'conditions') {
-        searchGroupRelationsByConditions(currentGroupRelationConditions);
-    } else {
-        searchGroupRelationsByFilter();
-    }
+// 重置组关系过滤器
+function resetGroupRelationFilter() {
+    document.getElementById('group-relation-first-id').value = '';
+    document.getElementById('group-relation-second-id').value = '';
+    document.getElementById('group-relation-type').value = '';
+    // 重置分页参数
+    currentGroupRelationPage = 1;
+    listGroupRelationsByFilter(); // 重置后重新搜索
+}
+
+// 切换全选组关系
+function toggleAllGroupRelations(source) {
+    const checkboxes = document.querySelectorAll('.group-relation-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = source.checked;
+    });
 }
 
 function createGroupRelation() {
@@ -303,6 +321,30 @@ function deleteGroupRelation(firstId, secondId, relationType) {
     });
 }
 
+// 批量删除选中的组关系
+function deleteSelectedGroupRelations() {
+    const selectedCheckboxes = document.querySelectorAll('.group-relation-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        showMessage('请至少选择一个组关系进行删除', 'warning');
+        return;
+    }
+
+    // 使用页面弹窗替换原生confirm
+    showConfirmDialog('确认删除', `确定要删除这 ${selectedCheckboxes.length} 个组关系吗？`, function (result) {
+        if (result) {
+            // 构造DTO数组
+            const dtos = Array.from(selectedCheckboxes).map(cb => ({
+                first_group_id: parseInt(cb.getAttribute('data-first-id')),
+                second_group_id: parseInt(cb.getAttribute('data-second-id')),
+                relation_type: parseInt(cb.getAttribute('data-relation-type'))
+            }));
+
+            // 使用新的delete by dtos接口
+            deleteGroupRelationsByDtos(dtos);
+        }
+    });
+}
+
 // 打开创建组关系对话框
 function openCreateGroupRelationDialog() {
     const modalBody = document.getElementById('modal-body');
@@ -320,6 +362,7 @@ function openCreateGroupRelationDialog() {
             <div class="form-group">
                 <label for="create-group-relation-type">关系类型:</label>
                 <input type="number" id="create-group-relation-type" required>
+                <div class="form-help">1 = 父与子关系</div>
             </div>
             <button type="submit" class="btn-primary">创建</button>
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
@@ -338,21 +381,61 @@ function openCreateGroupRelationDialog() {
 // 打开批量删除组关系对话框
 function openBatchDeleteGroupRelationDialog() {
     const modalBody = document.getElementById('modal-body');
-    modalBody.innerHTML = `
-        <h2>批量删除组关系</h2>
-        <form id="batch-delete-group-relation-form">
-            <div class="form-group">
-                <label for="batch-delete-group-relation-conditions">删除条件 (JSON格式):</label>
-                <textarea id="batch-delete-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1}, {"SecondGroupId": 1}]'></textarea>
-            </div>
-            <button type="submit">删除</button>
-            <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
-        </form>
-    `;
+
+    // 获取当前选中的组关系ID
+    const selectedGroupRelationCheckboxes = document.querySelectorAll('.group-relation-checkbox:checked');
+    const selectedGroupRelationIds = Array.from(selectedGroupRelationCheckboxes).map(cb => ({
+        first_group_id: parseInt(cb.getAttribute('data-first-id')),
+        second_group_id: parseInt(cb.getAttribute('data-second-id')),
+        relation_type: parseInt(cb.getAttribute('data-relation-type'))
+    }));
+
+    let formContent;
+    if (selectedGroupRelationIds.length > 0) {
+        formContent = `
+            <h2>批量删除组关系</h2>
+            <p>已选择 ${selectedGroupRelationIds.length} 个组关系</p>
+            <form id="batch-delete-group-relation-form">
+                <input type="hidden" id="selected-group-relation-ids" value='${JSON.stringify(selectedGroupRelationIds)}'>
+                <button type="submit">删除选中组关系</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    } else {
+        formContent = `
+            <h2>批量删除组关系</h2>
+            <form id="batch-delete-group-relation-form">
+                <div class="form-group">
+                    <label for="batch-delete-group-relation-conditions">删除条件 (JSON格式):</label>
+                    <textarea id="batch-delete-group-relation-conditions" rows="5" placeholder='[{"FirstGroupId": 1}, {"SecondGroupId": 1}]'></textarea>
+                </div>
+                <button type="submit">删除</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+            </form>
+        `;
+    }
+
+    modalBody.innerHTML = formContent;
 
     // 绑定表单提交事件
     document.getElementById('batch-delete-group-relation-form').addEventListener('submit', function (e) {
         e.preventDefault();
+
+        // 如果有选中的组关系ID，使用delete by dtos
+        const selectedIdsInput = document.getElementById('selected-group-relation-ids');
+        if (selectedIdsInput) {
+            const groupRelationDtos = JSON.parse(selectedIdsInput.value);
+            // 确保数值字段是数字类型
+            const fixedGroupRelationDtos = groupRelationDtos.map(dto => ({
+                first_group_id: parseInt(dto.first_group_id),
+                second_group_id: parseInt(dto.second_group_id),
+                relation_type: parseInt(dto.relation_type)
+            }));
+            deleteGroupRelationsByDtos(fixedGroupRelationDtos);
+            return;
+        }
+
+        // 否则使用条件删除（向后兼容）
         const conditionsJson = document.getElementById('batch-delete-group-relation-conditions').value;
         if (!conditionsJson) {
             showMessage('请输入删除条件', 'warning');
@@ -368,6 +451,34 @@ function openBatchDeleteGroupRelationDialog() {
     });
 
     document.getElementById('modal').style.display = 'block';
+}
+
+// 根据DTO列表批量删除组关系（根据ID列表）
+function deleteGroupRelationsByDtos(dtos) {
+    const url = `${BASE_URL}/api/group-relations/delete/by-dtos`;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dtos)
+    })
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                showMessage('组关系批量删除成功', 'success');
+                closeModal();
+                // 重新加载组关系列表
+                searchGroupRelationsByFilter();
+            } else {
+                showMessage('组关系批量删除失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('组关系批量删除失败: ' + error.message, 'error');
+        });
 }
 
 function deleteGroupRelationsByConditions(conditions) {
