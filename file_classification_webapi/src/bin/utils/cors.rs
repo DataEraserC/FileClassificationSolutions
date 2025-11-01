@@ -22,18 +22,39 @@ pub fn create_cors() -> Cors {
 
     if cors_enabled {
         log::info!("CORS 已启用，允许来源: {}", cors_origin);
-        Cors::default()
-            .allowed_origin(&cors_origin)
-            .allowed_origin(&format!("http://127.0.0.1:{}", port))
-            .allowed_origin(&format!("http://localhost:{}", port))
-            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
-            .allowed_headers(vec![
-                actix_web::http::header::AUTHORIZATION,
-                actix_web::http::header::ACCEPT,
-                actix_web::http::header::CONTENT_TYPE,
-            ])
-            .supports_credentials()
-            .max_age(3600)
+        
+        // 如果 cors_origin 是 "*"，则发送通配符响应头而不是在 allowed_origin 中使用 "*"
+        if cors_origin == "*" {
+            Cors::default()
+                .send_wildcard()
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                .allowed_headers(vec![
+                    actix_web::http::header::AUTHORIZATION,
+                    actix_web::http::header::ACCEPT,
+                    actix_web::http::header::CONTENT_TYPE,
+                ])
+                .supports_credentials()
+                .max_age(3600)
+        } else {
+            // 支持逗号分隔的多个源
+            let origins: Vec<&str> = cors_origin.split(',').map(|s| s.trim()).collect();
+            let mut cors = Cors::default();
+            
+            for origin in origins {
+                cors = cors.allowed_origin(origin);
+            }
+            
+            cors.allowed_origin(&format!("http://127.0.0.1:{}", port))
+                .allowed_origin(&format!("http://localhost:{}", port))
+                .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                .allowed_headers(vec![
+                    actix_web::http::header::AUTHORIZATION,
+                    actix_web::http::header::ACCEPT,
+                    actix_web::http::header::CONTENT_TYPE,
+                ])
+                .supports_credentials()
+                .max_age(3600)
+        }
     } else {
         log::info!("CORS 已禁用，允许所有来源");
         Cors::default()
