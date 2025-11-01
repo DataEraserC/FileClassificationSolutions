@@ -35,7 +35,10 @@ pub fn create_cors() -> Cors {
             .supports_credentials()
             .max_age(3600)
     } else {
-        log::info!("CORS 已禁用");
+        log::info!("CORS 已禁用，允许所有来源");
         Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
     }
 }
