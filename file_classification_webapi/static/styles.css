@@ -585,7 +585,7 @@ body.dark-mode .tree-node-info {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 5px;
 }
 
 .message {
