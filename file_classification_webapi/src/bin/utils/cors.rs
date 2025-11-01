@@ -13,12 +13,19 @@ pub fn create_cors() -> Cors {
     let cors_origin = env::var("CORS_ORIGIN")
         .ok()
         .unwrap_or_else(|| "http://localhost:8082".to_string());
+    
+    // 从环境变量获取端口，默认为 8082
+    let port = env::var("BIND_PORT")
+        .ok()
+        .and_then(|s| s.parse::<u16>().ok())
+        .unwrap_or(8082u16);
 
     if cors_enabled {
         log::info!("CORS 已启用，允许来源: {}", cors_origin);
         Cors::default()
             .allowed_origin(&cors_origin)
-            .allowed_origin("http://127.0.0.1:8082")
+            .allowed_origin(&format!("http://127.0.0.1:{}", port))
+            .allowed_origin(&format!("http://localhost:{}", port))
             .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
             .allowed_headers(vec![
                 actix_web::http::header::AUTHORIZATION,
