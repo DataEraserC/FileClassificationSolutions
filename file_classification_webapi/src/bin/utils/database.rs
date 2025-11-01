@@ -1,5 +1,4 @@
 pub use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
-pub use diesel::Connection;
 use file_classification_common::env_loader::load_env_file;
 use file_classification_core::utils::database::AnyConnection;
 use std::env;
