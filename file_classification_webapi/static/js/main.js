@@ -326,8 +326,7 @@ function initRouter() {
             const target = navLink.getAttribute('href').substring(1); // 移除 # 前缀
             navigateTo(target);
             
-            // 在移动端点击导航链接后隐藏导航栏
-            hideMobileNavbar();
+            // 点击导航链接应该只切换页面，不隐藏导航栏
         }
     });
 }
@@ -395,18 +394,3 @@ function handleResponsiveLayout() {
     }
 }
 
-// 隐藏移动端导航栏（用于点击导航项后自动隐藏）
-function hideMobileNavbar() {
-    const mobileNavbar = document.querySelector('.mobile-navbar');
-    if (mobileNavbar) {
-        // 可以添加动画效果，这里简单地隐藏
-        mobileNavbar.style.display = 'none';
-        
-        // 延迟一段时间后重新显示，确保用户仍然可以看到导航栏
-        setTimeout(() => {
-            if (window.innerWidth <= 768) {
-                mobileNavbar.style.display = 'block';
-            }
-        }, 100);
-    }
-}
