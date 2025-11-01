@@ -237,21 +237,26 @@ function handleMobileBottomNav() {
     
     if (isMobile) {
         const sidebar = document.querySelector('.sidebar');
-        // 确保侧边栏在底部
-        sidebar.style.position = 'fixed';
-        sidebar.style.bottom = '0';
-        sidebar.style.top = 'auto';
+        // 确保侧边栏元素存在
+        if (sidebar) {
+            // 确保侧边栏在底部
+            sidebar.style.position = 'fixed';
+            sidebar.style.bottom = '0';
+            sidebar.style.top = 'auto';
+        }
         
         // 监听窗口大小变化
         window.addEventListener('resize', function() {
             const currentSidebar = document.querySelector('.sidebar');
-            if (window.innerWidth <= 768) {
-                currentSidebar.style.position = 'fixed';
-                currentSidebar.style.bottom = '0';
-                currentSidebar.style.top = 'auto';
-            } else {
-                currentSidebar.style.position = '';
-                currentSidebar.style.bottom = '';
+            if (currentSidebar) {
+                if (window.innerWidth <= 768) {
+                    currentSidebar.style.position = 'fixed';
+                    currentSidebar.style.bottom = '0';
+                    currentSidebar.style.top = 'auto';
+                } else {
+                    currentSidebar.style.position = '';
+                    currentSidebar.style.bottom = '';
+                }
             }
         });
     }
