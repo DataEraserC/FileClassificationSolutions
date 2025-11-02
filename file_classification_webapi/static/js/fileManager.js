@@ -74,11 +74,11 @@ function renderFileTable(files) {
         row.innerHTML = `
             <td><input type="checkbox" class="file-checkbox" data-id="${file.id}"></td>
             <td>${file.id}</td>
-            <td>${file.type_}</td>
             <td>${file.path}</td>
-            <td>${file.reference_count}</td>
-            <td>${file.group_id}</td>
+            <td>${file.type_}</td>
             <td>${file.description || ''}</td>
+            <td>${file.group_id}</td>
+            <td>${file.reference_count}</td>
             <td>
                 <button class="action-button edit" onclick="openEditFileDialog(${file.id})">修改</button>
                 <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
