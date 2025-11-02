@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Background -->
+  <rect width="32" height="32" fill="#17a2b8"/>
+  
+  <!-- Folder -->
+  <path d="M3 7 L9 7 L13 11 L27 11 L27 25 L3 25 Z" fill="#FFD93D"/>
+  <path d="M3 7 L9 7 L13 11 L27 11 L27 13 L3 13 Z" fill="#FFB700"/>
+  
+  <!-- Tree structure -->
+  <circle cx="10" cy="18" r="2" fill="#28a745"/>
+  <circle cx="16" cy="15" r="2" fill="#28a745"/>
+  <circle cx="16" cy="21" r="2" fill="#28a745"/>
+  <line x1="11.8" y1="18" x2="14.2" y2="15.8" stroke="#28a745" stroke-width="2"/>
+  <line x1="11.8" y1="18" x2="14.2" y2="20.2" stroke="#28a745" stroke-width="2"/>
+  
+  <!-- Tag # as a stamp in the bottom right corner -->
+  <circle cx="24" cy="24" r="6" fill="#6f42c1"/>
+  <text x="24" y="28" font-family="Arial, sans-serif" font-weight="bold" font-size="12" fill="#ffffff" text-anchor="middle">#</text>
+</svg>
