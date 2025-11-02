@@ -11,12 +11,14 @@ function listFilesByFilter() {
     const fileId = getInputValue('file-id');
     const fileType = getInputValue('file-type');
     const filePath = getInputValue('file-path');
+    const fileDescription = getInputValue('file-description');
 
     // 构造查询参数
     let params = new URLSearchParams();
     if (fileId) params.append('id', fileId);
     if (fileType) params.append('type_', fileType);
     if (filePath) params.append('path', filePath);
+    if (fileDescription) params.append('description', fileDescription);
 
     // 构造分页参数
     const options = {
@@ -29,6 +31,7 @@ function listFilesByFilter() {
     if (fileId) currentFileConditions.id = parseInt(fileId);
     if (fileType) currentFileConditions.type_ = fileType;
     if (filePath) currentFileConditions.path = filePath;
+    if (fileDescription) currentFileConditions.description = fileDescription;
 
     // 标记使用filter查询
     currentFileQueryType = 'filter';
@@ -75,6 +78,7 @@ function renderFileTable(files) {
             <td>${file.path}</td>
             <td>${file.reference_count}</td>
             <td>${file.group_id}</td>
+            <td>${file.description || ''}</td>
             <td>
                 <button class="action-button edit" onclick="openEditFileDialog(${file.id})">修改</button>
                 <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
@@ -198,6 +202,7 @@ function createFile() {
     const fileType = getInputValue('create-file-type');
     const filePath = getInputValue('create-file-path');
     const groupId = getInputValue('create-file-group-id');
+    const fileDescription = getInputValue('create-file-description');
 
     if (!fileType || !filePath || !groupId) {
         showMessage('请填写完整的文件信息', 'warning');
@@ -207,7 +212,8 @@ function createFile() {
     const fileData = {
         type_: fileType,
         path: filePath,
-        group_id: parseInt(groupId)
+        group_id: parseInt(groupId),
+        description: fileDescription || null
     };
 
     const url = `${BASE_URL}/api/files`;
@@ -242,6 +248,7 @@ function updateFile() {
     const fileType = getInputValue('edit-file-type');
     const filePath = getInputValue('edit-file-path');
     const groupId = getInputValue('edit-file-group-id');
+    const fileDescription = getInputValue('edit-file-description');
 
     if (!fileId || !fileType || !filePath || !groupId) {
         showMessage('请填写完整的文件信息', 'warning');
@@ -251,7 +258,8 @@ function updateFile() {
     const updateData = {
         type_: fileType,
         path: filePath,
-        group_id: parseInt(groupId)
+        group_id: parseInt(groupId),
+        description: fileDescription || null
     };
 
     const url = `${BASE_URL}/api/files/${fileId}`;
@@ -344,6 +352,10 @@ function openCreateFileDialog() {
                 <label for="create-file-group-id">组ID:</label>
                 <input type="number" id="create-file-group-id" required>
             </div>
+            <div class="form-group">
+                <label for="create-file-description">文件描述:</label>
+                <input type="text" id="create-file-description">
+            </div>
             <button type="submit" class="btn-primary">创建</button>
             <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
         </form>
@@ -387,6 +399,10 @@ function openEditFileDialog(fileId) {
                         <div class="form-group">
                             <label for="edit-file-group-id">组ID:</label>
                             <input type="number" id="edit-file-group-id" value="${file.group_id}" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-file-description">文件描述:</label>
+                            <input type="text" id="edit-file-description" value="${file.description || ''}">
                         </div>
                         <button type="submit" class="btn-primary">更新</button>
                         <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
@@ -551,6 +567,7 @@ function openComplexSearchFileDialog() {
                         <option value="Path">路径</option>
                         <option value="ReferenceCount">引用计数</option>
                         <option value="GroupId">组ID</option>
+                        <option value="Description">描述</option>
                     </select>
                 </div>
                 <div class="form-group">

@@ -5,7 +5,6 @@
 //! 并封装了通用的数据库连接类型。
 
 pub use diesel::{Connection, QueryResult};
-use std::env;
 
 /// 通用数据库连接枚举
 ///
@@ -53,7 +52,7 @@ pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConne
 /// 成功时返回迁移版本列表，失败时返回错误信息
 pub fn run_pending_migrations(
     conn: &mut AnyConnection,
-) -> Result<Vec<diesel::migration::MigrationVersion>, Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<Vec<diesel::migration::MigrationVersion<'_>>, Box<dyn std::error::Error + Send + Sync>> {
     use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
     const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");

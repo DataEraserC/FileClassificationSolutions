@@ -17,6 +17,10 @@
                 <input id="file-path" placeholder="请输入文件路径" type="text">
             </div>
             <div class="form-group">
+                <label for="file-description">文件描述:</label>
+                <input id="file-description" placeholder="请输入文件描述" type="text">
+            </div>
+            <div class="form-group">
                 <button onclick="listFilesByFilter()">搜索</button>
                 <button onclick="resetFileFilter()">重置</button>
             </div>
@@ -38,6 +42,7 @@
                 <th>路径</th>
                 <th>引用计数</th>
                 <th>组ID</th>
+                <th>描述</th>
                 <th>操作</th>
             </tr>
             </thead>

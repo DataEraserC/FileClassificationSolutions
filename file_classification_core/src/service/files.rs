@@ -10,7 +10,6 @@ use crate::internal::group_relations as group_relations_dao;
 use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
-use crate::model::models::RELATION_TYPE_PARENT_CHILD;
 use crate::model::models::{
     CreateFileDTO, File, FileCondition, FileFilter, FileGroupCondition, FileGroupDTO,
     FileQueryOptions, GroupTagCondition, UpdateFileDTO, PaginationResult,
@@ -64,7 +63,7 @@ pub fn create_file(
         // let mut count = 0;
 
         // 创建文件记录
-        let mut file_id = files_dao::insert_file(conn, &create_file_dto)?;
+        let file_id = files_dao::insert_file(conn, &create_file_dto)?;
 
         // count += 1;
 

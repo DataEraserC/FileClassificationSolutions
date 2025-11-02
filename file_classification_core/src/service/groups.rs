@@ -18,20 +18,6 @@ use diesel::Connection;
 /// 通过名称创建分组
 ///
 /// 参数:
-/// - `conn`: 数据库连接对象
-/// - `name`: 分组名称
-///
-/// 返回值:
-/// 成功时返回插入记录的ID，失败则返回相应的错误
-#[deprecated]
-pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<i32, Error>
-where
-    S: Into<String>,
-{
-    let new_group = CreateGroupDTO { name: name.into(), description: None };
-    groups_dao::insert_group(conn, &new_group)
-}
-
 /// 创建分组
 ///
 /// 参数:

@@ -6,7 +6,7 @@ use file_classification_core::model::models;
 use file_classification_core::service;
 use file_classification_core::utils::database::AnyConnection;
 use std::error::Error;
-use std::io::{BufRead, Read};
+use std::io::Read;
 
 use crate::cli::{self, Cli, Commands};
 use crate::context::Context;
@@ -583,8 +583,9 @@ fn handle_tag_action(
     match action {
         cli::TagActions::Create { name } => {
             let name = name.unwrap_or_else(|| get_input("请输入标签名称: "));
+            let create_dto = models::CreateTagDTO { name, description: Default::default() };
 
-            match service::tags::create_tag_by_name(conn, &name) {
+            match service::tags::create_tag(conn, &create_dto) {
                 Ok(tag) => println!("成功创建标签: {:?}", tag),
                 Err(e) => eprintln!("创建标签失败: {:?}", e),
             }

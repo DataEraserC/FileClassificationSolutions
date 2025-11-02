@@ -15,23 +15,6 @@ use diesel::Connection;
 /// 通过名称创建标签
 ///
 /// 参数:
-/// - `conn`: 数据库连接对象
-/// - `name`: 标签名称
-///
-/// 返回值:
-/// 成功时返回插入记录的ID，失败则返回相应的错误
-#[deprecated]
-pub fn create_tag_by_name<S>(
-    conn: &mut AnyConnection,
-    name: S,
-) -> Result<i32, diesel::result::Error>
-where
-    S: Into<String>,
-{
-    let new_tag = CreateTagDTO { name: name.into(), description: None};
-    tags_dao::insert_tag(conn, &new_tag)
-}
-
 /// 创建标签
 ///
 /// 参数:

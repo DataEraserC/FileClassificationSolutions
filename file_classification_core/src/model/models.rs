@@ -4,7 +4,7 @@
 //! 定义了应用程序中使用的所有数据库实体模型、数据传输对象(DTO)、查询条件和更新对象，
 //! 包括文件、分组、标签以及它们之间关联关系的相关结构。
 
-use super::schema::{file_groups, files, group_relations, group_tags, groups, tags};
+use super::schema::{file_groups, files, group_tags, groups, tags};
 use chrono;
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
