@@ -737,3 +737,16 @@ pub fn update_group_by_id(
 ) -> Result<usize, diesel::result::Error> {
     diesel::update(groups::table.filter(groups::id.eq(group_id))).set(update_set).execute(conn)
 }
+
+/// 根据分组ID更新分组的父分组ID
+///
+/// 参数:
+/// = `conn`: 数据库连接对象
+/// - `child_of_relation`: 子分组ID
+/// - `parent_of_relation`: 父分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
+pub fn update_group_parent_id(conn: &mut AnyConnection, child_of_relation: i32, parent_of_relation: i32) -> Result<usize, diesel::result::Error> {
+    diesel::update(groups::table.filter(groups::id.eq(child_of_relation))).set(groups::parent_id.eq(parent_of_relation)).execute(conn)
+}

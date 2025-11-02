@@ -81,6 +81,12 @@ pub fn create_group_relation(
             relation_type: group_relation.relation_type,
         };
 
+        if group_relation.relation_type == RELATION_TYPE_PARENT_CHILD {
+            // 设置子组的父组
+            groups_dao::update_group_parent_id(conn, group_relation.second_group_id, group_relation.first_group_id)?;
+            groups_dao::increase_group_reference_count_by_id(conn, group_relation.second_group_id)?;
+        }
+
         Ok(created_relation)
     })?;
 
