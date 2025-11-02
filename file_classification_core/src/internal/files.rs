@@ -29,7 +29,7 @@ pub fn insert_file(
         AnyConnection::Sqlite(_) => {
             diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(conn)
         }
-        // 对于 MySQL 连接，使用事务方式（暂时注释掉，因为目前没有启用mysql）
+        // 对于 MySQL 连接，使用事务方式（暂时注释掉，因为目前没有启用mysql，注意不要删除以下注释内容，将来会用到）
         /*
         AnyConnection::Mysql(_) => {
                 conn.transaction(|conn| {
