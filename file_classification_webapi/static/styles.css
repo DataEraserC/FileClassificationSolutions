@@ -285,6 +285,27 @@ body.dark-mode .tab-content h2 {
     flex: 1;
 }
 
+/* 组和标签详细信息样式 */
+.group-details, .tag-details {
+    margin-bottom: 20px;
+}
+
+.group-details .form-group, .tag-details .form-group {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.group-details .form-group label, .tag-details .form-group label {
+    width: 100px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.group-details .form-group span, .tag-details .form-group span {
+    flex: 1;
+}
+
 /* 详情按钮样式 */
 .action-button.info {
     background-color: #17a2b8;

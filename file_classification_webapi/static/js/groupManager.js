@@ -70,10 +70,10 @@ function renderGroupTable(groups) {
             <td><input type="checkbox" class="group-checkbox" data-id="${group.id}"></td>
             <td>${group.id}</td>
             <td>${group.name}</td>
-            <td>${group.description}</td>
-            <td>${group.reference_count}</td>
-            <td>${group.parent_group_id}</td>
+            <td>${group.description === null ? '无' : (group.description || '')}</td>
             <td>
+                <span class="info-icon" data-group='${JSON.stringify(group).replace(/"/g, '&quot;')}' onmouseover="showGroupTooltip(event)" onmouseout="hideGroupTooltip()" title="悬停查看详细信息">ℹ️</span>
+                <button class="action-button info" onclick="showGroupInfo(${group.id})" title="查看详细信息">详情</button>
                 <button class="action-button view-tree" onclick="showGroupTree(${group.id})">查看树</button>
                 <button class="action-button edit" onclick="openEditGroupDialog(${group.id})">修改</button>
                 <button class="action-button delete" onclick="deleteGroup(${group.id})">删除</button>
@@ -671,4 +671,115 @@ function closeGroupTreeModal() {
     if (modal) {
         modal.style.display = 'none';
     }
+}
+
+// 显示组悬浮窗
+function showGroupTooltip(event) {
+    // 移除已存在的悬浮窗
+    hideGroupTooltip();
+    
+    // 获取组数据
+    const groupData = JSON.parse(event.target.getAttribute('data-group').replace(/&quot;/g, '"'));
+    
+    // 创建悬浮窗
+    const tooltip = document.createElement('div');
+    tooltip.id = 'group-tooltip';
+    tooltip.className = 'tooltip';
+    
+    // 构建悬浮窗内容
+    tooltip.innerHTML = `
+        <ul class="tooltip-content">
+            <li><span class="label">ID:</span> <span class="value">${groupData.id}</span></li>
+            <li><span class="label">名称:</span> <span class="value">${groupData.name}</span></li>
+            <li><span class="label">描述:</span> <span class="value">${groupData.description || '无'}</span></li>
+            <li><span class="label">引用计数:</span> <span class="value">${groupData.reference_count}</span></li>
+            <li><span class="label">主组:</span> <span class="value">${groupData.is_primary ? '是' : '否'}</span></li>
+            <li><span class="label">点击次数:</span> <span class="value">${groupData.click_count}</span></li>
+            <li><span class="label">分享次数:</span> <span class="value">${groupData.share_count}</span></li>
+            <li><span class="label">父组ID:</span> <span class="value">${groupData.parent_group_id || '无'}</span></li>
+        </ul>
+    `;
+    
+    // 添加到文档中
+    document.body.appendChild(tooltip);
+    
+    // 定位悬浮窗
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+    
+    // 确保悬浮窗不会超出视窗边界
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (tooltipRect.left < 0) {
+        tooltip.style.left = '10px';
+    } else if (tooltipRect.right > window.innerWidth) {
+        tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
+    }
+}
+
+// 隐藏组悬浮窗
+function hideGroupTooltip() {
+    const existingTooltip = document.getElementById('group-tooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
+}
+
+// 显示组详细信息
+function showGroupInfo(groupId) {
+    const url = `${BASE_URL}/api/groups/${groupId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                const group = result.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>组详细信息</h2>
+                    <div class="group-details">
+                        <div class="form-group">
+                            <label><strong>ID:</strong></label>
+                            <span>${group.id}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>名称:</strong></label>
+                            <span>${group.name}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>描述:</strong></label>
+                            <span>${group.description || '无'}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>引用计数:</strong></label>
+                            <span>${group.reference_count}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>主组:</strong></label>
+                            <span>${group.is_primary ? '是' : '否'}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>点击次数:</strong></label>
+                            <span>${group.click_count}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>分享次数:</strong></label>
+                            <span>${group.share_count}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>父组ID:</strong></label>
+                            <span>${group.parent_group_id || '无'}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="closeModal()">关闭</button>
+                `;
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                showMessage('获取组信息失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取组信息失败: ' + error.message, 'error');
+        });
 }

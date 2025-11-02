@@ -70,9 +70,10 @@ function renderTagTable(tags) {
             <td><input type="checkbox" class="tag-checkbox" data-id="${tag.id}"></td>
             <td>${tag.id}</td>
             <td>${tag.name}</td>
-            <td>${tag.description}</td>
-            <td>${tag.reference_count}</td>
+            <td>${tag.description === null ? '无' : (tag.description || '')}</td>
             <td>
+                <span class="info-icon" data-tag='${JSON.stringify(tag).replace(/"/g, '&quot;')}' onmouseover="showTagTooltip(event)" onmouseout="hideTagTooltip()" title="悬停查看详细信息">ℹ️</span>
+                <button class="action-button info" onclick="showTagInfo(${tag.id})" title="查看详细信息">详情</button>
                 <button class="action-button edit" onclick="openEditTagDialog(${tag.id})">修改</button>
                 <button class="action-button delete" onclick="deleteTag(${tag.id})">删除</button>
             </td>
@@ -606,6 +607,97 @@ function searchTagsByConditions(conditions) {
         .catch(error => {
             console.error('Error:', error);
             showMessage('标签查询失败: ' + error.message, 'error');
+        });
+}
+
+// 显示标签悬浮窗
+function showTagTooltip(event) {
+    // 移除已存在的悬浮窗
+    hideTagTooltip();
+    
+    // 获取标签数据
+    const tagData = JSON.parse(event.target.getAttribute('data-tag').replace(/&quot;/g, '"'));
+    
+    // 创建悬浮窗
+    const tooltip = document.createElement('div');
+    tooltip.id = 'tag-tooltip';
+    tooltip.className = 'tooltip';
+    
+    // 构建悬浮窗内容
+    tooltip.innerHTML = `
+        <ul class="tooltip-content">
+            <li><span class="label">ID:</span> <span class="value">${tagData.id}</span></li>
+            <li><span class="label">名称:</span> <span class="value">${tagData.name}</span></li>
+            <li><span class="label">描述:</span> <span class="value">${tagData.description || '无'}</span></li>
+            <li><span class="label">引用计数:</span> <span class="value">${tagData.reference_count}</span></li>
+        </ul>
+    `;
+    
+    // 添加到文档中
+    document.body.appendChild(tooltip);
+    
+    // 定位悬浮窗
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+    
+    // 确保悬浮窗不会超出视窗边界
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (tooltipRect.left < 0) {
+        tooltip.style.left = '10px';
+    } else if (tooltipRect.right > window.innerWidth) {
+        tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
+    }
+}
+
+// 隐藏标签悬浮窗
+function hideTagTooltip() {
+    const existingTooltip = document.getElementById('tag-tooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
+}
+
+// 显示标签详细信息
+function showTagInfo(tagId) {
+    const url = `${BASE_URL}/api/tags/${tagId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                const tag = result.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>标签详细信息</h2>
+                    <div class="tag-details">
+                        <div class="form-group">
+                            <label><strong>ID:</strong></label>
+                            <span>${tag.id}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>名称:</strong></label>
+                            <span>${tag.name}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>描述:</strong></label>
+                            <span>${tag.description || '无'}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>引用计数:</strong></label>
+                            <span>${tag.reference_count}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="closeModal()">关闭</button>
+                `;
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                showMessage('获取标签信息失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取标签信息失败: ' + error.message, 'error');
         });
 }
 

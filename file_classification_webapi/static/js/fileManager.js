@@ -76,7 +76,7 @@ function renderFileTable(files) {
             <td>${file.id}</td>
             <td>${file.path}</td>
             <td>${file.type_}</td>
-            <td>${file.description || ''}</td>
+            <td>${file.description === null ? '无' : (file.description || '')}</td>
             <td>
                 <span class="info-icon" data-file='${JSON.stringify(file).replace(/"/g, '&quot;')}' onmouseover="showFileTooltip(event)" onmouseout="hideFileTooltip()" title="悬停查看详细信息">ℹ️</span>
                 <button class="action-button info" onclick="showFileInfo(${file.id})" title="查看详细信息">详情</button>
