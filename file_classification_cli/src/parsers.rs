@@ -3,7 +3,36 @@
 
 use file_classification_core::model::models;
 
-/// 解析文件条件
+/// 解析文件条件参数
+///
+/// 支持的条件类型:
+/// - id: 文件ID精确匹配
+/// - id_gt: 文件ID大于指定值
+/// - id_lt: 文件ID小于指定值
+/// - id_in: 文件ID在指定集合中
+/// - type: 文件类型精确匹配
+/// - type_like: 文件类型模糊匹配
+/// - type_in: 文件类型在指定集合中
+/// - path: 文件路径精确匹配
+/// - path_like: 文件路径模糊匹配
+/// - path_in: 文件路径在指定集合中
+/// - ref_count: 引用计数精确匹配
+/// - ref_count_gt: 引用计数大于指定值
+/// - ref_count_lt: 引用计数小于指定值
+/// - ref_count_in: 引用计数在指定集合中
+/// - group_id: 分组ID精确匹配
+/// - group_id_gt: 分组ID大于指定值
+/// - group_id_lt: 分组ID小于指定值
+/// - group_id_in: 分组ID在指定集合中
+/// - description: 描述精确匹配
+/// - description_like: 描述模糊匹配
+/// - description_in: 描述在指定集合中
+///
+/// 参数:
+/// - `args`: 命令行参数切片
+///
+/// 返回值:
+/// 解析得到的文件条件向量
 pub fn parse_file_conditions(args: &[String]) -> Vec<models::FileCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
@@ -114,6 +143,19 @@ pub fn parse_file_conditions(args: &[String]) -> Vec<models::FileCondition> {
                 }
                 i += 2;
             }
+            "description" if i + 1 < args.len() => {
+                conditions.push(models::FileCondition::Description(args[i + 1].clone()));
+                i += 2;
+            }
+            "description_like" if i + 1 < args.len() => {
+                conditions.push(models::FileCondition::DescriptionLike(args[i + 1].clone()));
+                i += 2;
+            }
+            "description_in" if i + 1 < args.len() => {
+                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
+                conditions.push(models::FileCondition::DescriptionIn(values));
+                i += 2;
+            }
             _ => i += 1,
         }
     }
@@ -121,7 +163,46 @@ pub fn parse_file_conditions(args: &[String]) -> Vec<models::FileCondition> {
     conditions
 }
 
-/// 解析组条件
+/// 解析分组条件参数
+///
+/// 支持的条件类型:
+/// - id: 分组ID精确匹配
+/// - id_gt: 分组ID大于指定值
+/// - id_lt: 分组ID小于指定值
+/// - id_in: 分组ID在指定集合中
+/// - name: 分组名称精确匹配
+/// - name_like: 分组名称模糊匹配
+/// - name_in: 分组名称在指定集合中
+/// - ref_count: 引用计数精确匹配
+/// - ref_count_gt: 引用计数大于指定值
+/// - ref_count_lt: 引用计数小于指定值
+/// - ref_count_in: 引用计数在指定集合中
+/// - is_primary: 是否为主分组
+/// - click_count: 点击次数精确匹配
+/// - click_count_gt: 点击次数大于指定值
+/// - click_count_lt: 点击次数小于指定值
+/// - click_count_in: 点击次数在指定集合中
+/// - share_count: 分享次数精确匹配
+/// - share_count_gt: 分享次数大于指定值
+/// - share_count_lt: 分享次数小于指定值
+/// - share_count_in: 分享次数在指定集合中
+/// - create_time: 创建时间精确匹配
+/// - create_time_gt: 创建时间晚于指定时间
+/// - create_time_lt: 创建时间早于指定时间
+/// - create_time_in: 创建时间在指定集合中
+/// - modify_time: 修改时间精确匹配
+/// - modify_time_gt: 修改时间晚于指定时间
+/// - modify_time_lt: 修改时间早于指定时间
+/// - modify_time_in: 修改时间在指定集合中
+/// - description: 描述精确匹配
+/// - description_like: 描述模糊匹配
+/// - description_in: 描述在指定集合中
+///
+/// 参数:
+/// - `args`: 命令行参数切片
+///
+/// 返回值:
+/// 解析得到的分组条件向量
 pub fn parse_group_conditions(args: &[String]) -> Vec<models::GroupCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
@@ -251,6 +332,75 @@ pub fn parse_group_conditions(args: &[String]) -> Vec<models::GroupCondition> {
                 }
                 i += 2;
             }
+            "create_time" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<chrono::NaiveDateTime>() {
+                    conditions.push(models::GroupCondition::CreateTime(value));
+                }
+                i += 2;
+            }
+            "create_time_gt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<chrono::NaiveDateTime>() {
+                    conditions.push(models::GroupCondition::CreateTimeGreaterThan(value));
+                }
+                i += 2;
+            }
+            "create_time_lt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<chrono::NaiveDateTime>() {
+                    conditions.push(models::GroupCondition::CreateTimeLessThan(value));
+                }
+                i += 2;
+            }
+            "create_time_in" if i + 1 < args.len() => {
+                let values: Result<Vec<chrono::NaiveDateTime>, _> = args[i + 1]
+                    .split(',')
+                    .map(|s| s.parse::<chrono::NaiveDateTime>())
+                    .collect();
+                if let Ok(values) = values {
+                    conditions.push(models::GroupCondition::CreateTimeIn(values));
+                }
+                i += 2;
+            }
+            "modify_time" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<chrono::NaiveDateTime>() {
+                    conditions.push(models::GroupCondition::ModifyTime(value));
+                }
+                i += 2;
+            }
+            "modify_time_gt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<chrono::NaiveDateTime>() {
+                    conditions.push(models::GroupCondition::ModifyTimeGreaterThan(value));
+                }
+                i += 2;
+            }
+            "modify_time_lt" if i + 1 < args.len() => {
+                if let Ok(value) = args[i + 1].parse::<chrono::NaiveDateTime>() {
+                    conditions.push(models::GroupCondition::ModifyTimeLessThan(value));
+                }
+                i += 2;
+            }
+            "modify_time_in" if i + 1 < args.len() => {
+                let values: Result<Vec<chrono::NaiveDateTime>, _> = args[i + 1]
+                    .split(',')
+                    .map(|s| s.parse::<chrono::NaiveDateTime>())
+                    .collect();
+                if let Ok(values) = values {
+                    conditions.push(models::GroupCondition::ModifyTimeIn(values));
+                }
+                i += 2;
+            }
+            "description" if i + 1 < args.len() => {
+                conditions.push(models::GroupCondition::Description(args[i + 1].clone()));
+                i += 2;
+            }
+            "description_like" if i + 1 < args.len() => {
+                conditions.push(models::GroupCondition::DescriptionLike(args[i + 1].clone()));
+                i += 2;
+            }
+            "description_in" if i + 1 < args.len() => {
+                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
+                conditions.push(models::GroupCondition::DescriptionIn(values));
+                i += 2;
+            }
             _ => i += 1,
         }
     }
@@ -258,7 +408,29 @@ pub fn parse_group_conditions(args: &[String]) -> Vec<models::GroupCondition> {
     conditions
 }
 
-/// 解析标签条件
+/// 解析标签条件参数
+///
+/// 支持的条件类型:
+/// - id: 标签ID精确匹配
+/// - id_gt: 标签ID大于指定值
+/// - id_lt: 标签ID小于指定值
+/// - id_in: 标签ID在指定集合中
+/// - name: 标签名称精确匹配
+/// - name_like: 标签名称模糊匹配
+/// - name_in: 标签名称在指定集合中
+/// - ref_count: 引用计数精确匹配
+/// - ref_count_gt: 引用计数大于指定值
+/// - ref_count_lt: 引用计数小于指定值
+/// - ref_count_in: 引用计数在指定集合中
+/// - description: 描述精确匹配
+/// - description_like: 描述模糊匹配
+/// - description_in: 描述在指定集合中
+///
+/// 参数:
+/// - `args`: 命令行参数切片
+///
+/// 返回值:
+/// 解析得到的标签条件向量
 pub fn parse_tag_conditions(args: &[String]) -> Vec<models::TagCondition> {
     let mut conditions = Vec::new();
     let mut i = 0;
@@ -328,6 +500,19 @@ pub fn parse_tag_conditions(args: &[String]) -> Vec<models::TagCondition> {
                 if let Ok(values) = values {
                     conditions.push(models::TagCondition::ReferenceCountIn(values));
                 }
+                i += 2;
+            }
+            "description" if i + 1 < args.len() => {
+                conditions.push(models::TagCondition::Description(args[i + 1].clone()));
+                i += 2;
+            }
+            "description_like" if i + 1 < args.len() => {
+                conditions.push(models::TagCondition::DescriptionLike(args[i + 1].clone()));
+                i += 2;
+            }
+            "description_in" if i + 1 < args.len() => {
+                let values: Vec<String> = args[i + 1].split(',').map(|s| s.to_string()).collect();
+                conditions.push(models::TagCondition::DescriptionIn(values));
                 i += 2;
             }
             _ => i += 1,

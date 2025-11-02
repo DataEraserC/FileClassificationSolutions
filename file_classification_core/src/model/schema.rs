@@ -16,6 +16,7 @@ diesel::table! {
 				path -> Text,
 				reference_count -> Integer,
 				group_id -> Integer,
+				description -> Nullable<Text>,
 		}
 }
 
@@ -45,6 +46,7 @@ diesel::table! {
 				create_time -> Timestamp,
 				modify_time -> Timestamp,
 				parent_id -> Nullable<Integer>,
+				description -> Nullable<Text>,
 		}
 }
 
@@ -53,6 +55,7 @@ diesel::table! {
 				id -> Integer,
 				reference_count -> Integer,
 				name -> Text,
+				description -> Nullable<Text>,
 		}
 }
 

@@ -280,7 +280,7 @@ fn handle_file_action(
             let group_id =
                 group_id.unwrap_or_else(|| get_input("请输入组 ID: ").parse().expect("无效的组 ID"));
 
-            let dto = models::CreateFileDTO { type_, path, group_id };
+            let dto = models::CreateFileDTO { type_, path, group_id, description: Default::default() };
             match service::files::create_file(conn, dto) {
                 Ok(count) => println!("成功创建文件，影响 {} 行", count),
                 Err(e) => eprintln!("创建文件失败: {:?}", e),
@@ -346,7 +346,7 @@ fn handle_file_action(
             }
         }
         cli::FileActions::UpdateById { id, path, type_, reference_count, group_id } => {
-            let update_dto = models::UpdateFileDTO { path, type_, reference_count, group_id };
+            let update_dto = models::UpdateFileDTO { path, type_, reference_count, group_id, description: Default::default() };
 
             match service::files::update_file_by_id(conn, id, update_dto) {
                 Ok(count) => println!("成功更新 {} 条记录", count),
@@ -407,7 +407,7 @@ fn handle_group_action(
     match action {
         cli::GroupActions::Create { name } => {
             let name = name.unwrap_or_else(|| get_input("请输入组名称: "));
-            let create_dto = models::CreateGroupDTO { name };
+            let create_dto = models::CreateGroupDTO { name, description: Default::default() };
             match service::groups::create_group(conn, &create_dto) {
                 Ok(id) => println!("组创建成功，ID: {}", id),
                 Err(e) => println!("组创建失败: {}", e),
@@ -636,7 +636,7 @@ fn handle_tag_action(
             }
         }
         cli::TagActions::UpdateById { id, name, reference_count } => {
-            let update_dto = models::UpdateTagDTO { name, reference_count };
+            let update_dto = models::UpdateTagDTO { name, reference_count, description: None };
 
             let conditions = vec![models::TagCondition::Id(id)];
             match service::tags::update_tags_by_conditions(conn, conditions, update_dto) {
@@ -662,6 +662,7 @@ fn handle_tag_action(
             let update_dto = models::UpdateTagDTO {
                 name: if name.is_empty() { None } else { Some(name) },
                 reference_count,
+                description: None,
             };
             match service::tags::update_tags_by_conditions(conn, conditions, update_dto) {
                 Ok(count) => println!("成功更新 {} 条记录", count),

@@ -227,6 +227,7 @@ fn build_file_condition(
         FileCondition::Path(p) => Box::new(files::path.eq(p)),
         FileCondition::ReferenceCount(rc) => Box::new(files::reference_count.eq(rc)),
         FileCondition::GroupId(gid) => Box::new(files::group_id.eq(gid)),
+        FileCondition::Description(desc) => Box::new(files::description.eq(desc).assume_not_null()),
 
         // 范围比较条件
         FileCondition::IdGreaterThan(value) => Box::new(files::id.gt(value)),
@@ -237,6 +238,7 @@ fn build_file_condition(
         FileCondition::ReferenceCountLessThan(value) => Box::new(files::reference_count.lt(value)),
         FileCondition::GroupIdGreaterThan(value) => Box::new(files::group_id.gt(value)),
         FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
+        FileCondition::DescriptionLike(pattern) => Box::new(files::description.like(pattern).assume_not_null()),
 
         // 集合包含条件
         FileCondition::IdIn(values) => Box::new(files::id.eq_any(values)),
@@ -244,6 +246,7 @@ fn build_file_condition(
         FileCondition::PathIn(values) => Box::new(files::path.eq_any(values)),
         FileCondition::ReferenceCountIn(values) => Box::new(files::reference_count.eq_any(values)),
         FileCondition::GroupIdIn(values) => Box::new(files::group_id.eq_any(values)),
+        FileCondition::DescriptionIn(values) => Box::new(files::description.eq_any(values).assume_not_null()),
 
         // 逻辑运算条件
         FileCondition::And(conditions) => {

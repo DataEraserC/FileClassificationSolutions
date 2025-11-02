@@ -32,6 +32,8 @@ pub struct File {
     pub reference_count: i32,
     /// 主分组ID，表示该文件属于哪个分组
     pub group_id: i32,
+    /// 文件描述
+    pub description: Option<String>,
 }
 
 impl Debug for File {
@@ -56,6 +58,8 @@ pub struct CreateFileDTO {
     pub path: String,
     /// 主分组ID
     pub group_id: i32,
+    /// 文件描述
+    pub description: Option<String>,
 }
 
 /// 文件查询条件枚举
@@ -74,6 +78,8 @@ pub enum FileCondition {
     ReferenceCount(i32),
     /// 根据分组ID查询
     GroupId(i32),
+    /// 根据描述查询
+    Description(String),
 
     // 范围比较条件
     /// 文件ID大于指定值
@@ -92,6 +98,8 @@ pub enum FileCondition {
     GroupIdGreaterThan(i32),
     /// 分组ID小于指定值
     GroupIdLessThan(i32),
+    /// 文件描述模糊匹配
+    DescriptionLike(String),
 
     // 集合包含条件
     /// 文件ID在指定集合中
@@ -104,6 +112,8 @@ pub enum FileCondition {
     ReferenceCountIn(Vec<i32>),
     /// 分组ID在指定集合中
     GroupIdIn(Vec<i32>),
+    /// 描述在指定集合中
+    DescriptionIn(Vec<String>),
 
     // 逻辑组合条件
     /// AND逻辑组合多个条件
@@ -165,6 +175,8 @@ pub struct UpdateFileDTO {
     pub reference_count: Option<i32>,
     /// 分组ID（可选）
     pub group_id: Option<i32>,
+    /// 文件描述（可选）
+    pub description: Option<String>,
 }
 
 /// 文件过滤条件结构体
@@ -182,6 +194,8 @@ pub struct FileFilter {
     pub reference_count: Option<i32>,
     /// 分组ID过滤条件
     pub group_id: Option<i32>,
+    /// 文件描述过滤条件
+    pub description: Option<String>,
 }
 
 /// 文件更新字段集合
@@ -196,6 +210,8 @@ pub struct FileSet {
     pub reference_count: Option<i32>,
     /// 分组ID（可选）
     pub group_id: Option<i32>,
+    /// 文件描述（可选）
+    pub description: Option<String>,
 }
 
 /// 文件更新结构体
@@ -235,6 +251,10 @@ pub struct Group {
     pub create_time: chrono::NaiveDateTime,
     /// 修改时间
     pub modify_time: chrono::NaiveDateTime,
+    /// 父分组ID
+    pub parent_id: Option<i32>,
+    /// 分组描述
+    pub description: Option<String>,
 }
 
 impl Debug for Group {
@@ -262,6 +282,8 @@ impl Debug for Group {
 pub struct CreateGroupDTO {
     /// 分组名称
     pub name: String,
+    /// 分组描述
+    pub description: Option<String>,
 }
 
 /// 分组查询条件枚举
@@ -286,6 +308,8 @@ pub enum GroupCondition {
     CreateTime(chrono::NaiveDateTime),
     /// 根据修改时间查询
     ModifyTime(chrono::NaiveDateTime),
+    /// 根据描述查询
+    Description(String),
 
     // 范围比较条件
     /// 分组ID大于指定值
@@ -314,6 +338,8 @@ pub enum GroupCondition {
     ModifyTimeGreaterThan(chrono::NaiveDateTime),
     /// 修改时间早于指定时间
     ModifyTimeLessThan(chrono::NaiveDateTime),
+    /// 分组描述模糊匹配
+    DescriptionLike(String),
 
     // 集合包含条件
     /// 分组ID在指定集合中
@@ -330,6 +356,8 @@ pub enum GroupCondition {
     CreateTimeIn(Vec<chrono::NaiveDateTime>),
     /// 修改时间在指定集合中
     ModifyTimeIn(Vec<chrono::NaiveDateTime>),
+    /// 描述在指定集合中
+    DescriptionIn(Vec<String>),
 
     // 逻辑组合条件
     /// AND逻辑组合多个条件
@@ -416,6 +444,8 @@ pub struct UpdateGroupDTO {
     pub create_time: Option<chrono::NaiveDateTime>,
     /// 修改时间（可选）
     pub modify_time: Option<chrono::NaiveDateTime>,
+    /// 分组描述（可选）
+    pub description: Option<String>,
 }
 
 /// 分组过滤条件结构体
@@ -439,6 +469,8 @@ pub struct GroupFilter {
     pub create_time: Option<chrono::NaiveDateTime>,
     /// 修改时间过滤条件
     pub modify_time: Option<chrono::NaiveDateTime>,
+    /// 分组描述过滤条件
+    pub description: Option<String>,
 }
 
 /// 分组更新字段集合
@@ -459,6 +491,8 @@ pub struct GroupSet {
     pub create_time: Option<chrono::NaiveDateTime>,
     /// 修改时间（可选）
     pub modify_time: Option<chrono::NaiveDateTime>,
+    /// 分组描述（可选）
+    pub description: Option<String>,
 }
 
 /// 分组更新结构体
@@ -488,6 +522,8 @@ pub struct Tag {
     pub name: String,
     /// 引用计数，表示有多少个分组关联了该标签
     pub reference_count: i32,
+    /// 标签描述
+    pub description: Option<String>,
 }
 
 impl Debug for Tag {
@@ -508,6 +544,8 @@ impl Debug for Tag {
 pub struct CreateTagDTO {
     /// 标签名称
     pub name: String,
+    /// 标签描述
+    pub description: Option<String>,
 }
 
 /// 标签查询条件枚举
@@ -522,6 +560,8 @@ pub enum TagCondition {
     Name(String),
     /// 根据引用计数查询
     ReferenceCount(i32),
+    /// 根据描述查询
+    Description(String),
 
     // 范围比较条件
     /// 标签ID大于指定值
@@ -534,6 +574,8 @@ pub enum TagCondition {
     ReferenceCountGreaterThan(i32),
     /// 引用计数小于指定值
     ReferenceCountLessThan(i32),
+    /// 标签描述模糊匹配
+    DescriptionLike(String),
 
     // 集合包含条件
     /// 标签ID在指定集合中
@@ -542,6 +584,8 @@ pub enum TagCondition {
     NameIn(Vec<String>),
     /// 引用计数在指定集合中
     ReferenceCountIn(Vec<i32>),
+    /// 描述在指定集合中
+    DescriptionIn(Vec<String>),
 
     // 逻辑组合条件
     /// AND逻辑组合多个条件
@@ -595,6 +639,8 @@ pub struct UpdateTagDTO {
     pub name: Option<String>,
     /// 引用计数（可选）
     pub reference_count: Option<i32>,
+    /// 标签描述（可选）
+    pub description: Option<String>,
 }
 
 /// 标签过滤条件结构体
@@ -608,6 +654,8 @@ pub struct TagFilter {
     pub name: Option<String>,
     /// 引用计数过滤条件
     pub reference_count: Option<i32>,
+    /// 标签描述过滤条件
+    pub description: Option<String>,
 }
 
 /// 标签更新字段集合
@@ -618,6 +666,8 @@ pub struct TagSet {
     pub name: Option<String>,
     /// 引用计数（可选）
     pub reference_count: Option<i32>,
+    /// 标签描述（可选）
+    pub description: Option<String>,
 }
 
 /// 标签更新结构体

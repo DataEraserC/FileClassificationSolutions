@@ -23,11 +23,12 @@ use diesel::Connection;
 ///
 /// 返回值:
 /// 成功时返回插入记录的ID，失败则返回相应的错误
+#[deprecated]
 pub fn create_group_by_name<S>(conn: &mut AnyConnection, name: S) -> Result<i32, Error>
 where
     S: Into<String>,
 {
-    let new_group = CreateGroupDTO { name: name.into() };
+    let new_group = CreateGroupDTO { name: name.into(), description: None };
     groups_dao::insert_group(conn, &new_group)
 }
 
@@ -209,7 +210,7 @@ pub fn select_groups_by_filter_with_pagination(
         conditions.push(GroupCondition::Id(id));
     }
     if let Some(name) = search_input.name {
-        conditions.push(GroupCondition::Name(name));
+        conditions.push(GroupCondition::NameLike(name));
     }
     if let Some(reference_count) = search_input.reference_count {
         conditions.push(GroupCondition::ReferenceCount(reference_count));
@@ -228,6 +229,9 @@ pub fn select_groups_by_filter_with_pagination(
     }
     if let Some(modify_time) = search_input.modify_time {
         conditions.push(GroupCondition::ModifyTime(modify_time));
+    }
+    if let Some(description) = search_input.description {
+        conditions.push(GroupCondition::DescriptionLike(description));
     }
 
     select_groups_by_conditions_with_pagination(conn, conditions, options)

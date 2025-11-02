@@ -20,6 +20,7 @@ use diesel::Connection;
 ///
 /// 返回值:
 /// 成功时返回插入记录的ID，失败则返回相应的错误
+#[deprecated]
 pub fn create_tag_by_name<S>(
     conn: &mut AnyConnection,
     name: S,
@@ -27,7 +28,7 @@ pub fn create_tag_by_name<S>(
 where
     S: Into<String>,
 {
-    let new_tag = CreateTagDTO { name: name.into() };
+    let new_tag = CreateTagDTO { name: name.into(), description: None};
     tags_dao::insert_tag(conn, &new_tag)
 }
 
@@ -179,10 +180,13 @@ pub fn select_tags_by_filter_with_pagination(
         conditions.push(TagCondition::Id(id));
     }
     if let Some(name) = search_input.name {
-        conditions.push(TagCondition::Name(name));
+        conditions.push(TagCondition::NameLike(name));
     }
     if let Some(reference_count) = search_input.reference_count {
         conditions.push(TagCondition::ReferenceCount(reference_count));
+    }
+    if let Some(description) = search_input.description {
+        conditions.push(TagCondition::DescriptionLike(description));
     }
 
     select_tags_by_conditions_with_pagination(conn, conditions, options)

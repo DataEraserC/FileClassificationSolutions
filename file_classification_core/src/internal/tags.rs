@@ -232,6 +232,7 @@ fn build_tag_condition(
         TagCondition::Id(_id) => Box::new(tags::id.eq(_id)),
         TagCondition::Name(_name) => Box::new(tags::name.eq(_name)),
         TagCondition::ReferenceCount(count) => Box::new(tags::reference_count.eq(count)),
+        TagCondition::Description(desc) => Box::new(tags::description.eq(desc).assume_not_null()),
 
         // 范围比较条件
         TagCondition::IdGreaterThan(value) => Box::new(tags::id.gt(value)),
@@ -239,11 +240,13 @@ fn build_tag_condition(
         TagCondition::NameLike(pattern) => Box::new(tags::name.like(pattern)),
         TagCondition::ReferenceCountGreaterThan(value) => Box::new(tags::reference_count.gt(value)),
         TagCondition::ReferenceCountLessThan(value) => Box::new(tags::reference_count.lt(value)),
+        TagCondition::DescriptionLike(pattern) => Box::new(tags::description.like(pattern).assume_not_null()),
 
         // 集合包含条件
         TagCondition::IdIn(values) => Box::new(tags::id.eq_any(values)),
         TagCondition::NameIn(values) => Box::new(tags::name.eq_any(values)),
         TagCondition::ReferenceCountIn(values) => Box::new(tags::reference_count.eq_any(values)),
+        TagCondition::DescriptionIn(values) => Box::new(tags::description.eq_any(values).assume_not_null()),
 
         // 逻辑运算条件
         TagCondition::And(conditions) => {

@@ -455,6 +455,7 @@ async fn api_list_groups_by_filter_with_pagination(
         share_count: None,
         create_time: None,
         modify_time: None,
+        description: None,
     });
     let options: file_classification_core::model::models::GroupQueryOptions = serde_json::from_str(&options_str)?;
 

@@ -297,6 +297,7 @@ fn build_group_condition(
         GroupCondition::ShareCount(count) => Box::new(groups::share_count.eq(count)),
         GroupCondition::CreateTime(time) => Box::new(groups::create_time.eq(time)),
         GroupCondition::ModifyTime(time) => Box::new(groups::modify_time.eq(time)),
+        GroupCondition::Description(desc) => Box::new(groups::description.eq(desc).assume_not_null()),
 
         // 范围比较条件
         GroupCondition::IdGreaterThan(value) => Box::new(groups::id.gt(value)),
@@ -312,6 +313,7 @@ fn build_group_condition(
         GroupCondition::CreateTimeLessThan(time) => Box::new(groups::create_time.lt(time)),
         GroupCondition::ModifyTimeGreaterThan(time) => Box::new(groups::modify_time.gt(time)),
         GroupCondition::ModifyTimeLessThan(time) => Box::new(groups::modify_time.lt(time)),
+        GroupCondition::DescriptionLike(pattern) => Box::new(groups::description.like(pattern).assume_not_null()),
 
         // 集合包含条件
         GroupCondition::IdIn(values) => Box::new(groups::id.eq_any(values)),
@@ -321,6 +323,7 @@ fn build_group_condition(
         GroupCondition::ShareCountIn(values) => Box::new(groups::share_count.eq_any(values)),
         GroupCondition::CreateTimeIn(values) => Box::new(groups::create_time.eq_any(values)),
         GroupCondition::ModifyTimeIn(values) => Box::new(groups::modify_time.eq_any(values)),
+        GroupCondition::DescriptionIn(values) => Box::new(groups::description.eq_any(values).assume_not_null()),
 
         // 逻辑运算条件
         GroupCondition::And(conditions) => {

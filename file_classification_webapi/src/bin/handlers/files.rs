@@ -391,6 +391,7 @@ async fn api_list_files_by_filter_with_pagination(
         path: None,
         reference_count: None,
         group_id: None,
+        description: None,
     });
     let options: file_classification_core::model::models::FileQueryOptions = serde_json::from_str(&options_str)?;
 

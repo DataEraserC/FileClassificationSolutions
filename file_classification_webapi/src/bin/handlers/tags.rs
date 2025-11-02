@@ -388,6 +388,7 @@ async fn api_list_tags_by_filter_with_pagination(
         id: None,
         name: None,
         reference_count: None,
+        description: None,
     });
     let options: TagQueryOptions = serde_json::from_str(&options_str)?;
 
