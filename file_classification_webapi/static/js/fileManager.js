@@ -77,9 +77,8 @@ function renderFileTable(files) {
             <td>${file.path}</td>
             <td>${file.type_}</td>
             <td>${file.description || ''}</td>
-            <td>${file.group_id}</td>
-            <td>${file.reference_count}</td>
             <td>
+                <button class="action-button info" onclick="showFileInfo(${file.id})" title="查看详细信息">详情</button>
                 <button class="action-button edit" onclick="openEditFileDialog(${file.id})">修改</button>
                 <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
             </td>
@@ -663,6 +662,57 @@ function searchFilesByConditions(conditions) {
         .catch(error => {
             console.error('Error:', error);
             showMessage('文件查询失败: ' + error.message, 'error');
+        });
+}
+
+// 显示文件详细信息
+function showFileInfo(fileId) {
+    const url = `${BASE_URL}/api/files/${fileId}`;
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            const result = handleApiResponse(data);
+            if (result.success) {
+                const file = result.data;
+                const modalBody = document.getElementById('modal-body');
+                modalBody.innerHTML = `
+                    <h2>文件详细信息</h2>
+                    <div class="file-details">
+                        <div class="form-group">
+                            <label><strong>ID:</strong></label>
+                            <span>${file.id}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>类型:</strong></label>
+                            <span>${file.type_}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>路径:</strong></label>
+                            <span>${file.path}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>描述:</strong></label>
+                            <span>${file.description || '无'}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>组ID:</strong></label>
+                            <span>${file.group_id}</span>
+                        </div>
+                        <div class="form-group">
+                            <label><strong>引用计数:</strong></label>
+                            <span>${file.reference_count}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-secondary" onclick="closeModal()">关闭</button>
+                `;
+                document.getElementById('modal').style.display = 'block';
+            } else {
+                showMessage('获取文件信息失败: ' + (result.data?.message || '未知错误'), 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('获取文件信息失败: ' + error.message, 'error');
         });
 }
 

@@ -264,6 +264,37 @@ body.dark-mode .tab-content h2 {
     border-bottom: 2px solid #007bff;
 }
 
+/* 文件详细信息样式 */
+.file-details {
+    margin-bottom: 20px;
+}
+
+.file-details .form-group {
+    display: flex;
+    margin-bottom: 10px;
+    align-items: center;
+}
+
+.file-details .form-group label {
+    width: 100px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.file-details .form-group span {
+    flex: 1;
+}
+
+/* 详情按钮样式 */
+.action-button.info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.action-button.info:hover {
+    background-color: #138496;
+}
+
 /* 搜索表单样式 */
 .search-form {
     background-color: #f8f9fa;
