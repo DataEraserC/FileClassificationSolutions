@@ -1091,6 +1091,69 @@ body.dark-mode .pagination-size {
     transition: all 0.3s;
 }
 
+/* 悬浮窗样式 */
+.tooltip {
+    position: absolute;
+    background-color: #333;
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    min-width: 200px;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+.tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-content {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.tooltip-content li {
+    margin: 5px 0;
+    display: flex;
+}
+
+.tooltip-content .label {
+    font-weight: bold;
+    margin-right: 8px;
+    white-space: nowrap;
+}
+
+.tooltip-content .value {
+    flex: 1;
+    word-break: break-word;
+}
+
+/* 信息图标样式 */
+.info-icon {
+    cursor: pointer;
+    font-size: 16px;
+    margin-right: 8px;
+    color: #17a2b8;
+    display: inline-block;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.info-icon:hover {
+    transform: scale(1.2);
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .sidebar {

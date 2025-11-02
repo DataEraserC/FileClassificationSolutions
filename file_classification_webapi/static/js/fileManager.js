@@ -78,6 +78,7 @@ function renderFileTable(files) {
             <td>${file.type_}</td>
             <td>${file.description || ''}</td>
             <td>
+                <span class="info-icon" data-file='${JSON.stringify(file).replace(/"/g, '&quot;')}' onmouseover="showFileTooltip(event)" onmouseout="hideFileTooltip()" title="悬停查看详细信息">ℹ️</span>
                 <button class="action-button info" onclick="showFileInfo(${file.id})" title="查看详细信息">详情</button>
                 <button class="action-button edit" onclick="openEditFileDialog(${file.id})">修改</button>
                 <button class="action-button delete" onclick="deleteFile(${file.id})">删除</button>
@@ -714,6 +715,143 @@ function showFileInfo(fileId) {
             console.error('Error:', error);
             showMessage('获取文件信息失败: ' + error.message, 'error');
         });
+}
+
+// 创建悬浮窗
+function createTooltip(element, content) {
+    // 移除已存在的悬浮窗
+    removeTooltip();
+    
+    // 创建新的悬浮窗
+    const tooltip = document.createElement('div');
+    tooltip.className = 'tooltip';
+    tooltip.id = 'file-tooltip';
+    tooltip.innerHTML = content;
+    
+    // 添加到文档中
+    document.body.appendChild(tooltip);
+    
+    // 定位悬浮窗
+    const rect = element.getBoundingClientRect();
+    tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+    
+    // 确保悬浮窗不会超出视窗边界
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (tooltipRect.left < 0) {
+        tooltip.style.left = '10px';
+    } else if (tooltipRect.right > window.innerWidth) {
+        tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
+    }
+    
+    return tooltip;
+}
+
+// 移除悬浮窗
+function removeTooltip() {
+    const existingTooltip = document.getElementById('file-tooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
+}
+
+// 为信息图标添加悬浮事件
+function addInfoIconHover() {
+    document.addEventListener('mouseover', function(e) {
+        if (e.target.classList.contains('info-icon')) {
+            const fileId = e.target.getAttribute('data-file-id');
+            if (fileId) {
+                // 获取文件详细信息并显示悬浮窗
+                const url = `${BASE_URL}/api/files/${fileId}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        const result = handleApiResponse(data);
+                        if (result.success) {
+                            const file = result.data;
+                            const content = `
+                                <ul class="tooltip-content">
+                                    <li><span class="label">ID:</span> <span class="value">${file.id}</span></li>
+                                    <li><span class="label">类型:</span> <span class="value">${file.type_}</span></li>
+                                    <li><span class="label">路径:</span> <span class="value">${file.path}</span></li>
+                                    <li><span class="label">描述:</span> <span class="value">${file.description || '无'}</span></li>
+                                    <li><span class="label">组ID:</span> <span class="value">${file.group_id}</span></li>
+                                    <li><span class="label">引用计数:</span> <span class="value">${file.reference_count}</span></li>
+                                </ul>
+                            `;
+                            createTooltip(e.target, content);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }
+        }
+    });
+    
+    document.addEventListener('mouseout', function(e) {
+        if (e.target.classList.contains('info-icon')) {
+            // 延迟移除悬浮窗，避免鼠标移动到悬浮窗时立即消失
+            setTimeout(() => {
+                removeTooltip();
+            }, 100);
+        }
+    });
+}
+
+// 页面加载完成后初始化信息图标悬浮事件
+document.addEventListener('DOMContentLoaded', function() {
+    addInfoIconHover();
+});
+
+// 显示文件悬浮窗
+function showFileTooltip(event) {
+    // 移除已存在的悬浮窗
+    hideFileTooltip();
+    
+    // 获取文件数据
+    const fileData = JSON.parse(event.target.getAttribute('data-file').replace(/&quot;/g, '"'));
+    
+    // 创建悬浮窗
+    const tooltip = document.createElement('div');
+    tooltip.id = 'file-tooltip';
+    tooltip.className = 'tooltip';
+    
+    // 构建悬浮窗内容
+    tooltip.innerHTML = `
+        <ul class="tooltip-content">
+            <li><span class="label">ID:</span> <span class="value">${fileData.id}</span></li>
+            <li><span class="label">类型:</span> <span class="value">${fileData.type_}</span></li>
+            <li><span class="label">路径:</span> <span class="value">${fileData.path}</span></li>
+            <li><span class="label">描述:</span> <span class="value">${fileData.description || '无'}</span></li>
+            <li><span class="label">组ID:</span> <span class="value">${fileData.group_id}</span></li>
+            <li><span class="label">引用计数:</span> <span class="value">${fileData.reference_count}</span></li>
+        </ul>
+    `;
+    
+    // 添加到文档中
+    document.body.appendChild(tooltip);
+    
+    // 定位悬浮窗
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = rect.left + (rect.width / 2) - (tooltip.offsetWidth / 2) + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+    
+    // 确保悬浮窗不会超出视窗边界
+    const tooltipRect = tooltip.getBoundingClientRect();
+    if (tooltipRect.left < 0) {
+        tooltip.style.left = '10px';
+    } else if (tooltipRect.right > window.innerWidth) {
+        tooltip.style.left = (window.innerWidth - tooltip.offsetWidth - 10) + 'px';
+    }
+}
+
+// 隐藏文件悬浮窗
+function hideFileTooltip() {
+    const existingTooltip = document.getElementById('file-tooltip');
+    if (existingTooltip) {
+        existingTooltip.remove();
+    }
 }
 
 // 根据组ID获取文件列表
