@@ -13,7 +13,7 @@ pub use diesel::{Connection, QueryResult};
 #[derive(diesel::MultiConnection)]
 pub enum AnyConnection {
     // Postgresql(diesel::PgConnection),
-    // Mysql(diesel::MysqlConnection),
+    Mysql(diesel::MysqlConnection),
     /// SQLite 数据库连接
     Sqlite(diesel::SqliteConnection),
 }
