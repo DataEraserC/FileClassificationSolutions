@@ -228,20 +228,24 @@ fn build_tag_condition(
     >,
 > {
     match condition {
+        // 基本相等条件
         TagCondition::Id(_id) => Box::new(tags::id.eq(_id)),
         TagCondition::Name(_name) => Box::new(tags::name.eq(_name)),
         TagCondition::ReferenceCount(count) => Box::new(tags::reference_count.eq(count)),
 
+        // 范围比较条件
         TagCondition::IdGreaterThan(value) => Box::new(tags::id.gt(value)),
         TagCondition::IdLessThan(value) => Box::new(tags::id.lt(value)),
         TagCondition::NameLike(pattern) => Box::new(tags::name.like(pattern)),
         TagCondition::ReferenceCountGreaterThan(value) => Box::new(tags::reference_count.gt(value)),
         TagCondition::ReferenceCountLessThan(value) => Box::new(tags::reference_count.lt(value)),
 
+        // 集合包含条件
         TagCondition::IdIn(values) => Box::new(tags::id.eq_any(values)),
         TagCondition::NameIn(values) => Box::new(tags::name.eq_any(values)),
         TagCondition::ReferenceCountIn(values) => Box::new(tags::reference_count.eq_any(values)),
 
+        // 逻辑运算条件
         TagCondition::And(conditions) => {
             let mut result: Option<
                 Box<

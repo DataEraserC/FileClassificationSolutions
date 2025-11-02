@@ -84,10 +84,12 @@ fn build_file_group_condition(
     >,
 > {
     match condition {
+        // 基本相等条件
         FileGroupCondition::FileId(id) => Box::new(file_groups::file_id.eq(id)),
         FileGroupCondition::GroupId(id) => Box::new(file_groups::group_id.eq(id)),
         FileGroupCondition::RelationType(typ) => Box::new(file_groups::relation_type.eq(typ)),
 
+        // 范围比较条件
         FileGroupCondition::FileIdGreaterThan(value) => Box::new(file_groups::file_id.gt(value)),
         FileGroupCondition::FileIdLessThan(value) => Box::new(file_groups::file_id.lt(value)),
         FileGroupCondition::GroupIdGreaterThan(value) => Box::new(file_groups::group_id.gt(value)),
@@ -99,12 +101,14 @@ fn build_file_group_condition(
             Box::new(file_groups::relation_type.lt(value))
         }
 
+        // 集合包含条件
         FileGroupCondition::FileIdIn(values) => Box::new(file_groups::file_id.eq_any(values)),
         FileGroupCondition::GroupIdIn(values) => Box::new(file_groups::group_id.eq_any(values)),
         FileGroupCondition::RelationTypeIn(values) => {
             Box::new(file_groups::relation_type.eq_any(values))
         }
 
+        // 逻辑运算条件
         FileGroupCondition::And(conditions) => {
             let mut result: Option<
                 Box<

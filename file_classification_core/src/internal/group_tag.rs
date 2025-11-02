@@ -86,17 +86,21 @@ fn build_group_tag_condition(
     >,
 > {
     match condition {
+        // 基本相等条件
         GroupTagCondition::GroupId(id) => Box::new(group_tags::group_id.eq(id)),
         GroupTagCondition::TagId(id) => Box::new(group_tags::tag_id.eq(id)),
 
+        // 范围比较条件
         GroupTagCondition::GroupIdGreaterThan(value) => Box::new(group_tags::group_id.gt(value)),
         GroupTagCondition::GroupIdLessThan(value) => Box::new(group_tags::group_id.lt(value)),
         GroupTagCondition::TagIdGreaterThan(value) => Box::new(group_tags::tag_id.gt(value)),
         GroupTagCondition::TagIdLessThan(value) => Box::new(group_tags::tag_id.lt(value)),
 
+        // 集合包含条件
         GroupTagCondition::GroupIdIn(values) => Box::new(group_tags::group_id.eq_any(values)),
         GroupTagCondition::TagIdIn(values) => Box::new(group_tags::tag_id.eq_any(values)),
 
+        // 逻辑运算条件
         GroupTagCondition::And(conditions) => {
             let mut result: Option<
                 Box<

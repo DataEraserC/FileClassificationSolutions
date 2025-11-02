@@ -88,10 +88,12 @@ fn build_group_relation_condition(
     >,
 > {
     match condition {
+        // 基本相等条件
         GroupRelationCondition::FirstGroupId(id) => Box::new(group_relations::first_group_id.eq(id)),
         GroupRelationCondition::SecondGroupId(id) => Box::new(group_relations::second_group_id.eq(id)),
         GroupRelationCondition::RelationType(typ) => Box::new(group_relations::relation_type.eq(typ)),
 
+        // 范围比较条件
         GroupRelationCondition::FirstGroupIdGreaterThan(value) => {
             Box::new(group_relations::first_group_id.gt(value))
         }
@@ -111,6 +113,7 @@ fn build_group_relation_condition(
             Box::new(group_relations::relation_type.lt(value))
         }
 
+        // 集合包含条件
         GroupRelationCondition::FirstGroupIdIn(values) => {
             Box::new(group_relations::first_group_id.eq_any(values))
         }
@@ -121,6 +124,7 @@ fn build_group_relation_condition(
             Box::new(group_relations::relation_type.eq_any(values))
         }
 
+        // 逻辑运算条件
         GroupRelationCondition::And(conditions) => {
             let mut result: Option<
                 Box<

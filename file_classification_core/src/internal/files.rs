@@ -221,13 +221,14 @@ fn build_file_condition(
     >,
 > {
     match condition {
+        // 基本相等条件
         FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
         FileCondition::Type(t) => Box::new(files::type_.eq(t)),
         FileCondition::Path(p) => Box::new(files::path.eq(p)),
         FileCondition::ReferenceCount(rc) => Box::new(files::reference_count.eq(rc)),
         FileCondition::GroupId(gid) => Box::new(files::group_id.eq(gid)),
 
-        // 新增条件的处理
+        // 范围比较条件
         FileCondition::IdGreaterThan(value) => Box::new(files::id.gt(value)),
         FileCondition::IdLessThan(value) => Box::new(files::id.lt(value)),
         FileCondition::TypeLike(pattern) => Box::new(files::type_.like(pattern)),
@@ -237,12 +238,14 @@ fn build_file_condition(
         FileCondition::GroupIdGreaterThan(value) => Box::new(files::group_id.gt(value)),
         FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
 
+        // 集合包含条件
         FileCondition::IdIn(values) => Box::new(files::id.eq_any(values)),
         FileCondition::TypeIn(values) => Box::new(files::type_.eq_any(values)),
         FileCondition::PathIn(values) => Box::new(files::path.eq_any(values)),
         FileCondition::ReferenceCountIn(values) => Box::new(files::reference_count.eq_any(values)),
         FileCondition::GroupIdIn(values) => Box::new(files::group_id.eq_any(values)),
 
+        // 逻辑运算条件
         FileCondition::And(conditions) => {
             let mut result: Option<
                 Box<

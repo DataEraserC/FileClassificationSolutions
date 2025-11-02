@@ -288,6 +288,7 @@ fn build_group_condition(
     >,
 > {
     match condition {
+        // 基本相等条件
         GroupCondition::Id(_id) => Box::new(groups::id.eq(_id)),
         GroupCondition::Name(_name) => Box::new(groups::name.eq(_name)),
         GroupCondition::ReferenceCount(count) => Box::new(groups::reference_count.eq(count)),
@@ -297,6 +298,7 @@ fn build_group_condition(
         GroupCondition::CreateTime(time) => Box::new(groups::create_time.eq(time)),
         GroupCondition::ModifyTime(time) => Box::new(groups::modify_time.eq(time)),
 
+        // 范围比较条件
         GroupCondition::IdGreaterThan(value) => Box::new(groups::id.gt(value)),
         GroupCondition::IdLessThan(value) => Box::new(groups::id.lt(value)),
         GroupCondition::NameLike(pattern) => Box::new(groups::name.like(pattern)),
@@ -311,6 +313,7 @@ fn build_group_condition(
         GroupCondition::ModifyTimeGreaterThan(time) => Box::new(groups::modify_time.gt(time)),
         GroupCondition::ModifyTimeLessThan(time) => Box::new(groups::modify_time.lt(time)),
 
+        // 集合包含条件
         GroupCondition::IdIn(values) => Box::new(groups::id.eq_any(values)),
         GroupCondition::NameIn(values) => Box::new(groups::name.eq_any(values)),
         GroupCondition::ReferenceCountIn(values) => Box::new(groups::reference_count.eq_any(values)),
@@ -319,6 +322,7 @@ fn build_group_condition(
         GroupCondition::CreateTimeIn(values) => Box::new(groups::create_time.eq_any(values)),
         GroupCondition::ModifyTimeIn(values) => Box::new(groups::modify_time.eq_any(values)),
 
+        // 逻辑运算条件
         GroupCondition::And(conditions) => {
             let mut result: Option<
                 Box<
