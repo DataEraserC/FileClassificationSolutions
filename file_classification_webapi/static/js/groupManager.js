@@ -696,7 +696,7 @@ function showGroupTooltip(event) {
             <li><span class="label">主组:</span> <span class="value">${groupData.is_primary ? '是' : '否'}</span></li>
             <li><span class="label">点击次数:</span> <span class="value">${groupData.click_count}</span></li>
             <li><span class="label">分享次数:</span> <span class="value">${groupData.share_count}</span></li>
-            <li><span class="label">父组ID:</span> <span class="value">${groupData.parent_group_id || '无'}</span></li>
+            <li><span class="label">父组ID:</span> <span class="value">${groupData.parent_id === null ? '无' : groupData.parent_id}</span></li>
         </ul>
     `;
     
@@ -768,7 +768,7 @@ function showGroupInfo(groupId) {
                         </div>
                         <div class="form-group">
                             <label><strong>父组ID:</strong></label>
-                            <span>${group.parent_group_id || '无'}</span>
+                            <span>${group.parent_id === null ? '无' : group.parent_id}</span>
                         </div>
                     </div>
                     <button type="button" class="btn-secondary" onclick="closeModal()">关闭</button>
