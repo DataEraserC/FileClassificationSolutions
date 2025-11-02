@@ -7,7 +7,6 @@ edition = "2024"
 diesel = { workspace = true }
 diesel_migrations = { workspace = true }
 libsqlite3-sys = { workspace = true }
-mysqlclient-sys = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true }
 utoipa = { workspace = true, optional = true }
