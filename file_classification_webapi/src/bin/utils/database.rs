@@ -9,14 +9,14 @@ pub type DbPool = Pool<ConnectionManager<AnyConnection>>;
 // 定义池化连接类型
 pub type DbPooledConnection = PooledConnection<ConnectionManager<AnyConnection>>;
 
-/// 自定义连接创建器，用于在创建连接后执行 PRAGMA 命令
+/// 自定义连接定制器，用于在获取连接后执行 PRAGMA 命令
 #[derive(Debug)]
-struct ConnectionCreator;
+struct ConnectionCustomizer;
 
-impl diesel::r2d2::CustomizeConnection<AnyConnection, diesel::r2d2::Error> for ConnectionCreator {
+impl diesel::r2d2::CustomizeConnection<AnyConnection, diesel::r2d2::Error> for ConnectionCustomizer {
     fn on_acquire(&self, conn: &mut AnyConnection) -> Result<(), diesel::r2d2::Error> {
-        // 只有 SQLite 连接才这样关闭外键约束
         match conn {
+            // 只有 SQLite 连接才使用以下语句关闭外键约束
             AnyConnection::Sqlite(_) => {
                 // 关闭外键约束检查
                 diesel::sql_query("PRAGMA foreign_keys = OFF")
@@ -44,7 +44,7 @@ pub fn establish_connection_pool() -> DbPool {
     };
 
     Pool::builder()
-        .connection_customizer(Box::new(ConnectionCreator))
+        .connection_customizer(Box::new(ConnectionCustomizer))
         .build(manager)
         .expect("Failed to create pool.")
 }
