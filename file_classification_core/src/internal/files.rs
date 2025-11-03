@@ -25,12 +25,13 @@ pub fn insert_file(
 ) -> Result<i32, diesel::result::Error> {
     // 使用 match 表达式根据连接类型选择实现方式
     match conn {
+        #[cfg(feature = "sqlite")]
         // 对于 SQLite 连接，使用 returning 子句
         AnyConnection::Sqlite(_) => {
             diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(conn)
         }
-        // 对于 MySQL 连接，使用事务方式（暂时注释掉，因为目前没有启用mysql，注意不要删除以下注释内容，将来会用到）
-        /*
+        #[cfg(feature = "mysql")]
+        // 对于 MySQL 连接，使用事务方式
         AnyConnection::Mysql(_) => {
                 conn.transaction(|conn| {
                         // 执行插入操作
@@ -45,7 +46,6 @@ pub fn insert_file(
                         Ok(last_id)
                 })
         },
-        */
         // 默认情况（如其他数据库类型）使用 returning 子句
         _ => diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(conn),
     }

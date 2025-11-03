@@ -20,4 +20,9 @@ path = "src/main.rs"
 assert_cmd = "2.0.14"
 
 [target.'cfg(not(target_env = "musl"))'.dependencies]
-libsqlite3-sys = { workspace = true }
+
+[features]
+default = ["sqlite"]
+sqlite = ["file_classification_core/sqlite"]
+mysql = ["file_classification_core/mysql"]
+postgres = ["file_classification_core/postgres"]

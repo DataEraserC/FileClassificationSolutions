@@ -16,6 +16,7 @@ struct ConnectionCustomizer;
 impl diesel::r2d2::CustomizeConnection<AnyConnection, diesel::r2d2::Error> for ConnectionCustomizer {
     fn on_acquire(&self, conn: &mut AnyConnection) -> Result<(), diesel::r2d2::Error> {
         match conn {
+            #[cfg(feature = "sqlite")]
             // 只有 SQLite 连接才使用以下语句关闭外键约束
             AnyConnection::Sqlite(_) => {
                 // 关闭外键约束检查
@@ -23,6 +24,7 @@ impl diesel::r2d2::CustomizeConnection<AnyConnection, diesel::r2d2::Error> for C
                     .execute(conn)
                     .map_err(diesel::r2d2::Error::QueryError)?;
             }
+            _ => {}
         }
         Ok(())
     }
@@ -39,8 +41,16 @@ pub fn establish_connection_pool() -> DbPool {
     let database_type = env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
 
     let manager = match database_type.as_str() {
+        #[cfg(feature = "sqlite")]
         "sqlite" => ConnectionManager::<AnyConnection>::new(&database_url),
-        _ => panic!("Unsupported database type: {}", database_type),
+        
+        #[cfg(feature = "mysql")]
+        "mysql" => ConnectionManager::<AnyConnection>::new(&database_url),
+        
+        #[cfg(feature = "postgres")]
+        "postgres" => ConnectionManager::<AnyConnection>::new(&database_url),
+        
+        _ => panic!("Unsupported database type: {} or feature not enabled", database_type),
     };
 
     Pool::builder()

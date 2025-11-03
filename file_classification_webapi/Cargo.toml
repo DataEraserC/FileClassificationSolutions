@@ -26,6 +26,12 @@ mime_guess = "2.0.5"
 fern = "0.6"
 dotenvy = "0.15"
 
+[features]
+default = ["sqlite"]
+sqlite = ["file_classification_core/sqlite", "diesel/sqlite", "diesel/returning_clauses_for_sqlite_3_35"]
+mysql = ["file_classification_core/mysql", "diesel/mysql"]
+postgres = ["file_classification_core/postgres", "diesel/postgres"]
+
 [[bin]]
 name = "file_classification_webapi"
 doc = false

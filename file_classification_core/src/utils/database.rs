@@ -1,19 +1,26 @@
 // database.rs
 //! 数据库连接管理模块
 //!
-//! 提供数据库连接的建立和管理功能，支持多种数据库类型（当前仅支持 SQLite），
+//! 提供数据库连接的建立和管理功能，支持多种数据库类型，
 //! 并封装了通用的数据库连接类型。
 
 pub use diesel::{Connection, QueryResult};
 use diesel::RunQueryDsl;
+
 /// 通用数据库连接枚举
 ///
 /// 使用 `diesel::MultiConnection` 宏定义的枚举类型，支持多种数据库连接类型。
-/// 当前仅支持 SQLite 连接，但预留了扩展其他数据库类型的接口。
 #[derive(diesel::MultiConnection)]
 pub enum AnyConnection {
-    // Postgresql(diesel::PgConnection),
-    // Mysql(diesel::MysqlConnection),
+    #[cfg(feature = "postgres")]
+    /// PostgreSQL 数据库连接
+    Postgresql(diesel::PgConnection),
+    
+    #[cfg(feature = "mysql")]
+    /// MySQL 数据库连接
+    Mysql(diesel::MysqlConnection),
+    
+    #[cfg(feature = "sqlite")]
     /// SQLite 数据库连接
     Sqlite(diesel::SqliteConnection),
 }
@@ -24,13 +31,14 @@ pub enum AnyConnection {
 ///
 /// 参数：
 /// - `database_url`: 数据库连接字符串
-/// - `database_type`: 数据库类型（当前仅支持 "sqlite"）
+/// - `database_type`: 数据库类型
 ///
 /// 返回值：
 /// 成功时返回封装好的数据库连接对象，失败时会 panic 并输出错误信息
 pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConnection {
     // 根据数据库类型建立相应的连接
     match database_type {
+        #[cfg(feature = "sqlite")]
         "sqlite" => {
             let mut conn = AnyConnection::Sqlite(
                 diesel::SqliteConnection::establish(database_url)
@@ -44,8 +52,25 @@ pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConne
                 
             conn
         },
+        
+        #[cfg(feature = "mysql")]
+        "mysql" => {
+            AnyConnection::Mysql(
+                diesel::MysqlConnection::establish(database_url)
+                    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
+            )
+        },
+        
+        #[cfg(feature = "postgres")]
+        "postgres" => {
+            AnyConnection::Postgresql(
+                diesel::PgConnection::establish(database_url)
+                    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
+            )
+        },
+        
         // 不支持的数据库类型直接 panic
-        _ => panic!("Unsupported database type: {}", database_type),
+        _ => panic!("Unsupported database type: {} or feature not enabled", database_type),
     }
 }
 
