@@ -5,7 +5,7 @@
 //! 并封装了通用的数据库连接类型。
 
 pub use diesel::{Connection, QueryResult};
-
+use diesel::RunQueryDsl;
 /// 通用数据库连接枚举
 ///
 /// 使用 `diesel::MultiConnection` 宏定义的枚举类型，支持多种数据库连接类型。
@@ -31,10 +31,19 @@ pub enum AnyConnection {
 pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConnection {
     // 根据数据库类型建立相应的连接
     match database_type {
-        "sqlite" => AnyConnection::Sqlite(
-            diesel::SqliteConnection::establish(database_url)
-                .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
-        ),
+        "sqlite" => {
+            let mut conn = AnyConnection::Sqlite(
+                diesel::SqliteConnection::establish(database_url)
+                    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
+            );
+            
+            // 关闭外键约束检查
+            diesel::sql_query("PRAGMA foreign_keys = OFF")
+                .execute(&mut conn)
+                .expect("Error executing PRAGMA foreign_keys = OFF");
+                
+            conn
+        },
         // 不支持的数据库类型直接 panic
         _ => panic!("Unsupported database type: {}", database_type),
     }
