@@ -2,11 +2,12 @@ use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
 use file_classification_core::model::models::{CreateTagDTO, TagQueryOptions};
-use file_classification_core::service::tags::{delete_tags_by_conditions, delete_tags_by_ids, select_tag_by_group_id, select_tags_by_conditions_with_limit, select_tags_by_conditions_with_options, select_tags_by_conditions_with_pagination, select_tags_by_filter_with_limit, select_tags_by_filter_with_options, select_tags_by_filter_with_pagination, update_tag_by_id};
+use file_classification_core::service::tags::{delete_tags_by_conditions, delete_tags_by_ids, select_tag_by_group_id, select_tags_by_conditions_with_options, select_tags_by_conditions_with_pagination, select_tags_by_filter_with_options, select_tags_by_filter_with_pagination, update_tag_by_id};
 use file_classification_core::{
     model::models::{TagCondition, TagFilter, UpdateTagDTO},
     service::tags::{
-        create_tag, delete_tag, get_tag_by_id, update_tags_by_conditions,
+        create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions_with_limit, select_tags_by_filter_with_limit,
+        update_tags_by_conditions,
     }
     ,
 };

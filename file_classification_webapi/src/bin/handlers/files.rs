@@ -1,11 +1,11 @@
 use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
-use file_classification_core::service::files::{create_file, delete_files_by_conditions, delete_files_by_ids, select_file_by_group_id, select_files_by_conditions_with_limit, select_files_by_conditions_with_options, select_files_by_conditions_with_pagination, select_files_by_filter_with_limit, select_files_by_filter_with_options, select_files_by_filter_with_pagination, update_file_by_id};
+use file_classification_core::service::files::{create_file, delete_files_by_conditions, delete_files_by_ids, select_file_by_group_id, select_files_by_conditions_with_options, select_files_by_conditions_with_pagination, select_files_by_filter_with_options, select_files_by_filter_with_pagination, update_file_by_id};
 use file_classification_core::{
     model::models::{FileCondition, FileFilter, FileQueryOptions, UpdateFileDTO},
     service::files::{
-        delete_file, get_file_by_id, update_files_by_conditions,
+        delete_file, get_file_by_id, select_files_by_conditions_with_limit, select_files_by_filter_with_limit, update_files_by_conditions,
     }
     ,
 };
