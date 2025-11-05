@@ -9,7 +9,7 @@ use crate::context::Context;
 
 /// 交互式列出文件并选择
 pub fn list_files_interactive(conn: &mut AnyConnection, context: &mut Context) {
-    let files = service::files::select_files_by_conditions(conn, vec![], None);
+    let files = service::files::select_files_by_conditions_with_limit(conn, vec![], None);
 
     match files {
         Ok(files) => {

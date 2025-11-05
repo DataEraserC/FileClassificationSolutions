@@ -73,7 +73,7 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
             files_dao::delete_file_by_id(conn, file_required_operation.id)?;
 
             // 搜索关联文件的文件组关系
-            let file_groups_required_operation = file_group_dao::select_file_groups_by_conditions(
+            let file_groups_required_operation = file_group_dao::select_file_groups_by_conditions_with_limit(
                 conn,
                 vec![FileGroupCondition::FileId(file_required_operation.id)],
                 None,
@@ -94,7 +94,7 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
         }
 
         // 减少组关联标签的引用计数
-        let group_tags = group_tag_dao::select_group_tags_by_conditions(
+        let group_tags = group_tag_dao::select_group_tags_by_conditions_with_limit(
             conn,
             vec![GroupTagCondition::GroupId(group_id)],
             None,
@@ -232,12 +232,12 @@ pub fn select_groups_by_filter_with_pagination(
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_conditions(
+pub fn select_groups_by_conditions_with_limit(
     conn: &mut AnyConnection,
     condition: Vec<GroupCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    groups_dao::select_groups_by_conditions(conn, condition, limit)
+    groups_dao::select_groups_by_conditions_with_limit(conn, condition, limit)
 }
 
 /// 根据条件和选项查询分组列表
@@ -317,7 +317,7 @@ pub fn delete_groups_by_conditions(
 ) -> Result<usize, Error> {
     // 首先查询将要删除的组
     let groups_to_delete =
-        select_groups_by_conditions(conn, conditions.clone(), None).map_err(|e| match e {
+        select_groups_by_conditions_with_limit(conn, conditions.clone(), None).map_err(|e| match e {
             diesel::result::Error::NotFound => diesel::result::Error::NotFound,
             _ => e,
         })?;

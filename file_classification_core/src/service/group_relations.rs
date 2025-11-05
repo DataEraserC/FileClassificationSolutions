@@ -166,12 +166,12 @@ pub fn select_group_relations_by_filter_with_options(
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_conditions(
+pub fn select_group_relations_by_conditions_with_limit(
     conn: &mut AnyConnection,
     condition: Vec<GroupRelationCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    group_relations_dao::select_group_relations_by_conditions(conn, condition, limit)
+    group_relations_dao::select_group_relations_by_conditions_with_limit(conn, condition, limit)
 }
 
 /// 根据条件和选项查询组关系记录
@@ -251,7 +251,7 @@ pub fn delete_group_relations_by_conditions(
     condition: Vec<GroupRelationCondition>,
 ) -> Result<usize, Error> {
     // 首先查询将要删除的记录
-    let relations_to_delete = select_group_relations_by_conditions(conn, condition.clone(), None)
+    let relations_to_delete = select_group_relations_by_conditions_with_limit(conn, condition.clone(), None)
         .map_err(|e| match e {
             diesel::result::Error::NotFound => Error::NotFound,
             _ => e,

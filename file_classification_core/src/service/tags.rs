@@ -117,12 +117,12 @@ pub fn select_tags_by_filter_with_options(
 ///
 /// 返回值:
 /// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_conditions(
+pub fn select_tags_by_conditions_with_limit(
     conn: &mut AnyConnection,
     condition: Vec<TagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    tags_dao::select_tags_by_conditions(conn, condition, limit)
+    tags_dao::select_tags_by_conditions_with_limit(conn, condition, limit)
 }
 
 /// 根据条件和选项查询标签列表
@@ -229,7 +229,7 @@ pub fn delete_tags_by_conditions(
 ) -> Result<usize, diesel::result::Error> {
     // 首先查询将要删除的标签
     let tags_to_delete =
-        select_tags_by_conditions(conn, conditions.clone(), None).map_err(|e| match e {
+        select_tags_by_conditions_with_limit(conn, conditions.clone(), None).map_err(|e| match e {
             diesel::result::Error::NotFound => diesel::result::Error::NotFound,
             _ => e,
         })?;

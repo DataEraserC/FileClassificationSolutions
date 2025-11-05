@@ -5,7 +5,7 @@ use file_classification_core::service::files::{create_file, delete_files_by_cond
 use file_classification_core::{
     model::models::{FileCondition, FileFilter, FileQueryOptions, UpdateFileDTO},
     service::files::{
-        delete_file, get_file_by_id, select_files_by_conditions, select_files_by_filter_with_limit, update_files_by_conditions,
+        delete_file, get_file_by_id, select_files_by_conditions_with_limit, select_files_by_filter_with_limit, update_files_by_conditions,
     }
     ,
 };
@@ -106,19 +106,20 @@ async fn api_get_file_by_id(path: web::Path<i32>, pool: web::Data<DbPool>) -> Re
 
 /// 根据条件搜索文件
 ///
-/// 根据提供的条件数组搜索文件，最多返回100条记录
+/// 根据提供的条件数组搜索文件，可以指定返回记录数量上限
 ///
-/// 请求路径: POST /api/files/search/by-conditions
-#[post("/api/files/search/by-conditions")]
-async fn api_list_files_by_conditions(
+/// 请求路径: GET /api/files/search/by-conditions-with-limit
+#[get("/api/files/search/by-conditions-with-limit")]
+async fn api_list_files_by_conditions_with_limit(
     conditions: web::Json<Vec<FileCondition>>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层根据条件查询文件
-    match select_files_by_conditions(&mut conn, conditions.into_inner(), Some(100)) {
+    match select_files_by_conditions_with_limit(&mut conn, conditions.into_inner(), limit.into_inner()) {
         Ok(files) => {
             let count = files.len();
             // 构造成功响应

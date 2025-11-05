@@ -118,7 +118,7 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
             files_dao::find_file_by_id(conn, file_id)?.ok_or_else(|| diesel::result::Error::NotFound)?;
 
         // 查找与该文件关联的所有文件组关系（包括主组和其他组）
-        let file_groups = file_group_dao::select_file_groups_by_conditions(
+        let file_groups = file_group_dao::select_file_groups_by_conditions_with_limit(
             conn,
             vec![FileGroupCondition::FileId(file_required_to_delete.id)],
             None,
@@ -258,12 +258,12 @@ pub fn select_files_by_filter_with_pagination(
 ///
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
-pub fn select_files_by_conditions(
+pub fn select_files_by_conditions_with_limit(
     conn: &mut AnyConnection,
     condition: Vec<FileCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    files_dao::select_files_by_conditions(conn, condition, limit)
+    files_dao::select_files_by_conditions_with_limit(conn, condition, limit)
 }
 
 /// 根据条件和选项查询文件列表（支持分页）
@@ -315,7 +315,7 @@ pub fn update_files_by_conditions(
     update_set: UpdateFileDTO,
 ) -> Result<usize, AppError> {
     // 首先查询将要更新的文件
-    let files_to_update = select_files_by_conditions(conn, conditions, None)?;
+    let files_to_update = select_files_by_conditions_with_limit(conn, conditions, None)?;
 
     // 使用事务确保数据一致性
     conn.transaction::<usize, AppError, _>(|conn| {
@@ -351,7 +351,7 @@ pub fn delete_files_by_conditions(
 ) -> Result<usize, diesel::result::Error> {
     // 首先查询将要删除的文件
     let files_to_delete =
-        select_files_by_conditions(conn, conditions.clone(), None).map_err(|e| match e {
+        select_files_by_conditions_with_limit(conn, conditions.clone(), None).map_err(|e| match e {
             diesel::result::Error::NotFound => diesel::result::Error::NotFound,
             _ => e,
         })?;

@@ -308,7 +308,7 @@ fn build_file_condition(
 ///
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
-pub fn select_files_by_conditions(
+pub fn select_files_by_conditions_with_limit(
     conn: &mut AnyConnection,
     conditions: Vec<FileCondition>,
     limit: Option<i64>,

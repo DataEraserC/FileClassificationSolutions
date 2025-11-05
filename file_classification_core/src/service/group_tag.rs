@@ -164,12 +164,12 @@ pub fn select_group_tags_by_filter_with_pagination(
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_conditions(
+pub fn select_group_tags_by_conditions_with_limit(
     conn: &mut AnyConnection,
     condition: Vec<GroupTagCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    group_tag_dao::select_group_tags_by_conditions(conn, condition, limit)
+    group_tag_dao::select_group_tags_by_conditions_with_limit(conn, condition, limit)
 }
 
 /// 根据条件和选项查询分组-标签关联记录
@@ -226,7 +226,7 @@ pub fn delete_group_tags_by_conditions(
     condition: Vec<GroupTagCondition>,
 ) -> Result<usize, Error> {
     // 首先查询将要删除的组标签关联
-    let group_tags_to_delete = group_tag_dao::select_group_tags_by_conditions(conn, condition.clone(), None).map_err(
+    let group_tags_to_delete = group_tag_dao::select_group_tags_by_conditions_with_limit(conn, condition.clone(), None).map_err(
         |e| match e {
             diesel::result::Error::NotFound => Error::NotFound,
             _ => e,

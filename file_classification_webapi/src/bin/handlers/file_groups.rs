@@ -2,13 +2,11 @@ use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::FileGroupDTO;
-use file_classification_core::service::file_group::{
-    delete_file_groups_by_conditions, delete_file_groups_by_dtos, select_file_groups_by_conditions_with_options, select_file_groups_by_conditions_with_pagination, select_file_groups_by_filter_with_limit, select_file_groups_by_filter_with_options, select_file_groups_by_filter_with_pagination,
-};
+use file_classification_core::service::file_group::{delete_file_groups_by_conditions, delete_file_groups_by_dtos, select_file_groups_by_conditions_with_limit, select_file_groups_by_conditions_with_options, select_file_groups_by_conditions_with_pagination, select_file_groups_by_filter_with_limit, select_file_groups_by_filter_with_options, select_file_groups_by_filter_with_pagination};
 use file_classification_core::{
     model::models::{FileGroupCondition, FileGroupFilter},
     service::file_group::{
-        create_file_group, delete_file_group_by_dto, select_file_groups_by_conditions,
+        create_file_group, delete_file_group_by_dto,
     }
     ,
 };
@@ -45,19 +43,20 @@ async fn api_list_file_groups_by_filter_with_limit(
 /// 根据条件搜索文件组
 ///
 /// 接收一个 JSON 数组作为请求体，数组中的每个元素都是一个 FileGroupCondition 类型的对象，
-/// 代表一个查询条件。最多返回 100 条匹配的结果。
+/// 代表一个查询条件。可以指定返回记录数量上限。
 ///
-/// 请求路径: GET /api/file-groups/search/by-conditions
-#[get("/api/file-groups/search/by-conditions")]
-async fn api_list_file_groups_by_conditions(
+/// 请求路径: GET /api/file-groups/search/by-conditions-with-limit
+#[get("/api/file-groups/search/by-conditions-with-limit")]
+async fn api_list_file_groups_by_conditions_with_limit(
     conditions: web::Json<Vec<FileGroupCondition>>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用核心服务层的方法执行查询，并限制最大结果数为 100
-    match select_file_groups_by_conditions(&mut conn, conditions.into_inner(), Some(100)) {
+    // 调用核心服务层的方法执行查询
+    match select_file_groups_by_conditions_with_limit(&mut conn, conditions.into_inner(), limit.into_inner()) {
         Ok(file_groups) => {
             let count = file_groups.len();
 

@@ -8,7 +8,7 @@ use file_classification_core::service::group_relations::{
 use file_classification_core::{
     model::models::{GroupRelationCondition, GroupRelationFilter},
     service::group_relations::{
-        create_group_relation, delete_group_relation, select_group_relations_by_conditions,
+        create_group_relation, delete_group_relation, select_group_relations_by_conditions_with_limit,
     },
 };
 use serde_json::json;
@@ -46,19 +46,20 @@ async fn api_list_group_relations_by_filter_with_limit(
 /// 根据条件搜索组关系
 ///
 /// 接收一个 JSON 数组作为请求体，数组中的每个元素都是一个 GroupRelationCondition 类型的对象，
-/// 代表一个查询条件。最多返回 100 条匹配的结果。
+/// 代表一个查询条件。可以指定返回记录数量上限。
 ///
-/// 请求路径: GET /api/group-relations/search/by-conditions
-#[get("/api/group-relations/search/by-conditions")]
-async fn api_list_group_relations_by_conditions(
+/// 请求路径: GET /api/group-relations/search/by-conditions-with-limit
+#[get("/api/group-relations/search/by-conditions-with-limit")]
+async fn api_list_group_relations_by_conditions_with_limit(
     conditions: web::Json<Vec<GroupRelationCondition>>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用核心服务层的方法执行查询，并限制最大结果数为 100
-    match select_group_relations_by_conditions(&mut conn, conditions.into_inner(), Some(100)) {
+    // 调用核心服务层的方法执行查询
+    match select_group_relations_by_conditions_with_limit(&mut conn, conditions.into_inner(), limit.into_inner()) {
         Ok(group_relations) => {
             let count = group_relations.len();
 

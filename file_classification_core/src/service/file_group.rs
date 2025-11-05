@@ -183,12 +183,12 @@ pub fn select_file_groups_by_filter_with_pagination(
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_file_groups_by_conditions(
+pub fn select_file_groups_by_conditions_with_limit(
     conn: &mut AnyConnection,
     condition: Vec<FileGroupCondition>,
     limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    file_group_dao::select_file_groups_by_conditions(conn, condition, limit)
+    file_group_dao::select_file_groups_by_conditions_with_limit(conn, condition, limit)
 }
 
 /// 根据条件和选项查询文件-分组关联记录
@@ -246,7 +246,7 @@ pub fn delete_file_groups_by_conditions(
 ) -> Result<usize, Error> {
     // 首先查询将要删除的记录
     let file_groups_to_delete =
-        file_group_dao::select_file_groups_by_conditions(conn, condition.clone(), None).map_err(
+        file_group_dao::select_file_groups_by_conditions_with_limit(conn, condition.clone(), None).map_err(
             |e| match e {
                 diesel::result::Error::NotFound => Error::NotFound,
                 _ => e,

@@ -215,7 +215,7 @@ pub fn select_group_tags_by_filter_with_options(
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_conditions(
+pub fn select_group_tags_by_conditions_with_limit(
     conn: &mut AnyConnection,
     conditions: Vec<GroupTagCondition>,
     limit: Option<i64>,

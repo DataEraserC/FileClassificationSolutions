@@ -6,7 +6,7 @@ use file_classification_core::service::tags::{delete_tags_by_conditions, delete_
 use file_classification_core::{
     model::models::{TagCondition, TagFilter, UpdateTagDTO},
     service::tags::{
-        create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions, select_tags_by_filter_with_limit,
+        create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions_with_limit, select_tags_by_filter_with_limit,
         update_tags_by_conditions,
     }
     ,
@@ -108,19 +108,20 @@ async fn api_get_tag_by_id(path: web::Path<i32>, pool: web::Data<DbPool>) -> Res
 
 /// 根据条件搜索标签
 ///
-/// 根据提供的条件数组搜索标签，最多返回100条记录
+/// 根据提供的条件数组搜索标签，可以指定返回记录数量上限
 ///
-/// 请求路径: POST /api/tags/search/by-conditions
-#[post("/api/tags/search/by-conditions")]
-async fn api_list_tags_by_conditions(
+/// 请求路径: GET /api/tags/search/by-conditions-with-limit
+#[get("/api/tags/search/by-conditions-with-limit")]
+async fn api_list_tags_by_conditions_with_limit(
     conditions: web::Json<Vec<TagCondition>>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层根据条件查询标签
-    match select_tags_by_conditions(&mut conn, conditions.into_inner(), Some(100)) {
+    match select_tags_by_conditions_with_limit(&mut conn, conditions.into_inner(), limit.into_inner()) {
         Ok(tags) => {
             let count = tags.len();
             // 构造成功响应

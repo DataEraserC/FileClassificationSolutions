@@ -8,7 +8,7 @@ use file_classification_core::service::group_tag::{
 use file_classification_core::{
     model::models::{GroupTagCondition, GroupTagFilter},
     service::group_tag::{
-        create_group_tag, delete_group_tag_by_dto, select_group_tags_by_conditions,
+        create_group_tag, delete_group_tag_by_dto, select_group_tags_by_conditions_with_limit,
     }
     ,
 };
@@ -47,19 +47,20 @@ async fn api_list_group_tags_by_filter_with_limit(
 /// 根据条件搜索组标签关联
 ///
 /// 接收一个 JSON 数组作为请求体，数组中的每个元素都是一个 GroupTagCondition 类型的对象，
-/// 代表一个查询条件。最多返回 100 条匹配的结果。
+/// 代表一个查询条件。可以指定返回记录数量上限。
 ///
-/// 请求路径: GET /api/group-tags/search/by-conditions
-#[get("/api/group-tags/search/by-conditions")]
-async fn api_list_group_tags_by_conditions(
+/// 请求路径: GET /api/group-tags/search/by-conditions-with-limit
+#[get("/api/group-tags/search/by-conditions-with-limit")]
+async fn api_list_group_tags_by_conditions_with_limit(
     conditions: web::Json<Vec<GroupTagCondition>>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用核心服务层的方法执行查询，并限制最大结果数为 100
-    match select_group_tags_by_conditions(&mut conn, conditions.into_inner(), Some(100)) {
+    // 调用核心服务层的方法执行查询
+    match select_group_tags_by_conditions_with_limit(&mut conn, conditions.into_inner(), limit.into_inner()) {
         Ok(group_tags) => {
             let count = group_tags.len();
 
