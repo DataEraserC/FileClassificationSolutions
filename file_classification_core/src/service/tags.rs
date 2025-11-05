@@ -66,16 +66,16 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 标签过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_filter(
+pub fn select_tags_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: TagFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
-    tags_dao::select_tags_by_filter(conn, search_input, limit)
+    tags_dao::select_tags_by_filter_with_limit(conn, search_input, limit)
 }
 
 /// 根据过滤条件和选项查询标签列表

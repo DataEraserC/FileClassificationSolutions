@@ -6,7 +6,7 @@ use file_classification_core::service::tags::{delete_tags_by_conditions, delete_
 use file_classification_core::{
     model::models::{TagCondition, TagFilter, UpdateTagDTO},
     service::tags::{
-        create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions, select_tags_by_filter,
+        create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions, select_tags_by_filter_with_limit,
         update_tags_by_conditions,
     }
     ,
@@ -19,7 +19,7 @@ use serde_json::json;
 ///
 /// 请求路径: GET /api/tags/filter
 #[get("/api/tags/filter")]
-async fn api_list_tags_by_filter(
+async fn api_list_tags_by_filter_with_limit(
     query: web::Query<TagFilter>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
@@ -27,7 +27,7 @@ async fn api_list_tags_by_filter(
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层查询标签列表
-    match select_tags_by_filter(&mut conn, query.into_inner(), 100) {
+    match select_tags_by_filter_with_limit(&mut conn, query.into_inner(), Some(100)) {
         Ok(tags) => {
             let count = tags.len();
             // 构造成功响应

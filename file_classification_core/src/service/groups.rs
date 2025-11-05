@@ -118,16 +118,16 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 分组过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_filter(
+pub fn select_groups_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: GroupFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
-    groups_dao::select_groups_by_filter(conn, search_input, limit)
+    groups_dao::select_groups_by_filter_with_limit(conn, search_input, limit)
 }
 
 /// 根据过滤条件和选项查询分组列表

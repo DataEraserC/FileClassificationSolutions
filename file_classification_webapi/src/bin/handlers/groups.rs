@@ -7,7 +7,7 @@ use file_classification_core::{
     model::models::{GroupCondition, GroupFilter, UpdateGroupDTO},
     service::groups::{
         create_group, delete_group, get_group_tree, select_groups_by_conditions,
-        select_groups_by_filter, update_groups_by_conditions,
+        select_groups_by_filter_with_limit, update_groups_by_conditions,
     }
     ,
 };
@@ -19,7 +19,7 @@ use serde_json::json;
 ///
 /// 请求路径: GET /api/groups/filter
 #[get("/api/groups/filter")]
-async fn api_list_groups_by_filter(
+async fn api_list_groups_by_filter_with_limit(
     query: web::Query<GroupFilter>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
@@ -27,7 +27,7 @@ async fn api_list_groups_by_filter(
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层查询组列表
-    match select_groups_by_filter(&mut conn, query.into_inner(), 100) {
+    match select_groups_by_filter_with_limit(&mut conn, query.into_inner(), Some(100)) {
         Ok(groups) => {
             let count = groups.len();
             // 构造成功响应

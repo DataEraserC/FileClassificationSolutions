@@ -115,16 +115,16 @@ pub fn delete_file_group_by_dto(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 文件-分组关联过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_file_groups_by_filter(
+pub fn select_file_groups_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: FileGroupFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
-    file_group_dao::select_file_groups_by_filter(conn, search_input, limit)
+    file_group_dao::select_file_groups_by_filter_with_limit(conn, search_input, limit)
 }
 
 /// 根据过滤条件和选项查询文件-分组关联列表

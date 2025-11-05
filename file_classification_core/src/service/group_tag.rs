@@ -99,16 +99,16 @@ pub fn delete_group_tag_by_dto(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 组-标签关联过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_filter(
+pub fn select_group_tags_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: GroupTagFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
-    group_tag_dao::select_group_tags_by_filter(conn, search_input, limit)
+    group_tag_dao::select_group_tags_by_filter_with_limit(conn, search_input, limit)
 }
 
 /// 根据过滤条件和选项查询分组-标签关联列表

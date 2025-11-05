@@ -29,7 +29,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .wrap(cors_middleware)
             // API路由 - 放在静态文件服务之前以确保优先匹配
             // 文件相关路由
-            .service(files::api_list_files_by_filter)
+            .service(files::api_list_files_by_filter_with_limit)
             .service(files::api_list_files_by_filter_with_options)
             .service(files::api_list_files_by_filter_with_pagination)
             .service(files::api_list_files_by_conditions)
@@ -44,7 +44,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .service(files::api_delete_files_by_ids)
             .service(files::api_delete_files_by_conditions)
             // 组相关路由
-            .service(groups::api_list_groups_by_filter)
+            .service(groups::api_list_groups_by_filter_with_limit)
             .service(groups::api_list_groups_by_filter_with_options)
             .service(groups::api_list_groups_by_filter_with_pagination)
             .service(groups::api_list_groups_by_conditions)
@@ -61,7 +61,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .service(groups::api_delete_groups_by_conditions)
             .service(groups::api_get_group_tree)
             // 标签相关路由
-            .service(tags::api_list_tags_by_filter)
+            .service(tags::api_list_tags_by_filter_with_limit)
             .service(tags::api_list_tags_by_filter_with_options)
             .service(tags::api_list_tags_by_filter_with_pagination)
             .service(tags::api_list_tags_by_conditions)
@@ -76,7 +76,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .service(tags::api_delete_tags_by_ids)
             .service(tags::api_delete_tags_by_conditions)
             // 文件组关联路由
-            .service(file_groups::api_list_file_groups_by_filter)
+            .service(file_groups::api_list_file_groups_by_filter_with_limit)
             .service(file_groups::api_list_file_groups_by_filter_with_options)
             .service(file_groups::api_list_file_groups_by_filter_with_pagination)
             .service(file_groups::api_list_file_groups_by_conditions)
@@ -87,7 +87,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .service(file_groups::api_delete_file_groups_by_dtos)
             .service(file_groups::api_delete_file_groups_by_conditions)
             // 组标签关联路由
-            .service(group_tags::api_list_group_tags_by_filter)
+            .service(group_tags::api_list_group_tags_by_filter_with_limit)
             .service(group_tags::api_list_group_tags_by_filter_with_options)
             .service(group_tags::api_list_group_tags_by_filter_with_pagination)
             .service(group_tags::api_list_group_tags_by_conditions)
@@ -98,7 +98,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .service(group_tags::api_delete_group_tags_by_dtos)
             .service(group_tags::api_delete_group_tags_by_conditions)
             // 组关系路由
-            .service(group_relations::api_list_group_relations_by_filter)
+            .service(group_relations::api_list_group_relations_by_filter_with_limit)
             .service(group_relations::api_list_group_relations_by_filter_with_options)
             .service(group_relations::api_list_group_relations_by_filter_with_pagination)
             .service(group_relations::api_list_group_relations_by_conditions)

@@ -128,16 +128,16 @@ pub fn delete_group_relation(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 组关系过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_filter(
+pub fn select_group_relations_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: GroupRelationFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<GroupRelation>, diesel::result::Error> {
-    group_relations_dao::select_group_relations_by_filter(conn, search_input, limit)
+    group_relations_dao::select_group_relations_by_filter_with_limit(conn, search_input, limit)
 }
 
 /// 根据过滤条件和选项查询组关系列表

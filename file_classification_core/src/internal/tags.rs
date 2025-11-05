@@ -157,17 +157,22 @@ pub fn decrease_tag_reference_count_by_ids(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 标签过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_filter(
+pub fn select_tags_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: TagFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Tag>, diesel::result::Error> {
     // 使用 into_boxed() 来对查询进行类型擦除
-    let mut base_query = tags.limit(limit).into_boxed::<<AnyConnection as Connection>::Backend>();
+    let mut base_query = tags.into_boxed::<<AnyConnection as Connection>::Backend>();
+    
+    // 如果有限制数量，则添加限制
+    if let Some(limit_value) = limit {
+        base_query = base_query.limit(limit_value);
+    }
 
     // 如果 search_input 中有 id，则添加过滤条件
     if let Some(tag_id) = search_input.id {

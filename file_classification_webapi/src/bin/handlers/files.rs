@@ -5,7 +5,7 @@ use file_classification_core::service::files::{create_file, delete_files_by_cond
 use file_classification_core::{
     model::models::{FileCondition, FileFilter, FileQueryOptions, UpdateFileDTO},
     service::files::{
-        delete_file, get_file_by_id, select_files_by_conditions, select_files_by_filter, update_files_by_conditions,
+        delete_file, get_file_by_id, select_files_by_conditions, select_files_by_filter_with_limit, update_files_by_conditions,
     }
     ,
 };
@@ -17,7 +17,7 @@ use serde_json::json;
 ///
 /// 请求路径: GET /api/files/filter
 #[get("/api/files/filter")]
-async fn api_list_files_by_filter(
+async fn api_list_files_by_filter_with_limit(
     query: web::Query<FileFilter>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
@@ -25,7 +25,7 @@ async fn api_list_files_by_filter(
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层查询文件列表
-    match select_files_by_filter(&mut conn, query.into_inner(), 100) {
+    match select_files_by_filter_with_limit(&mut conn, query.into_inner(), Some(100)) {
         Ok(files) => {
             let count = files.len();
             // 构造成功响应

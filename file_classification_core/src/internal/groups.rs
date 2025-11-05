@@ -129,17 +129,22 @@ pub fn mark_group_as_non_primary(
 /// 参数:
 /// - `conn`: 数据库连接对象
 /// - `search_input`: 分组过滤条件
-/// - `limit`: 最大返回记录数
+/// - `limit`: 最大返回记录数（可选）
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_filter(
+pub fn select_groups_by_filter_with_limit(
     conn: &mut AnyConnection,
     search_input: GroupFilter,
-    limit: i64,
+    limit: Option<i64>,
 ) -> Result<Vec<Group>, diesel::result::Error> {
     // 使用 into_boxed() 来对查询进行类型擦除
-    let mut base_query = groups.limit(limit).select(Group::as_select()).into_boxed();
+    let mut base_query = groups.select(Group::as_select()).into_boxed();
+    
+    // 如果有限制数量，则添加限制
+    if let Some(limit_value) = limit {
+        base_query = base_query.limit(limit_value);
+    }
 
     // 如果 search_input 中有各字段，则添加相应的过滤条件
     if let Some(group_id) = search_input.id {

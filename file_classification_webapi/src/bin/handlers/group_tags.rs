@@ -3,7 +3,7 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::GroupTagDTO;
 use file_classification_core::service::group_tag::{
-    delete_group_tags_by_conditions, delete_group_tags_by_dtos, select_group_tags_by_conditions_with_options, select_group_tags_by_conditions_with_pagination, select_group_tags_by_filter, select_group_tags_by_filter_with_options, select_group_tags_by_filter_with_pagination,
+    delete_group_tags_by_conditions, delete_group_tags_by_dtos, select_group_tags_by_conditions_with_options, select_group_tags_by_conditions_with_pagination, select_group_tags_by_filter_with_limit, select_group_tags_by_filter_with_options, select_group_tags_by_filter_with_pagination,
 };
 use file_classification_core::{
     model::models::{GroupTagCondition, GroupTagFilter},
@@ -20,7 +20,7 @@ use serde_json::json;
 ///
 /// 请求路径: GET /api/group-tags/filter
 #[get("/api/group-tags/filter")]
-async fn api_list_group_tags_by_filter(
+async fn api_list_group_tags_by_filter_with_limit(
     web::Query(filter): web::Query<GroupTagFilter>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
@@ -28,7 +28,7 @@ async fn api_list_group_tags_by_filter(
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用核心服务层的方法执行查询，并限制最大结果数为 100
-    match select_group_tags_by_filter(&mut conn, filter, 100) {
+    match select_group_tags_by_filter_with_limit(&mut conn, filter, Some(100)) {
         Ok(group_tags) => {
             let count = group_tags.len();
 

@@ -3,7 +3,7 @@ use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, web, HttpResponse, Result};
 use file_classification_core::model::models::FileGroupDTO;
 use file_classification_core::service::file_group::{
-    delete_file_groups_by_conditions, delete_file_groups_by_dtos, select_file_groups_by_conditions_with_options, select_file_groups_by_conditions_with_pagination, select_file_groups_by_filter, select_file_groups_by_filter_with_options, select_file_groups_by_filter_with_pagination,
+    delete_file_groups_by_conditions, delete_file_groups_by_dtos, select_file_groups_by_conditions_with_options, select_file_groups_by_conditions_with_pagination, select_file_groups_by_filter_with_limit, select_file_groups_by_filter_with_options, select_file_groups_by_filter_with_pagination,
 };
 use file_classification_core::{
     model::models::{FileGroupCondition, FileGroupFilter},
@@ -20,7 +20,7 @@ use serde_json::json;
 ///
 /// 请求路径: GET /api/file-groups/filter
 #[get("/api/file-groups/filter")]
-async fn api_list_file_groups_by_filter(
+async fn api_list_file_groups_by_filter_with_limit(
     query: web::Query<FileGroupFilter>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
@@ -28,7 +28,7 @@ async fn api_list_file_groups_by_filter(
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层查询文件组关联列表
-    match select_file_groups_by_filter(&mut conn, query.into_inner(), 100) {
+    match select_file_groups_by_filter_with_limit(&mut conn, query.into_inner(), Some(100)) {
         Ok(file_groups) => {
             let count = file_groups.len();
             // 构造成功响应
