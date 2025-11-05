@@ -31,23 +31,26 @@ pub fn insert_tag(
             diesel::insert_into(tags::table).values(new_tag).returning(tags::id).get_result(sqlite)
         }
         #[cfg(feature = "mysql")]
-        // 对于 MySQL 连接，使用事务方式（暂时注释掉，因为目前没有启用mysql，注意不要删除以下注释内容，将来会用到）
+        // 对于 MySQL 连接，使用事务方式
         AnyConnection::Mysql(mysql) => {
-                mysql.transaction(|mysql| {
-                        // 执行插入操作
-                        diesel::insert_into(tags::table)
-                                .values(new_tag)
-                                .execute(mysql)?;
+            mysql.transaction(|mysql| {
+                // 执行插入操作
+                diesel::insert_into(tags::table)
+                    .values(new_tag)
+                    .execute(mysql)?;
 
-                        // MySQL使用LAST_INSERT_ID()获取最后插入的ID
-                        let last_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>("LAST_INSERT_ID()"))
-                                .get_result(mysql)?;
+                // MySQL使用LAST_INSERT_ID()获取最后插入的ID
+                let last_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>("LAST_INSERT_ID()"))
+                    .get_result(mysql)?;
 
-                        Ok(last_id)
-                })
+                Ok(last_id)
+            })
         },
-        // 默认情况（如其他数据库类型）使用 returning 子句
-        other_database_type => diesel::insert_into(tags::table).values(new_tag).returning(tags::id).get_result(other_database_type),
+        #[cfg(feature = "postgres")]
+        // 对于 PostgreSQL 连接，使用 returning 子句
+        AnyConnection::Postgresql(postgres) => {
+            diesel::insert_into(tags::table).values(new_tag).returning(tags::id).get_result(postgres)
+        }
     }
 }
 
