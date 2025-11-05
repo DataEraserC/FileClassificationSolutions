@@ -334,6 +334,92 @@ fn handle_file_action(
                 Err(e) => eprintln!("查询文件失败: {:?}", e),
             }
         }
+        cli::FileActions::ListByConditionsPagination { conditions, order_by, page, page_size } => {
+            let conditions = parse_file_conditions(&conditions);
+            let mut options = models::FileQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_file_order_by(&order_by);
+
+            match service::files::select_files_by_conditions_with_pagination(conn, conditions, options) {
+                Ok(result) => {
+                    if result.data.is_empty() {
+                        println!("未找到匹配的文件。");
+                    } else {
+                        println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                        for file in &result.data {
+                            println!(
+                                "  - ID: {}, Type: {}, Path: {}, Group ID: {}",
+                                file.id, file.type_, file.path, file.group_id
+                            );
+                        }
+                        if let Some(first_file) = result.data.first() {
+                            context.selected_file_id = Some(first_file.id);
+                            println!("\n提示：第一个文件的 ID ({}) 已被选中，可用于后续操作。", first_file.id);
+                        }
+                    }
+                }
+                Err(e) => eprintln!("查询文件失败: {:?}", e),
+            }
+        }
+        cli::FileActions::ListByFilterPagination { filter, order_by, page, page_size } => {
+            let mut file_filter = models::FileFilter::default();
+            for condition in &filter {
+                let parts: Vec<&str> = condition.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "id" => {
+                            if let Ok(id) = parts[1].parse::<i32>() {
+                                file_filter.id = Some(id);
+                            }
+                        }
+                        "type" => {
+                            file_filter.type_ = Some(parts[1].to_string());
+                        }
+                        "path" => {
+                            file_filter.path = Some(parts[1].to_string());
+                        }
+                        "reference_count" => {
+                            if let Ok(count) = parts[1].parse::<i32>() {
+                                file_filter.reference_count = Some(count);
+                            }
+                        }
+                        "group_id" => {
+                            if let Ok(group_id) = parts[1].parse::<i32>() {
+                                file_filter.group_id = Some(group_id);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let mut options = models::FileQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_file_order_by(&order_by);
+
+            match service::files::select_files_by_filter_with_pagination(conn, file_filter, options) {
+                Ok(result) => {
+                    if result.data.is_empty() {
+                        println!("未找到匹配的文件。");
+                    } else {
+                        println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                        for file in &result.data {
+                            println!(
+                                "  - ID: {}, Type: {}, Path: {}, Group ID: {}",
+                                file.id, file.type_, file.path, file.group_id
+                            );
+                        }
+                        if let Some(first_file) = result.data.first() {
+                            context.selected_file_id = Some(first_file.id);
+                            println!("\n提示：第一个文件的 ID ({}) 已被选中，可用于后续操作。", first_file.id);
+                        }
+                    }
+                }
+                Err(e) => eprintln!("查询文件失败: {:?}", e),
+            }
+        }
         cli::FileActions::ListByGroupId { group_id } => {
             match service::files::select_file_by_group_id(conn, group_id) {
                 Ok(files) => {
@@ -451,6 +537,93 @@ fn handle_group_action(
                             println!("  - ID: {}, Name: {}", group.id, group.name);
                         }
                         if let Some(first_group) = results.first() {
+                            context.selected_group_id = Some(first_group.id);
+                            println!("\n提示：第一个组的 ID ({}) 已被选中，可用于后续操作。", first_group.id);
+                        }
+                    }
+                }
+                Err(e) => eprintln!("查询组失败: {:?}", e),
+            }
+        }
+        cli::GroupActions::ListByConditionsPagination { conditions, order_by, page, page_size } => {
+            let conditions = parse_group_conditions(&conditions);
+            let mut options = models::GroupQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_group_order_by(&order_by);
+
+            match service::groups::select_groups_by_conditions_with_pagination(conn, conditions, options) {
+                Ok(result) => {
+                    if result.data.is_empty() {
+                        println!("未找到匹配的组。");
+                    } else {
+                        println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                        for group in &result.data {
+                            println!("  - ID: {}, Name: {}", group.id, group.name);
+                        }
+                        if let Some(first_group) = result.data.first() {
+                            context.selected_group_id = Some(first_group.id);
+                            println!("\n提示：第一个组的 ID ({}) 已被选中，可用于后续操作。", first_group.id);
+                        }
+                    }
+                }
+                Err(e) => eprintln!("查询组失败: {:?}", e),
+            }
+        }
+        cli::GroupActions::ListByFilterPagination { filter, order_by, page, page_size } => {
+            let mut group_filter = models::GroupFilter::default();
+            for condition in &filter {
+                let parts: Vec<&str> = condition.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "id" => {
+                            if let Ok(id) = parts[1].parse::<i32>() {
+                                group_filter.id = Some(id);
+                            }
+                        }
+                        "name" => {
+                            group_filter.name = Some(parts[1].to_string());
+                        }
+                        "reference_count" => {
+                            if let Ok(count) = parts[1].parse::<i32>() {
+                                group_filter.reference_count = Some(count);
+                            }
+                        }
+                        "is_primary" => {
+                            if let Ok(is_primary) = parts[1].parse::<bool>() {
+                                group_filter.is_primary = Some(is_primary);
+                            }
+                        }
+                        "click_count" => {
+                            if let Ok(count) = parts[1].parse::<i32>() {
+                                group_filter.click_count = Some(count);
+                            }
+                        }
+                        "share_count" => {
+                            if let Ok(count) = parts[1].parse::<i32>() {
+                                group_filter.share_count = Some(count);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let mut options = models::GroupQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_group_order_by(&order_by);
+
+            match service::groups::select_groups_by_filter_with_pagination(conn, group_filter, options) {
+                Ok(result) => {
+                    if result.data.is_empty() {
+                        println!("未找到匹配的组。");
+                    } else {
+                        println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                        for group in &result.data {
+                            println!("  - ID: {}, Name: {}", group.id, group.name);
+                        }
+                        if let Some(first_group) = result.data.first() {
                             context.selected_group_id = Some(first_group.id);
                             println!("\n提示：第一个组的 ID ({}) 已被选中，可用于后续操作。", first_group.id);
                         }
@@ -625,6 +798,62 @@ fn handle_tag_action(
                 Err(e) => eprintln!("查询失败: {:?}", e),
             }
         }
+        cli::TagActions::ListByConditionsPagination { conditions, order_by, page, page_size } => {
+            let conditions = parse_tag_conditions(&conditions);
+            let mut options = models::TagQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_tag_order_by(&order_by);
+
+            match service::tags::select_tags_by_conditions_with_pagination(conn, conditions, options) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for tag in &result.data {
+                        println!("{:?}", tag);
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::TagActions::ListByFilterPagination { filter, order_by, page, page_size } => {
+            let mut tag_filter = models::TagFilter::default();
+            for condition in &filter {
+                let parts: Vec<&str> = condition.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "id" => {
+                            if let Ok(id) = parts[1].parse::<i32>() {
+                                tag_filter.id = Some(id);
+                            }
+                        }
+                        "name" => {
+                            tag_filter.name = Some(parts[1].to_string());
+                        }
+                        "reference_count" => {
+                            if let Ok(count) = parts[1].parse::<i32>() {
+                                tag_filter.reference_count = Some(count);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let mut options = models::TagQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_tag_order_by(&order_by);
+
+            match service::tags::select_tags_by_filter_with_pagination(conn, tag_filter, options) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for tag in &result.data {
+                        println!("{:?}", tag);
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
         cli::TagActions::ListByGroupId { group_id } => {
             match service::tags::select_tag_by_group_id(conn, group_id) {
                 Ok(tags) => {
@@ -751,6 +980,86 @@ fn handle_file_group_action(
                 Err(e) => eprintln!("查询失败: {:?}", e),
             }
         }
+        cli::FileGroupActions::ListByConditionsPagination { conditions, order_by, page, page_size } => {
+            let conditions = parse_file_group_conditions(&conditions);
+            let mut options = models::FileGroupQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_file_group_order_by(&order_by);
+
+            match service::file_group::select_file_groups_by_conditions_with_pagination(
+                conn, conditions, options,
+            ) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for fg in &result.data {
+                        println!("{:?}", fg);
+                    }
+
+                    if let Some(first_fg) = result.data.first() {
+                        context.selected_file_id = Some(first_fg.file_id);
+                        context.selected_group_id = Some(first_fg.group_id);
+                        println!(
+                            "\n提示：第一个文件组关联的文件 ID ({}) 和组 ID ({}) 已被选中，可用于后续操作。",
+                            first_fg.file_id, first_fg.group_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::FileGroupActions::ListByFilterPagination { filter, order_by, page, page_size } => {
+            let mut file_group_filter = models::FileGroupFilter::default();
+            for condition in &filter {
+                let parts: Vec<&str> = condition.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "file_id" => {
+                            if let Ok(file_id) = parts[1].parse::<i32>() {
+                                file_group_filter.file_id = Some(file_id);
+                            }
+                        }
+                        "group_id" => {
+                            if let Ok(group_id) = parts[1].parse::<i32>() {
+                                file_group_filter.group_id = Some(group_id);
+                            }
+                        }
+                        "relation_type" => {
+                            if let Ok(relation_type) = parts[1].parse::<i32>() {
+                                file_group_filter.relation_type = Some(relation_type);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let mut options = models::FileGroupQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_file_group_order_by(&order_by);
+
+            match service::file_group::select_file_groups_by_filter_with_pagination(
+                conn, file_group_filter, options,
+            ) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for fg in &result.data {
+                        println!("{:?}", fg);
+                    }
+
+                    if let Some(first_fg) = result.data.first() {
+                        context.selected_file_id = Some(first_fg.file_id);
+                        context.selected_group_id = Some(first_fg.group_id);
+                        println!(
+                            "\n提示：第一个文件组关联的文件 ID ({}) 和组 ID ({}) 已被选中，可用于后续操作。",
+                            first_fg.file_id, first_fg.group_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
         cli::FileGroupActions::DeleteByConditions { conditions } => {
             let conditions = parse_file_group_conditions(&conditions);
             match service::file_group::delete_file_groups_by_conditions(conn, conditions) {
@@ -821,6 +1130,81 @@ fn handle_group_tag_action(
                     }
 
                     if let Some(first_gt) = group_tags.first() {
+                        context.selected_group_id = Some(first_gt.group_id);
+                        context.selected_tag_id = Some(first_gt.tag_id);
+                        println!(
+                            "\n提示：第一个组标签关联的组 ID ({}) 和标签 ID ({}) 已被选中，可用于后续操作。",
+                            first_gt.group_id, first_gt.tag_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::GroupTagActions::ListByConditionsPagination { conditions, order_by, page, page_size } => {
+            let conditions = parse_group_tag_conditions(&conditions);
+            let mut options = models::GroupTagQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_group_tag_order_by(&order_by);
+
+            match service::group_tag::select_group_tags_by_conditions_with_pagination(
+                conn, conditions, options,
+            ) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for gt in &result.data {
+                        println!("{:?}", gt);
+                    }
+
+                    if let Some(first_gt) = result.data.first() {
+                        context.selected_group_id = Some(first_gt.group_id);
+                        context.selected_tag_id = Some(first_gt.tag_id);
+                        println!(
+                            "\n提示：第一个组标签关联的组 ID ({}) 和标签 ID ({}) 已被选中，可用于后续操作。",
+                            first_gt.group_id, first_gt.tag_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::GroupTagActions::ListByFilterPagination { filter, order_by, page, page_size } => {
+            let mut group_tag_filter = models::GroupTagFilter::default();
+            for condition in &filter {
+                let parts: Vec<&str> = condition.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "group_id" => {
+                            if let Ok(group_id) = parts[1].parse::<i32>() {
+                                group_tag_filter.group_id = Some(group_id);
+                            }
+                        }
+                        "tag_id" => {
+                            if let Ok(tag_id) = parts[1].parse::<i32>() {
+                                group_tag_filter.tag_id = Some(tag_id);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let mut options = models::GroupTagQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_group_tag_order_by(&order_by);
+
+            match service::group_tag::select_group_tags_by_filter_with_pagination(
+                conn, group_tag_filter, options,
+            ) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for gt in &result.data {
+                        println!("{:?}", gt);
+                    }
+
+                    if let Some(first_gt) = result.data.first() {
                         context.selected_group_id = Some(first_gt.group_id);
                         context.selected_tag_id = Some(first_gt.tag_id);
                         println!(
@@ -905,6 +1289,84 @@ fn handle_group_relation_action(
                     }
 
                     if let Some(first_relation) = relations.first() {
+                        context.selected_group_id = Some(first_relation.first_group_id);
+                        println!(
+                            "\n提示：第一个组关系的第一个组 ID ({}) 已被选中，可用于后续操作。",
+                            first_relation.first_group_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::GroupRelationActions::ListByConditionsPagination { conditions, order_by, page, page_size } => {
+            let conditions = parse_group_relation_conditions(&conditions);
+            let mut options = models::GroupRelationQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_group_relation_order_by(&order_by);
+
+            match service::group_relations::select_group_relations_by_conditions_with_pagination(
+                conn, conditions, options,
+            ) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for relation in &result.data {
+                        println!("{:?}", relation);
+                    }
+
+                    if let Some(first_relation) = result.data.first() {
+                        context.selected_group_id = Some(first_relation.first_group_id);
+                        println!(
+                            "\n提示：第一个组关系的第一个组 ID ({}) 已被选中，可用于后续操作。",
+                            first_relation.first_group_id
+                        );
+                    }
+                }
+                Err(e) => eprintln!("查询失败: {:?}", e),
+            }
+        }
+        cli::GroupRelationActions::ListByFilterPagination { filter, order_by, page, page_size } => {
+            let mut group_relation_filter = models::GroupRelationFilter::default();
+            for condition in &filter {
+                let parts: Vec<&str> = condition.split('=').collect();
+                if parts.len() == 2 {
+                    match parts[0] {
+                        "first_group_id" => {
+                            if let Ok(first_group_id) = parts[1].parse::<i32>() {
+                                group_relation_filter.first_group_id = Some(first_group_id);
+                            }
+                        }
+                        "second_group_id" => {
+                            if let Ok(second_group_id) = parts[1].parse::<i32>() {
+                                group_relation_filter.second_group_id = Some(second_group_id);
+                            }
+                        }
+                        "relation_type" => {
+                            if let Ok(relation_type) = parts[1].parse::<i32>() {
+                                group_relation_filter.relation_type = Some(relation_type);
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+            }
+
+            let mut options = models::GroupRelationQueryOptions::default();
+            options.page = page;
+            options.page_size = page_size;
+            options.order_by = parse_group_relation_order_by(&order_by);
+
+            match service::group_relations::select_group_relations_by_filter_with_pagination(
+                conn, group_relation_filter, options,
+            ) {
+                Ok(result) => {
+                    println!("查询结果 (共 {} 条记录，第 {} 页，共 {} 页):", result.data.len(), result.page, result.total_pages);
+                    for relation in &result.data {
+                        println!("{:?}", relation);
+                    }
+
+                    if let Some(first_relation) = result.data.first() {
                         context.selected_group_id = Some(first_relation.first_group_id);
                         println!(
                             "\n提示：第一个组关系的第一个组 ID ({}) 已被选中，可用于后续操作。",

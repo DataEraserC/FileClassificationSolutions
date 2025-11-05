@@ -83,6 +83,28 @@ pub enum FileActions {
         #[clap(long)]
         offset: Option<i64>,
     },
+    /// 根据条件分页查询文件
+    ListByConditionsPagination {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
+    /// 根据过滤器分页查询文件
+    ListByFilterPagination {
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        filter: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
     /// 根据组ID查询文件
     ListByGroupId {
         #[clap(short, long)]
@@ -146,6 +168,28 @@ pub enum GroupActions {
         limit: Option<i64>,
         #[clap(long)]
         offset: Option<i64>,
+    },
+    /// 根据条件分页查询组
+    ListByConditionsPagination {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
+    /// 根据过滤器分页查询组
+    ListByFilterPagination {
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        filter: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
     },
     /// 根据文件ID查询组
     ListByFileId {
@@ -225,6 +269,28 @@ pub enum TagActions {
         #[clap(long)]
         offset: Option<i64>,
     },
+    /// 根据条件分页查询标签
+    ListByConditionsPagination {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
+    /// 根据过滤器分页查询标签
+    ListByFilterPagination {
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        filter: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
     /// 根据组ID查询标签
     ListByGroupId {
         #[clap(short, long)]
@@ -285,6 +351,28 @@ pub enum FileGroupActions {
         #[clap(long)]
         offset: Option<i64>,
     },
+    /// 根据条件分页查询文件组关联
+    ListByConditionsPagination {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
+    /// 根据过滤器分页查询文件组关联
+    ListByFilterPagination {
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        filter: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
     /// 删除文件组关联（按条件）
     DeleteByConditions {
         #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
@@ -321,6 +409,28 @@ pub enum GroupTagActions {
         limit: Option<i64>,
         #[clap(long)]
         offset: Option<i64>,
+    },
+    /// 根据条件分页查询组标签关联
+    ListByConditionsPagination {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
+    /// 根据过滤器分页查询组标签关联
+    ListByFilterPagination {
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        filter: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
     },
     /// 删除组标签关联（按条件）
     DeleteByConditions {
@@ -362,6 +472,28 @@ pub enum GroupRelationActions {
         limit: Option<i64>,
         #[clap(long)]
         offset: Option<i64>,
+    },
+    /// 根据条件分页查询组关系
+    ListByConditionsPagination {
+        #[clap(short, long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        conditions: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
+    },
+    /// 根据过滤器分页查询组关系
+    ListByFilterPagination {
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        filter: Vec<String>,
+        #[clap(long, value_parser, num_args = 1.., value_delimiter = ' ')]
+        order_by: Vec<String>,
+        #[clap(long)]
+        page: Option<i64>,
+        #[clap(long)]
+        page_size: Option<i64>,
     },
     /// 删除组关系（按条件）
     DeleteByConditions {
