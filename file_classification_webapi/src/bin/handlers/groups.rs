@@ -2,12 +2,11 @@ use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
 use actix_web::{delete, get, post, put, web, HttpResponse, Result};
 use file_classification_core::model::models::GroupQueryOptions;
-use file_classification_core::service::groups::{delete_groups_by_conditions, delete_groups_by_ids, get_group_by_id, select_group_by_file_id, select_group_by_tag_id, select_groups_by_conditions_with_options, select_groups_by_conditions_with_pagination, select_groups_by_filter_with_options, select_groups_by_filter_with_pagination, update_group_by_id};
+use file_classification_core::service::groups::{delete_groups_by_conditions, delete_groups_by_ids, get_group_by_id, select_group_by_file_id, select_group_by_tag_id, select_groups_by_conditions_with_limit, select_groups_by_conditions_with_options, select_groups_by_conditions_with_pagination, select_groups_by_filter_with_limit, select_groups_by_filter_with_options, select_groups_by_filter_with_pagination, update_group_by_id};
 use file_classification_core::{
     model::models::{GroupCondition, GroupFilter, UpdateGroupDTO},
     service::groups::{
-        create_group, delete_group, get_group_tree, select_groups_by_conditions_with_limit,
-        select_groups_by_filter_with_limit, update_groups_by_conditions,
+        create_group, delete_group, get_group_tree, update_groups_by_conditions,
     }
     ,
 };
