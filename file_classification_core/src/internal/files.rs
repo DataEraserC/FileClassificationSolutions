@@ -27,27 +27,27 @@ pub fn insert_file(
     match conn {
         #[cfg(feature = "sqlite")]
         // 对于 SQLite 连接，使用 returning 子句
-        AnyConnection::Sqlite(_) => {
-            diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(conn)
+        AnyConnection::Sqlite(sqlite) => {
+            diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(sqlite)
         }
         #[cfg(feature = "mysql")]
         // 对于 MySQL 连接，使用事务方式
-        AnyConnection::Mysql(_) => {
-                conn.transaction(|conn| {
+        AnyConnection::Mysql(mysql) => {
+                conn.transaction(|mysql| {
                         // 执行插入操作
                         diesel::insert_into(files::table)
                                 .values(new_file)
-                                .execute(conn)?;
+                                .execute(mysql)?;
 
                         // MySQL使用LAST_INSERT_ID()获取最后插入的ID
                         let last_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>("LAST_INSERT_ID()"))
-                                .get_result(conn)?;
+                                .get_result(mysql)?;
 
                         Ok(last_id)
                 })
         },
         // 默认情况（如其他数据库类型）使用 returning 子句
-        _ => diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(conn),
+        other_database_type => diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(other_database_type),
     }
 }
 
