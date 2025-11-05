@@ -15,19 +15,20 @@ use serde_json::json;
 
 /// 根据过滤条件获取组列表
 ///
-/// 根据过滤条件获取组列表，默认最多返回100条记录
+/// 根据过滤条件获取组列表，可以指定返回记录数量上限
 ///
-/// 请求路径: GET /api/groups/filter
-#[get("/api/groups/filter")]
+/// 请求路径: GET /api/groups/search/by-filter-with-limit
+#[get("/api/groups/search/by-filter-with-limit")]
 async fn api_list_groups_by_filter_with_limit(
     query: web::Query<GroupFilter>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层查询组列表
-    match select_groups_by_filter_with_limit(&mut conn, query.into_inner(), Some(100)) {
+    match select_groups_by_filter_with_limit(&mut conn, query.into_inner(), limit.into_inner()) {
         Ok(groups) => {
             let count = groups.len();
             // 构造成功响应

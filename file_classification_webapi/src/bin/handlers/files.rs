@@ -13,19 +13,20 @@ use serde_json::json;
 
 /// 根据过滤条件获取文件列表
 ///
-/// 根据过滤条件获取文件列表，默认最多返回100条记录
+/// 根据过滤条件获取文件列表，可以指定返回记录数量上限
 ///
-/// 请求路径: GET /api/files/filter
-#[get("/api/files/filter")]
+/// 请求路径: GET /api/files/search/by-filter-with-limit
+#[get("/api/files/search/by-filter-with-limit")]
 async fn api_list_files_by_filter_with_limit(
     query: web::Query<FileFilter>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
     // 调用服务层查询文件列表
-    match select_files_by_filter_with_limit(&mut conn, query.into_inner(), Some(100)) {
+    match select_files_by_filter_with_limit(&mut conn, query.into_inner(), limit.into_inner()) {
         Ok(files) => {
             let count = files.len();
             // 构造成功响应

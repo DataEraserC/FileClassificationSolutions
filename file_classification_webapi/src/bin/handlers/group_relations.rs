@@ -15,19 +15,20 @@ use serde_json::json;
 
 /// 根据过滤条件搜索组关系
 ///
-/// 接收查询参数，支持first_group_id、second_group_id和relation_type过滤条件
+/// 接收查询参数，支持first_group_id、second_group_id和relation_type过滤条件，可以指定返回记录数量上限
 ///
-/// 请求路径: GET /api/group-relations/filter
-#[get("/api/group-relations/filter")]
+/// 请求路径: GET /api/group-relations/search/by-filter-with-limit
+#[get("/api/group-relations/search/by-filter-with-limit")]
 async fn api_list_group_relations_by_filter_with_limit(
     web::Query(filter): web::Query<GroupRelationFilter>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用核心服务层的方法执行查询，并限制最大结果数为 100
-    match select_group_relations_by_filter_with_limit(&mut conn, filter, Some(100)) {
+    // 调用核心服务层的方法执行查询
+    match select_group_relations_by_filter_with_limit(&mut conn, filter, limit.into_inner()) {
         Ok(group_relations) => {
             let count = group_relations.len();
 

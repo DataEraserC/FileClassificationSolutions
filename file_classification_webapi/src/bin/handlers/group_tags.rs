@@ -16,19 +16,20 @@ use serde_json::json;
 
 /// 根据过滤条件搜索组标签关联
 ///
-/// 接收查询参数，支持group_id和tag_id过滤条件
+/// 接收查询参数，支持group_id和tag_id过滤条件，可以指定返回记录数量上限
 ///
-/// 请求路径: GET /api/group-tags/filter
-#[get("/api/group-tags/filter")]
+/// 请求路径: GET /api/group-tags/search/by-filter-with-limit
+#[get("/api/group-tags/search/by-filter-with-limit")]
 async fn api_list_group_tags_by_filter_with_limit(
     web::Query(filter): web::Query<GroupTagFilter>,
+    limit: web::Query<Option<i64>>,
     pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
     // 从连接池获取数据库连接
     let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用核心服务层的方法执行查询，并限制最大结果数为 100
-    match select_group_tags_by_filter_with_limit(&mut conn, filter, Some(100)) {
+    // 调用核心服务层的方法执行查询
+    match select_group_tags_by_filter_with_limit(&mut conn, filter, limit.into_inner()) {
         Ok(group_tags) => {
             let count = group_tags.len();
 
