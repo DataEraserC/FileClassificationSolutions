@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 diesel = { workspace = true }
 diesel_migrations = { workspace = true }
-libsqlite3-sys = { version = "0.35", features = ["bundled"], optional = true }
-mysqlclient-sys = { version = "0.4", features = ["bundled"], optional = true }
-pq-sys = { version = "0.7", features = ["bundled"], optional = true }
+libsqlite3-sys = { version = "0.35", optional = true }
+mysqlclient-sys = { version = "0.4", optional = true }
+pq-sys = { version = "0.7", optional = true }
 openssl-sys = { version = "0.9", features = ["vendored"], optional = true }
 chrono = { workspace = true }
 serde = { workspace = true }

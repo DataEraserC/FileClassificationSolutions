@@ -532,15 +532,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cmake"
-version = "0.1.54"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e7caa3f9de89ddbe2c607f4101924c5abec803763ae9534e4f4d7d8f84aa81f0"
-dependencies = [
- "cc",
-]
-
-[[package]]
 name = "colorchoice"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1407,18 +1398,8 @@ version = "0.35.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "133c182a6a2c87864fe97778797e46c7e999672690dc9fa3ee8e241aa4a9c13f"
 dependencies = [
- "cc",
  "pkg-config",
  "vcpkg",
-]
-
-[[package]]
-name = "link-cplusplus"
-version = "1.0.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f78c730aaa7d0b9336a299029ea49f9ee53b0ed06e9202e8cb7db9bae7b8c82"
-dependencies = [
- "cc",
 ]
 
 [[package]]
@@ -1531,24 +1512,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "mysqlclient-src"
-version = "0.1.4+9.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb3acc91e4bacea5c6380ac15f3185b261fe0d71e78f9f5b423cf7d6b3b065d"
-dependencies = [
- "cmake",
- "link-cplusplus",
- "openssl-src",
- "openssl-sys",
-]
-
-[[package]]
 name = "mysqlclient-sys"
 version = "0.4.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "86a34a2bdec189f1060343ba712983e14cad7e87515cfd9ac4653e207535b6b1"
 dependencies = [
- "mysqlclient-src",
  "pkg-config",
  "semver",
  "vcpkg",
@@ -1726,23 +1694,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "pq-src"
-version = "0.3.10+libpq-18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "56ef39ce621f4993d6084fdcd4cbf1e01c84bdba53109cfad095d2cf441b85b9"
-dependencies = [
- "cc",
- "openssl-sys",
-]
-
-[[package]]
 name = "pq-sys"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dfd6cf44cca8f9624bc19df234fc4112873432f5fda1caff174527846d026fa9"
 dependencies = [
  "libc",
- "pq-src",
  "vcpkg",
 ]
 
