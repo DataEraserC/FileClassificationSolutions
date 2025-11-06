@@ -9,12 +9,27 @@ CREATE TABLE IF NOT EXISTS `groups` (
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+-- 表和字段注释 (仅在支持的数据库中有效)
+-- COMMENT ON TABLE `groups` IS '组信息表';
+-- COMMENT ON COLUMN `groups`.id IS '组ID';
+-- COMMENT ON COLUMN `groups`.name IS '组名称';
+-- COMMENT ON COLUMN `groups`.reference_count IS '引用计数';
+-- COMMENT ON COLUMN `groups`.is_primary IS '是否为主组';
+-- COMMENT ON COLUMN `groups`.click_count IS '点击次数';
+-- COMMENT ON COLUMN `groups`.share_count IS '分享次数';
+-- COMMENT ON COLUMN `groups`.create_time IS '创建时间';
+-- COMMENT ON COLUMN `groups`.modify_time IS '修改时间';
 
 CREATE TABLE IF NOT EXISTS `tags` (
     id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     reference_count INTEGER NOT NULL DEFAULT 0,
     name TEXT NOT NULL UNIQUE
 );
+-- 表和字段注释 (仅在支持的数据库中有效)
+-- COMMENT ON TABLE `tags` IS '标签信息表';
+-- COMMENT ON COLUMN `tags`.id IS '标签ID';
+-- COMMENT ON COLUMN `tags`.reference_count IS '引用计数';
+-- COMMENT ON COLUMN `tags`.name IS '标签名称';
 
 CREATE TABLE IF NOT EXISTS `files` (
      id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +39,13 @@ CREATE TABLE IF NOT EXISTS `files` (
      group_id INTEGER NOT NULL,
      FOREIGN KEY (group_id) REFERENCES `groups`(id)
 );
+-- 表和字段注释 (仅在支持的数据库中有效)
+-- COMMENT ON TABLE `files` IS '文件信息表';
+-- COMMENT ON COLUMN `files`.id IS '文件ID';
+-- COMMENT ON COLUMN `files`.type IS '文件类型';
+-- COMMENT ON COLUMN `files`.path IS '文件路径';
+-- COMMENT ON COLUMN `files`.reference_count IS '引用计数';
+-- COMMENT ON COLUMN `files`.group_id IS '主组ID';
 
 CREATE TABLE IF NOT EXISTS `file_groups` (
     file_id INTEGER NOT NULL,
@@ -32,6 +54,10 @@ CREATE TABLE IF NOT EXISTS `file_groups` (
     FOREIGN KEY (file_id) REFERENCES `files`(id),
     FOREIGN KEY (group_id) REFERENCES `groups`(id)
 );
+-- 表和字段注释 (仅在支持的数据库中有效)
+-- COMMENT ON TABLE `file_groups` IS '文件组关联表';
+-- COMMENT ON COLUMN `file_groups`.file_id IS '文件ID';
+-- COMMENT ON COLUMN `file_groups`.group_id IS '组ID';
 
 CREATE TABLE IF NOT EXISTS `group_tags` (
     group_id INTEGER NOT NULL,
@@ -40,3 +66,7 @@ CREATE TABLE IF NOT EXISTS `group_tags` (
     FOREIGN KEY (group_id) REFERENCES `groups`(id),
     FOREIGN KEY (tag_id) REFERENCES `tags`(id)
 );
+-- 表和字段注释 (仅在支持的数据库中有效)
+-- COMMENT ON TABLE `group_tags` IS '组标签关联表';
+-- COMMENT ON COLUMN `group_tags`.group_id IS '组ID';
+-- COMMENT ON COLUMN `group_tags`.tag_id IS '标签ID';

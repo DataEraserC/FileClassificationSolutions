@@ -45,54 +45,62 @@ The system uses the following 6 core tables to store data:
 ### Table Structure Details
 
 ```sql
+-- Files table
 CREATE TABLE IF NOT EXISTS files (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,   -- File type
-    path TEXT NOT NULL, -- File storage location
-    reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
-    group_id INTEGER NOT NULL, -- Default file group ID
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        -- File ID
+    type TEXT NOT NULL,                                   -- File type
+    path TEXT NOT NULL,                                   -- File storage location
+    reference_count INTEGER NOT NULL DEFAULT 0,           -- Reference count
+    group_id INTEGER NOT NULL,                            -- Default file group ID
     FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
+-- Groups table
 CREATE TABLE IF NOT EXISTS groups (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE, -- Group name
-    reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
-    is_primary BOOLEAN NOT NULL DEFAULT false, -- Whether it's a primary group, false for no, true for yes
-    click_count INTEGER NOT NULL DEFAULT 0, -- Click count
-    share_count INTEGER NOT NULL DEFAULT 0, -- Share count
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Creation time
-    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Modification time
-    parent_id INTEGER REFERENCES groups(id)  -- Parent group ID for hierarchical structure
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        -- Group ID
+    name TEXT NOT NULL UNIQUE,                            -- Group name
+    reference_count INTEGER NOT NULL DEFAULT 0,           -- Reference count
+    is_primary BOOLEAN NOT NULL DEFAULT false,            -- Whether it's a primary group
+    click_count INTEGER NOT NULL DEFAULT 0,               -- Click count
+    share_count INTEGER NOT NULL DEFAULT 0,               -- Share count
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Creation time
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Modification time
+    parent_id INTEGER REFERENCES groups(id),              -- Parent group ID for hierarchical structure
+    description TEXT                                      -- Group description
 );
 
+-- File-Group associations table
 CREATE TABLE IF NOT EXISTS file_groups (
-    file_id INTEGER NOT NULL,
-    group_id INTEGER NOT NULL,
-    relation_type INTEGER NOT NULL DEFAULT 1, -- Relationship type: 1 for primary group relationship
+    file_id INTEGER NOT NULL,                             -- File ID
+    group_id INTEGER NOT NULL,                            -- Group ID
+    relation_type INTEGER NOT NULL DEFAULT 1,             -- Relationship type: 1 for primary group relationship
     PRIMARY KEY (file_id, group_id),
     FOREIGN KEY (file_id) REFERENCES files(id),
     FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
+-- Tags table
 CREATE TABLE IF NOT EXISTS tags (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    reference_count INTEGER NOT NULL DEFAULT 0, -- Reference count
-    name TEXT NOT NULL UNIQUE -- Tag name, unique
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        -- Tag ID
+    reference_count INTEGER NOT NULL DEFAULT 0,           -- Reference count
+    name TEXT NOT NULL UNIQUE,                            -- Tag name, unique
+    description TEXT                                      -- Tag description
 );
 
+-- Group-Tag associations table
 CREATE TABLE IF NOT EXISTS group_tags (
-    group_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
+    group_id INTEGER NOT NULL,                            -- Group ID
+    tag_id INTEGER NOT NULL,                              -- Tag ID
     PRIMARY KEY (group_id, tag_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
 );
 
+-- Group relations table
 CREATE TABLE IF NOT EXISTS group_relations (
-    first_group_id INTEGER NOT NULL,
-    second_group_id INTEGER NOT NULL,
-    relation_type INTEGER NOT NULL DEFAULT 1, -- Relationship type: 1 for parent-child relationship
+    first_group_id INTEGER NOT NULL,                      -- First group ID
+    second_group_id INTEGER NOT NULL,                     -- Second group ID
+    relation_type INTEGER NOT NULL DEFAULT 1,             -- Relationship type: 1 for parent-child relationship
     PRIMARY KEY (first_group_id, second_group_id, relation_type),
     FOREIGN KEY (first_group_id) REFERENCES groups(id),
     FOREIGN KEY (second_group_id) REFERENCES groups(id)

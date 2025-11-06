@@ -45,54 +45,62 @@ FileClassificationSolutions 是一个基于 Rust 语言开发的创新文件分�
 ### 表结构详情
 
 ```sql
+-- 文件表
 CREATE TABLE IF NOT EXISTS files (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    type TEXT NOT NULL,   -- 文件类型
-    path TEXT NOT NULL, -- 文件存储位置
-    reference_count INTEGER NOT NULL DEFAULT 0, -- 引用计数
-    group_id INTEGER NOT NULL, -- 默认的文件组ID
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        -- 文件ID
+    type TEXT NOT NULL,                                   -- 文件类型
+    path TEXT NOT NULL,                                   -- 文件存储位置
+    reference_count INTEGER NOT NULL DEFAULT 0,           -- 引用计数
+    group_id INTEGER NOT NULL,                            -- 默认的文件组ID
     FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
+-- 组表
 CREATE TABLE IF NOT EXISTS groups (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE, -- 文件组名
-    reference_count INTEGER NOT NULL DEFAULT 0, -- 引用计数
-    is_primary BOOLEAN NOT NULL DEFAULT false, -- 是否为主文件组，false表示否，true表示是 主文件组代表文件元数据
-    click_count INTEGER NOT NULL DEFAULT 0, -- 点击次数
-    share_count INTEGER NOT NULL DEFAULT 0, -- 分享次数
-    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 创建时间
-    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, -- 修改时间
-    parent_id INTEGER REFERENCES groups(id)  -- 父组ID，用于层级结构
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        -- 组ID
+    name TEXT NOT NULL UNIQUE,                            -- 文件组名
+    reference_count INTEGER NOT NULL DEFAULT 0,           -- 引用计数
+    is_primary BOOLEAN NOT NULL DEFAULT false,            -- 是否为主文件组
+    click_count INTEGER NOT NULL DEFAULT 0,               -- 点击次数
+    share_count INTEGER NOT NULL DEFAULT 0,               -- 分享次数
+    create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- 创建时间
+    modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- 修改时间
+    parent_id INTEGER REFERENCES groups(id),              -- 父组ID，用于层级结构
+    description TEXT                                      -- 组描述
 );
 
+-- 文件组关联表
 CREATE TABLE IF NOT EXISTS file_groups (
-    file_id INTEGER NOT NULL,
-    group_id INTEGER NOT NULL,
-    relation_type INTEGER NOT NULL DEFAULT 1, -- 关系类型：1表示主组关系
+    file_id INTEGER NOT NULL,                             -- 文件ID
+    group_id INTEGER NOT NULL,                            -- 组ID
+    relation_type INTEGER NOT NULL DEFAULT 1,             -- 关系类型：1表示主组关系
     PRIMARY KEY (file_id, group_id),
     FOREIGN KEY (file_id) REFERENCES files(id),
     FOREIGN KEY (group_id) REFERENCES groups(id)
 );
 
+-- 标签表
 CREATE TABLE IF NOT EXISTS tags (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    reference_count INTEGER NOT NULL DEFAULT 0, -- 引用计数
-    name TEXT NOT NULL UNIQUE -- 标签名称，唯一
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,        -- 标签ID
+    reference_count INTEGER NOT NULL DEFAULT 0,           -- 引用计数
+    name TEXT NOT NULL UNIQUE,                            -- 标签名称，唯一
+    description TEXT                                      -- 标签描述
 );
 
+-- 组标签关联表
 CREATE TABLE IF NOT EXISTS group_tags (
-    group_id INTEGER NOT NULL,
-    tag_id INTEGER NOT NULL,
+    group_id INTEGER NOT NULL,                            -- 组ID
+    tag_id INTEGER NOT NULL,                              -- 标签ID
     PRIMARY KEY (group_id, tag_id),
     FOREIGN KEY (group_id) REFERENCES groups(id),
     FOREIGN KEY (tag_id) REFERENCES tags(id)
 );
 
+-- 组关系表
 CREATE TABLE IF NOT EXISTS group_relations (
-    first_group_id INTEGER NOT NULL,
-    second_group_id INTEGER NOT NULL,
-    relation_type INTEGER NOT NULL DEFAULT 1, -- 关系类型：1表示父子关系
+    first_group_id INTEGER NOT NULL,                      -- 第一个组ID
+    second_group_id INTEGER NOT NULL,                     -- 第二个组ID
+    relation_type INTEGER NOT NULL DEFAULT 1,             -- 关系类型：1表示父子关系
     PRIMARY KEY (first_group_id, second_group_id, relation_type),
     FOREIGN KEY (first_group_id) REFERENCES groups(id),
     FOREIGN KEY (second_group_id) REFERENCES groups(id)
