@@ -9,10 +9,12 @@ CREATE TABLE `group_relations` (
 ) COMMENT='组关系表';
 
 -- 扩展组表结构
-ALTER TABLE `groups` ADD COLUMN parent_id INTEGER REFERENCES `groups`(id) COMMENT '父组ID';
+ALTER TABLE `groups` ADD COLUMN parent_id INTEGER REFERENCES `groups`(id);
+ALTER TABLE `groups` MODIFY COLUMN parent_id INTEGER COMMENT '父组ID';
 
 -- 扩展文件组关系表
-ALTER TABLE `file_groups` ADD COLUMN relation_type INTEGER NOT NULL DEFAULT 1 COMMENT '关系类型';
+ALTER TABLE `file_groups` ADD COLUMN relation_type INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE `file_groups` MODIFY COLUMN relation_type INTEGER NOT NULL DEFAULT 1 COMMENT '关系类型';
 
 -- 创建查询优化索引
 CREATE INDEX idx_group_relations_first ON `group_relations`(first_group_id);
