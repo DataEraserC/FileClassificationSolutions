@@ -6,6 +6,24 @@ on:
     tags: [ "v*" ]
   pull_request:
     branches: [ "main", "master", "rust_new" ]
+  workflow_dispatch:
+    inputs:
+      features:
+        description: 'Features to enable (comma-separated, e.g. sqlite-bundled,mysql-bundled,postgres-bundled,sqlite,mysql,postgres)'
+        required: false
+        default: 'sqlite-bundled'
+      target_platforms:
+        description: 'Target platforms to build (comma-separated, e.g. linux,windows,macos)'
+        required: false
+        default: 'linux,windows,macos'
+      build_cli:
+        description: 'Build CLI binary'
+        type: boolean
+        default: true
+      build_webapi:
+        description: 'Build WebAPI binary'
+        type: boolean
+        default: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -140,32 +158,56 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libsqlite3-dev
+      - name: Prepare features
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FEATURES="${{ github.event.inputs.features }}"
+          else
+            FEATURES="sqlite-bundled"
+          fi
+          echo "FEATURES=$FEATURES" >> $GITHUB_ENV
       - name: Build for Android
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         run: |
-          cargo build --target aarch64-linux-android --release --bin file_classification_cli --verbose
+          if [ -n "$FEATURES" ]; then
+            cargo build --target aarch64-linux-android --release --bin file_classification_cli --features "$FEATURES" --verbose
+          else
+            cargo build --target aarch64-linux-android --release --bin file_classification_cli --verbose
+          fi
       - name: Build for other Android targets
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         run: |
-          cargo build --target armv7-linux-androideabi --release --bin file_classification_cli --verbose
-          cargo build --target x86_64-linux-android --release --bin file_classification_cli --verbose
-          cargo build --target i686-linux-android --release --bin file_classification_cli --verbose
+          if [ -n "$FEATURES" ]; then
+            cargo build --target armv7-linux-androideabi --release --bin file_classification_cli --features "$FEATURES" --verbose
+            cargo build --target x86_64-linux-android --release --bin file_classification_cli --features "$FEATURES" --verbose
+            cargo build --target i686-linux-android --release --bin file_classification_cli --features "$FEATURES" --verbose
+          else
+            cargo build --target armv7-linux-androideabi --release --bin file_classification_cli --verbose
+            cargo build --target x86_64-linux-android --release --bin file_classification_cli --verbose
+            cargo build --target i686-linux-android --release --bin file_classification_cli --verbose
+          fi
       - name: Set Android binary name
         run: echo "ANDROID_BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload Android artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-android-aarch64
           path: target/aarch64-linux-android/release/file_classification_cli
       - name: Upload other Android artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-android-armv7
           path: target/armv7-linux-androideabi/release/file_classification_cli
       - name: Upload other Android artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-android-x86_64
           path: target/x86_64-linux-android/release/file_classification_cli
       - name: Upload other Android artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-android-i686
@@ -224,20 +266,40 @@ jobs:
           echo '' >> .cargo/config.toml
           echo '[target.riscv64gc-unknown-linux-gnu]' >> .cargo/config.toml
           echo 'linker = "riscv64-linux-gnu-gcc"' >> .cargo/config.toml
+      - name: Prepare features
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FEATURES="${{ github.event.inputs.features }}"
+          else
+            FEATURES="sqlite-bundled"
+          fi
+          echo "FEATURES=$FEATURES" >> $GITHUB_ENV
       - name: Build CLI release binary
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         run: |
-          cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+          if [ -n "$FEATURES" ]; then
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --features "$FEATURES" --verbose
+          else
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+          fi
       - name: Build WebAPI release binary
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         run: |
-          cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
+          if [ -n "$FEATURES" ]; then
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --features "$FEATURES" --verbose
+          else
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
+          fi
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload CLI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/file_classification_cli
       - name: Upload WebAPI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_webapi-${{ matrix.target }}
@@ -283,20 +345,40 @@ jobs:
           echo "VCPKG_ROOT=$env:GITHUB_WORKSPACE\vcpkg" >> $env:GITHUB_ENV
           echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows\lib" >> $env:GITHUB_PATH
           echo "$env:GITHUB_WORKSPACE\vcpkg\installed\x64-windows-static\lib" >> $env:GITHUB_PATH
+      - name: Prepare features
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $env:FEATURES="${{ github.event.inputs.features }}"
+          } else {
+            $env:FEATURES="sqlite-bundled"
+          }
+          echo "FEATURES=$env:FEATURES" >> $env:GITHUB_ENV
       - name: Build CLI release binary
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         run: |
-          cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+          if ( "${env:FEATURES}" -ne "" ) {
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --features "${env:FEATURES}" --verbose
+          } else {
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+          }
       - name: Build WebAPI release binary
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         run: |
-          cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
+          if ( "${env:FEATURES}" -ne "" ) {
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --features "${env:FEATURES}" --verbose
+          } else {
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
+          }
       - name: Set binary name
-        run: echo "BINARY_NAME=file_classification_cli.exe" >> $GITHUB_ENV
+        run: echo "BINARY_NAME=file_classification_cli.exe" >> $env:GITHUB_ENV
       - name: Upload CLI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/file_classification_cli.exe
       - name: Upload WebAPI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_webapi-${{ matrix.target }}
@@ -330,20 +412,40 @@ jobs:
       - name: Install dependencies (macOS)
         run: |
           brew install sqlite3
+      - name: Prepare features
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            FEATURES="${{ github.event.inputs.features }}"
+          else
+            FEATURES="sqlite-bundled"
+          fi
+          echo "FEATURES=$FEATURES" >> $GITHUB_ENV
       - name: Build CLI release binary
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         run: |
-          cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+          if [ -n "$FEATURES" ]; then
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --features "$FEATURES" --verbose
+          else
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_cli --verbose
+          fi
       - name: Build WebAPI release binary
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         run: |
-          cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
+          if [ -n "$FEATURES" ]; then
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --features "$FEATURES" --verbose
+          else
+            cargo build --target ${{ matrix.target }} --release --bin file_classification_webapi --verbose
+          fi
       - name: Set binary name
         run: echo "BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
       - name: Upload CLI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_cli-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/file_classification_cli
       - name: Upload WebAPI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: file_classification_webapi-${{ matrix.target }}
