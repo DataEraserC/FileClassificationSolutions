@@ -22,7 +22,10 @@ assert_cmd = "2.0.14"
 [target.'cfg(not(target_env = "musl"))'.dependencies]
 
 [features]
-default = ["sqlite"]
+default = ["sqlite-bundled"]
 sqlite = ["file_classification_core/sqlite"]
 mysql = ["file_classification_core/mysql"]
 postgres = ["file_classification_core/postgres"]
+sqlite-bundled = ["file_classification_core/sqlite-bundled"]
+mysql-bundled = ["file_classification_core/mysql-bundled"]
+postgres-bundled = ["file_classification_core/postgres-bundled"]

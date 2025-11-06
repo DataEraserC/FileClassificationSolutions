@@ -3,11 +3,11 @@
 #DATABASE_URL=mysql://root:mypassword@localhost:3306/file_classification
 #DATABASE_TYPE=mysql
 
-DATABASE_URL=file_classification.db
-DATABASE_TYPE=sqlite
+#DATABASE_URL=file_classification.db
+#DATABASE_TYPE=sqlite
 
-#DATABASE_URL=mysql://root:@localhost:3306/file_classification
-#DATABASE_TYPE=mysql
+DATABASE_URL=mysql://root:@localhost:3306/file_classification
+DATABASE_TYPE=mysql
 
 # Web API 配置
 BIND_ADDRESS=127.0.0.1

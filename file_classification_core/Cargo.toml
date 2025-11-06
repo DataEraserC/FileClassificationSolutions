@@ -15,8 +15,11 @@ serde = { workspace = true }
 utoipa = { workspace = true, optional = true }
 
 [features]
-default = ["sqlite"]
+default = ["sqlite-bundled"]
 sqlite = ["libsqlite3-sys", "diesel/sqlite", "diesel/returning_clauses_for_sqlite_3_35"]
 mysql = ["mysqlclient-sys", "diesel/mysql"]
 postgres = ["pq-sys", "openssl-sys", "diesel/postgres"]
+sqlite-bundled = ["sqlite", "libsqlite3-sys/bundled"]
+mysql-bundled = ["mysql", "mysqlclient-sys/bundled"]
+postgres-bundled = ["postgres", "pq-sys/bundled", "openssl-sys"]
 swagger = ["utoipa"]
