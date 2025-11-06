@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut conn = database::establish_connection(&database_url, &database_type);
 
     // 运行待处理的数据库迁移
-    if let Err(e) = database::run_pending_migrations(&mut conn) {
+    if let Err(e) = database::run_pending_migrations(&mut conn, &database_type) {
         eprintln!("数据库迁移失败: {}", e);
         return Err(e);
     }

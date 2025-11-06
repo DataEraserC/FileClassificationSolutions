@@ -39,7 +39,7 @@ impl AppConfig {
 
     pub fn run_migrations(&self) -> Result<(), Box<dyn Error>> {
         let mut conn = establish_connection(&self.database_url, &self.database_type);
-        if let Err(e) = run_pending_migrations(&mut conn) {
+        if let Err(e) = run_pending_migrations(&mut conn, &self.database_type) {
             log::error!("数据库迁移失败: {}", e);
             return Err(e);
         }

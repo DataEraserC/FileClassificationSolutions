@@ -1,6 +1,6 @@
 -- 删除tags表的description字段
 CREATE TABLE tags_new (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
     reference_count INTEGER NOT NULL DEFAULT 0,
     name TEXT NOT NULL UNIQUE
 );
@@ -10,7 +10,7 @@ ALTER TABLE tags_new RENAME TO tags;
 
 -- 删除groups表的description字段
 CREATE TABLE groups_new (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
     name TEXT NOT NULL UNIQUE,
     reference_count INTEGER NOT NULL DEFAULT 0,
     is_primary BOOLEAN NOT NULL DEFAULT false,
@@ -26,7 +26,7 @@ ALTER TABLE groups_new RENAME TO groups;
 
 -- 删除files表的description字段
 CREATE TABLE files_new (
-    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    id INTEGER NOT NULL PRIMARY KEY AUTO_INCREMENT,
     type TEXT NOT NULL,
     path TEXT NOT NULL,
     reference_count INTEGER NOT NULL DEFAULT 0,

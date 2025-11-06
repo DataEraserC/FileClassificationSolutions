@@ -81,18 +81,35 @@ pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConne
 ///
 /// 参数：
 /// - `conn`: 数据库连接对象
+/// - `database_type`: 数据库类型 ("sqlite", "mysql", "postgres")
 ///
 /// 返回值：
 /// 成功时返回迁移版本列表，失败时返回错误信息
-pub fn run_pending_migrations(
-    conn: &mut AnyConnection,
-) -> Result<Vec<diesel::migration::MigrationVersion<'_>>, Box<dyn std::error::Error + Send + Sync>> {
+pub fn run_pending_migrations<'a>(
+    conn: &'a mut AnyConnection,
+    database_type: &'a str,
+) -> Result<Vec<diesel::migration::MigrationVersion<'a>>, Box<dyn std::error::Error + Send + Sync>> {
     use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
-    const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
-
-    match conn.run_pending_migrations(MIGRATIONS) {
-        Ok(applied_migrations) => Ok(applied_migrations),
-        Err(e) => Err(e),
-    }
+    // 根据数据库类型运行对应迁移
+    let migrations = match database_type {
+        "sqlite" => {
+            const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations_sqlite");
+            MIGRATIONS
+        },
+        "mysql" => {
+            const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations_mysql");
+            MIGRATIONS
+        },
+        "postgres" => {
+            const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations_postgres");
+            MIGRATIONS
+        },
+        _ => {
+            const MIGRATIONS: EmbeddedMigrations = embed_migrations!("../migrations");
+            MIGRATIONS
+        }
+    };
+    
+    conn.run_pending_migrations(migrations).map_err(|e| e.into())
 }

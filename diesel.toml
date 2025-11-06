@@ -5,5 +5,6 @@
 file = "file_classification_core/src/model/schema.rs"
 custom_type_derives = ["diesel::query_builder::QueryId", "Clone"]
 
-[migrations_directory]
-dir = "./migrations"
+# 注释掉原来的配置，使用环境变量来指定迁移目录
+# [migrations_directory]
+# dir = "./migrations"
