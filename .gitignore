@@ -112,6 +112,8 @@ http-client.private.env.json
 *.db
 *.log
 .file_classification_history
+uploads/
+upload/
 
 # nix related
 result

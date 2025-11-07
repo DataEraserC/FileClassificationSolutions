@@ -49,6 +49,9 @@ DATABASE_TYPE=sqlite
 BIND_ADDRESS=127.0.0.1
 BIND_PORT=8082
 
+# 文件上传配置
+UPLOAD_PATH=uploads
+
 # 日志配置
 RUST_LOG=info
 RUST_LOG_FILE=debug

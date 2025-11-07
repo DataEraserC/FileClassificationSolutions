@@ -32,3 +32,6 @@ RUST_LOG_FILE=debug
 # CORS 配置
 CORS_ENABLED=true
 CORS_ORIGIN=http://localhost:8082
+
+# 文件上传配置
+UPLOAD_PATH=uploads

@@ -4,11 +4,13 @@ use file_classification_common::env_loader::load_env_file;
 use file_classification_core::utils::database::{establish_connection, run_pending_migrations};
 use std::error::Error;
 
+#[derive(Clone)]
 pub struct AppConfig {
     pub database_url: String,
     pub database_type: String,
     pub bind_address: String,
     pub bind_port: u16,
+    pub upload_path: String,
 }
 
 impl AppConfig {
@@ -28,12 +30,16 @@ impl AppConfig {
             .ok()
             .and_then(|s| s.parse::<u16>().ok())
             .unwrap_or(8082u16);
+            
+        // 获取上传路径配置，默认为 "uploads"
+        let upload_path = env::var("UPLOAD_PATH").unwrap_or_else(|_| "uploads".to_string());
 
         Ok(AppConfig {
             database_url,
             database_type,
             bind_address,
             bind_port,
+            upload_path,
         })
     }
 
@@ -70,5 +76,6 @@ impl AppConfig {
         }
 
         log::info!("服务器将绑定到: {}", self.bind_info());
+        log::info!("文件上传路径设置为: {}", self.upload_path);
     }
 }

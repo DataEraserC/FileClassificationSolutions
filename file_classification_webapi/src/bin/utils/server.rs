@@ -26,6 +26,7 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
 
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .app_data(web::Data::new(config.clone()))
             .wrap(Logger::default())
             .wrap(cors_middleware)
             // API路由 - 放在静态文件服务之前以确保优先匹配
