@@ -6,6 +6,42 @@
 
 pub use diesel::{Connection, QueryResult};
 use diesel::RunQueryDsl;
+use std::fmt;
+
+/// 数据库连接错误类型
+#[derive(Debug)]
+pub struct ConnectionError {
+    pub message: String,
+    pub source: Option<Box<dyn std::error::Error + Send + Sync>>,
+}
+
+impl fmt::Display for ConnectionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for ConnectionError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.source.as_ref().map(|e| e.as_ref() as &(dyn std::error::Error + 'static))
+    }
+}
+
+impl ConnectionError {
+    pub fn new(message: &str) -> Self {
+        ConnectionError {
+            message: message.to_string(),
+            source: None,
+        }
+    }
+    
+    pub fn with_source(message: &str, source: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        ConnectionError {
+            message: message.to_string(),
+            source: Some(source),
+        }
+    }
+}
 
 /// 通用数据库连接枚举
 ///
@@ -34,57 +70,75 @@ pub enum AnyConnection {
 /// - `database_type`: 数据库类型
 ///
 /// 返回值：
-/// 成功时返回封装好的数据库连接对象，失败时会 panic 并输出错误信息
-pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConnection {
+/// 成功时返回封装好的数据库连接对象，失败时返回 ConnectionError 错误
+pub fn establish_connection(database_url: &str, database_type: &str) -> Result<AnyConnection, ConnectionError> {
     // 根据数据库类型建立相应的连接
     match database_type {
         #[cfg(feature = "sqlite")]
         "sqlite" => {
-            let mut conn = AnyConnection::Sqlite(
-                diesel::SqliteConnection::establish(database_url)
-                    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
-            );
+            let conn = diesel::SqliteConnection::establish(database_url)
+                .map_err(|e| ConnectionError::with_source(
+                    &format!("Error connecting to SQLite database at {}", database_url),
+                    Box::new(e)
+                ))?;
+            
+            let mut any_conn = AnyConnection::Sqlite(conn);
             
             // 关闭外键约束检查
             diesel::sql_query("PRAGMA foreign_keys = OFF")
-                .execute(&mut conn)
-                .expect("Error executing PRAGMA foreign_keys = OFF");
+                .execute(&mut any_conn)
+                .map_err(|e| ConnectionError::with_source(
+                    "Error executing PRAGMA foreign_keys = OFF",
+                    Box::new(e)
+                ))?;
                 
-            conn
+            Ok(any_conn)
         },
         
         #[cfg(feature = "mysql")]
         "mysql" => {
-            let mut conn = AnyConnection::Mysql(
-                diesel::MysqlConnection::establish(database_url)
-                    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
-            );
+            let conn = diesel::MysqlConnection::establish(database_url)
+                .map_err(|e| ConnectionError::with_source(
+                    &format!("Error connecting to MySQL database at {}", database_url),
+                    Box::new(e)
+                ))?;
+            
+            let mut any_conn = AnyConnection::Mysql(conn);
             
             // 关闭外键约束检查
             diesel::sql_query("SET FOREIGN_KEY_CHECKS = 0")
-                .execute(&mut conn)
-                .expect("Error executing SET FOREIGN_KEY_CHECKS = 0");
+                .execute(&mut any_conn)
+                .map_err(|e| ConnectionError::with_source(
+                    "Error executing SET FOREIGN_KEY_CHECKS = 0",
+                    Box::new(e)
+                ))?;
                 
-            conn
+            Ok(any_conn)
         },
         
         #[cfg(feature = "postgres")]
         "postgres" => {
-            let mut conn = AnyConnection::Postgresql(
-                diesel::PgConnection::establish(database_url)
-                    .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
-            );
+            let conn = diesel::PgConnection::establish(database_url)
+                .map_err(|e| ConnectionError::with_source(
+                    &format!("Error connecting to PostgreSQL database at {}", database_url),
+                    Box::new(e)
+                ))?;
+            
+            let mut any_conn = AnyConnection::Postgresql(conn);
             
             // 关闭外键约束检查
             diesel::sql_query("SET session_replication_role = 'replica'")
-                .execute(&mut conn)
-                .expect("Error executing SET session_replication_role = 'replica'");
+                .execute(&mut any_conn)
+                .map_err(|e| ConnectionError::with_source(
+                    "Error executing SET session_replication_role = 'replica'",
+                    Box::new(e)
+                ))?;
                 
-            conn
+            Ok(any_conn)
         },
         
-        // 不支持的数据库类型直接 panic
-        _ => panic!("Unsupported database type: {} or feature not enabled", database_type),
+        // 不支持的数据库类型
+        _ => Err(ConnectionError::new(&format!("Unsupported database type: {} or feature not enabled", database_type))),
     }
 }
 

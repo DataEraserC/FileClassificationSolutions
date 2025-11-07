@@ -34,7 +34,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let database_type = std::env::var("DATABASE_TYPE").expect("DATABASE_TYPE must be set");
     
-    let mut conn = database::establish_connection(&database_url, &database_type);
+    let mut conn = match database::establish_connection(&database_url, &database_type) {
+        Ok(conn) => conn,
+        Err(e) => {
+            eprintln!("数据库连接失败: {}", e);
+            return Err(Box::new(e));
+        }
+    };
 
     // 运行待处理的数据库迁移
     if let Err(e) = database::run_pending_migrations(&mut conn, &database_type) {

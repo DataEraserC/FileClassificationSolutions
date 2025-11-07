@@ -1,7 +1,7 @@
 use std::env;
 use log;
 use file_classification_common::env_loader::load_env_file;
-use file_classification_core::utils::database::{establish_connection, run_pending_migrations};
+use file_classification_core::utils::database::{establish_connection, run_pending_migrations, ConnectionError};
 use std::error::Error;
 
 #[derive(Clone)]
@@ -44,7 +44,11 @@ impl AppConfig {
     }
 
     pub fn run_migrations(&self) -> Result<(), Box<dyn Error>> {
-        let mut conn = establish_connection(&self.database_url, &self.database_type);
+        let mut conn = establish_connection(&self.database_url, &self.database_type)
+            .map_err(|e| {
+                log::error!("数据库连接失败: {}", e);
+                e
+            })?;
         if let Err(e) = run_pending_migrations(&mut conn, &self.database_type) {
             log::error!("数据库迁移失败: {}", e);
             return Err(e);
