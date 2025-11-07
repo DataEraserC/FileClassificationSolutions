@@ -44,8 +44,9 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             .service(files::api_delete_file_by_id)
             .service(files::api_delete_files_by_ids)
             .service(files::api_delete_files_by_conditions)
-            // 文件上传路由
+            // 文件上传和下载路由
             .service(uploads::upload_file)
+            .service(uploads::download_file)
             // 组相关路由
             .service(groups::api_list_groups_by_filter_with_limit)
             .service(groups::api_list_groups_by_filter_with_options)

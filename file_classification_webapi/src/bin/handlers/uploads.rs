@@ -1,7 +1,9 @@
-use actix_web::{post, web, HttpResponse, Result};
+use actix_web::{get, post, web, HttpRequest, HttpResponse, Result};
+use actix_files::NamedFile;
 use actix_multipart::Multipart;
 use futures_util::StreamExt as _;
 use std::io::Write;
+use std::path::Path;
 use sanitize_filename;
 
 /// 处理文件上传
@@ -52,7 +54,7 @@ pub async fn upload_file(mut payload: Multipart) -> Result<HttpResponse> {
         }
 
         // 返回文件访问链接
-        let file_url = format!("/{}", filepath.replace("\\", "/"));
+        let file_url = format!("/api/uploads/{}", safe_filename);
         Ok(HttpResponse::Ok().json(serde_json::json!({
             "url": file_url,
             "filename": safe_filename
@@ -62,4 +64,31 @@ pub async fn upload_file(mut payload: Multipart) -> Result<HttpResponse> {
             "error": "No file provided"
         })))
     }
+}
+
+/// 处理文件下载
+///
+/// 根据文件名下载已上传的文件
+///
+/// 请求路径: GET /api/uploads/{filename}
+#[get("/api/uploads/{filename}")]
+pub async fn download_file(path: web::Path<String>, req: HttpRequest) -> Result<HttpResponse> {
+    let filename = path.into_inner();
+    
+    // 确保文件名是安全的
+    let safe_filename = sanitize_filename::sanitize(&filename);
+    
+    // 构建文件路径
+    let filepath = format!("uploads/{}", safe_filename);
+    
+    // 检查文件是否存在
+    if !Path::new(&filepath).exists() {
+        return Ok(HttpResponse::NotFound().json(serde_json::json!({
+            "error": "File not found"
+        })));
+    }
+    
+    // 使用 NamedFile 提供文件下载
+    let file = NamedFile::open(&filepath)?;
+    Ok(file.into_response(&req))
 }
