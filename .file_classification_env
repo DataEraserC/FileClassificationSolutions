@@ -6,8 +6,14 @@
 #DATABASE_URL=file_classification.db
 #DATABASE_TYPE=sqlite
 
-DATABASE_URL=mysql://root:@localhost:3306/file_classification
-DATABASE_TYPE=mysql
+#DATABASE_URL=postgres:mypassword//postgres:@localhost:5432/file_classification
+#DATABASE_TYPE=postgres
+
+#DATABASE_URL=mysql://root:@localhost:3306/file_classification
+#DATABASE_TYPE=mysql
+
+DATABASE_URL=postgres://postgres:@localhost:5432/file_classification
+DATABASE_TYPE=postgres
 
 # Web API 配置
 BIND_ADDRESS=127.0.0.1

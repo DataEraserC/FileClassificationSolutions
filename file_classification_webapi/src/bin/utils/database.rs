@@ -24,6 +24,20 @@ impl diesel::r2d2::CustomizeConnection<AnyConnection, diesel::r2d2::Error> for C
                     .execute(conn)
                     .map_err(diesel::r2d2::Error::QueryError)?;
             }
+            #[cfg(feature = "mysql")]
+            // MySQL 连接关闭外键约束检查
+            AnyConnection::Mysql(_) => {
+                diesel::sql_query("SET FOREIGN_KEY_CHECKS = 0")
+                    .execute(conn)
+                    .map_err(diesel::r2d2::Error::QueryError)?;
+            }
+            #[cfg(feature = "postgres")]
+            // PostgreSQL 连接关闭外键约束检查
+            AnyConnection::Postgresql(_) => {
+                diesel::sql_query("SET session_replication_role = 'replica'")
+                    .execute(conn)
+                    .map_err(diesel::r2d2::Error::QueryError)?;
+            }
             _ => {}
         }
         Ok(())

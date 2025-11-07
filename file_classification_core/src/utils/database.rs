@@ -55,18 +55,32 @@ pub fn establish_connection(database_url: &str, database_type: &str) -> AnyConne
         
         #[cfg(feature = "mysql")]
         "mysql" => {
-            AnyConnection::Mysql(
+            let mut conn = AnyConnection::Mysql(
                 diesel::MysqlConnection::establish(database_url)
                     .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
-            )
+            );
+            
+            // 关闭外键约束检查
+            diesel::sql_query("SET FOREIGN_KEY_CHECKS = 0")
+                .execute(&mut conn)
+                .expect("Error executing SET FOREIGN_KEY_CHECKS = 0");
+                
+            conn
         },
         
         #[cfg(feature = "postgres")]
         "postgres" => {
-            AnyConnection::Postgresql(
+            let mut conn = AnyConnection::Postgresql(
                 diesel::PgConnection::establish(database_url)
                     .unwrap_or_else(|_| panic!("Error connecting to {}", database_url)),
-            )
+            );
+            
+            // 关闭外键约束检查
+            diesel::sql_query("SET session_replication_role = 'replica'")
+                .execute(&mut conn)
+                .expect("Error executing SET session_replication_role = 'replica'");
+                
+            conn
         },
         
         // 不支持的数据库类型直接 panic
