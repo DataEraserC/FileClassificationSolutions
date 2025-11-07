@@ -349,6 +349,10 @@ function openCreateFileDialog() {
                 <input type="text" id="create-file-path" required>
             </div>
             <div class="form-group">
+                <label for="create-file-upload">或上传文件:</label>
+                <input type="file" id="create-file-upload">
+            </div>
+            <div class="form-group">
                 <label for="create-file-group-id">组ID:</label>
                 <input type="number" id="create-file-group-id" required>
             </div>
@@ -361,13 +365,63 @@ function openCreateFileDialog() {
         </form>
     `;
 
+    // 绑定文件选择事件
+    document.getElementById('create-file-upload').addEventListener('change', function(e) {
+        const fileInput = e.target;
+        const pathInput = document.getElementById('create-file-path');
+        if (fileInput.files.length > 0) {
+            // 如果选择了文件，禁用路径输入框
+            pathInput.disabled = true;
+        } else {
+            // 如果没有选择文件，启用路径输入框
+            pathInput.disabled = false;
+        }
+    });
+
     // 绑定表单提交事件
     document.getElementById('create-file-form').addEventListener('submit', function (e) {
         e.preventDefault();
-        createFile();
+        
+        // 检查是否选择了上传文件
+        const fileUpload = document.getElementById('create-file-upload');
+        if (fileUpload.files.length > 0) {
+            // 如果选择了文件，先上传文件
+            uploadAndCreateFile(fileUpload.files[0]);
+        } else {
+            // 否则直接创建文件
+            createFile();
+        }
     });
 
     document.getElementById('modal').style.display = 'block';
+}
+
+// 上传文件并创建文件记录
+function uploadAndCreateFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 上传文件
+    fetch(`${BASE_URL}/api/uploads`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.url) {
+            // 将上传后的文件URL设置为路径
+            document.getElementById('create-file-path').value = data.url;
+            
+            // 创建文件记录
+            createFile();
+        } else {
+            showMessage('文件上传失败: ' + (data.error || '未知错误'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('文件上传失败: ' + error.message, 'error');
+    });
 }
 
 // 打开编辑文件对话框
