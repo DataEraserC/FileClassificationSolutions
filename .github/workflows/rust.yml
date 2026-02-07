@@ -113,6 +113,12 @@ jobs:
     continue-on-error: true
     strategy:
       fail-fast: false
+      matrix:
+        target:
+          - aarch64-linux-android
+          - armv7-linux-androideabi
+          - x86_64-linux-android
+          - i686-linux-android
     steps:
       - uses: actions/checkout@v4
       - name: Install Rust
@@ -125,36 +131,19 @@ jobs:
             ~/.cargo/git
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - name: Install Android targets
-        run: |
-          rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         with:
           ndk-version: r25b
-      - name: Setup Android environment
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+      - name: Install Android targets
         run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
-          echo "NDK_HOME=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
-      - name: Configure cargo for Android
-        run: |
-          mkdir -p .cargo
-          echo '[target.aarch64-linux-android]' > .cargo/config.toml
-          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
-          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang\"" >> .cargo/config.toml
-          echo '' >> .cargo/config.toml
-          echo '[target.armv7-linux-androideabi]' >> .cargo/config.toml
-          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
-          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang\"" >> .cargo/config.toml
-          echo '' >> .cargo/config.toml
-          echo '[target.x86_64-linux-android]' >> .cargo/config.toml
-          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
-          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang\"" >> .cargo/config.toml
-          echo '' >> .cargo/config.toml
-          echo '[target.i686-linux-android]' >> .cargo/config.toml
-          echo "ar = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-ar\"" >> .cargo/config.toml
-          echo "linker = \"$ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/i686-linux-android21-clang\"" >> .cargo/config.toml
-      - name: Install SQLite for Android
+          rustup target add aarch64-linux-android
+          rustup target add armv7-linux-androideabi
+          rustup target add x86_64-linux-android
+          rustup target add i686-linux-android
+      - name: Install SQLite development headers
         run: |
           sudo apt-get update
           sudo apt-get install -y libsqlite3-dev
@@ -166,25 +155,21 @@ jobs:
             FEATURES="sqlite-bundled"
           fi
           echo "FEATURES=$FEATURES" >> $GITHUB_ENV
-      - name: Build for Android
+      - name: Build for Android target
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         run: |
           if [ -n "$FEATURES" ]; then
-            cargo build --target aarch64-linux-android --release --bin file_classification_cli --features "$FEATURES" --verbose
+            cargo ndk --target ${{ matrix.target }} --platform 21 -- build --release --bin file_classification_cli --features "$FEATURES" --verbose
           else
-            cargo build --target aarch64-linux-android --release --bin file_classification_cli --verbose
+            cargo ndk --target ${{ matrix.target }} --platform 21 -- build --release --bin file_classification_cli --verbose
           fi
-      - name: Build for other Android targets
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
+      - name: Build WebAPI for Android target
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         run: |
           if [ -n "$FEATURES" ]; then
-            cargo build --target armv7-linux-androideabi --release --bin file_classification_cli --features "$FEATURES" --verbose
-            cargo build --target x86_64-linux-android --release --bin file_classification_cli --features "$FEATURES" --verbose
-            cargo build --target i686-linux-android --release --bin file_classification_cli --features "$FEATURES" --verbose
+            cargo ndk --target ${{ matrix.target }} --platform 21 -- build --release --bin file_classification_webapi --features "$FEATURES" --verbose
           else
-            cargo build --target armv7-linux-androideabi --release --bin file_classification_cli --verbose
-            cargo build --target x86_64-linux-android --release --bin file_classification_cli --verbose
-            cargo build --target i686-linux-android --release --bin file_classification_cli --verbose
+            cargo ndk --target ${{ matrix.target }} --platform 21 -- build --release --bin file_classification_webapi --verbose
           fi
       - name: Set Android binary name
         run: echo "ANDROID_BINARY_NAME=file_classification_cli" >> $GITHUB_ENV
@@ -192,26 +177,14 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-android-aarch64
-          path: target/aarch64-linux-android/release/file_classification_cli
-      - name: Upload other Android artifacts
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
+          name: file_classification_cli-android-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_cli
+      - name: Upload Android WebAPI artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_webapi == 'true' }}
         uses: actions/upload-artifact@v4
         with:
-          name: file_classification_cli-android-armv7
-          path: target/armv7-linux-androideabi/release/file_classification_cli
-      - name: Upload other Android artifacts
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: file_classification_cli-android-x86_64
-          path: target/x86_64-linux-android/release/file_classification_cli
-      - name: Upload other Android artifacts
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.build_cli == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: file_classification_cli-android-i686
-          path: target/i686-linux-android/release/file_classification_cli
+          name: file_classification_webapi-android-${{ matrix.target }}
+          path: target/${{ matrix.target }}/release/file_classification_webapi
 
   build-linux:
     name: Build Linux binaries
@@ -487,7 +460,11 @@ jobs:
             artifacts/file_classification_cli-aarch64-apple-darwin/file_classification_cli
             artifacts/file_classification_webapi-x86_64-apple-darwin/file_classification_webapi
             artifacts/file_classification_webapi-aarch64-apple-darwin/file_classification_webapi
-            artifacts/file_classification_cli-android-aarch64/file_classification_cli
-            artifacts/file_classification_cli-android-armv7/file_classification_cli
-            artifacts/file_classification_cli-android-x86_64/file_classification_cli
-            artifacts/file_classification_cli-android-i686/file_classification_cli
+            artifacts/file_classification_cli-android-aarch64-linux-android/file_classification_cli
+            artifacts/file_classification_cli-android-armv7-linux-androideabi/file_classification_cli
+            artifacts/file_classification_cli-android-x86_64-linux-android/file_classification_cli
+            artifacts/file_classification_cli-android-i686-linux-android/file_classification_cli
+            artifacts/file_classification_webapi-android-aarch64-linux-android/file_classification_webapi
+            artifacts/file_classification_webapi-android-armv7-linux-androideabi/file_classification_webapi
+            artifacts/file_classification_webapi-android-x86_64-linux-android/file_classification_webapi
+            artifacts/file_classification_webapi-android-i686-linux-android/file_classification_webapi
