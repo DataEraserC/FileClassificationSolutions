@@ -158,22 +158,205 @@ function toggleAllGroupTags(source) {
     });
 }
 
-// 切换复杂查询标签
+// 切换复杂查询标签页
 function switchComplexSearchTab(tab) {
-    // 更新标签按钮状态
-    document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active');
-    });
-    event.target.classList.add('active');
+    const visualTab = document.getElementById('visual-search');
+    const jsonTab = document.getElementById('json-search');
+    const buttons = document.querySelectorAll('.tab-button');
 
-    // 显示对应的标签内容
     if (tab === 'visual') {
-        document.getElementById('visual-search').style.display = 'block';
-        document.getElementById('json-search').style.display = 'none';
+        // 从 JSON 同步到可视化
+        syncJsonToVisual();
+        
+        visualTab.style.display = 'block';
+        jsonTab.style.display = 'none';
+        buttons[0].classList.add('active');
+        buttons[1].classList.remove('active');
     } else {
-        document.getElementById('visual-search').style.display = 'none';
-        document.getElementById('json-search').style.display = 'block';
+        // 从可视化同步到 JSON
+        syncVisualToJson();
+        
+        visualTab.style.display = 'none';
+        jsonTab.style.display = 'block';
+        buttons[0].classList.remove('active');
+        buttons[1].classList.add('active');
     }
+}
+
+// 将可视化条件同步到 JSON 文本框
+function syncVisualToJson() {
+    const conditions = compileVisualSearchConditions();
+    const jsonArea = document.querySelector('#json-search textarea');
+    if (jsonArea) {
+        jsonArea.value = JSON.stringify(conditions, null, 2);
+    }
+}
+
+// 将 JSON 文本框内容同步到可视化条件
+function syncJsonToVisual() {
+    const jsonArea = document.querySelector('#json-search textarea');
+    if (!jsonArea || !jsonArea.value.trim()) return;
+
+    try {
+        const conditions = JSON.parse(jsonArea.value);
+        if (Array.isArray(conditions)) {
+            // 解析逻辑：这里只支持一级嵌套的 And/Or，或者平铺的条件
+            // 这是一个简化的解析器
+            const newConditions = [];
+            let mainLogic = 'And';
+
+            // 检查是否是单对象包装的全局逻辑，如 [{"Or": [...]}]
+            let effectiveConditions = conditions;
+            if (conditions.length === 1 && (conditions[0].Or || conditions[0].And)) {
+                mainLogic = conditions[0].Or ? 'Or' : 'And';
+                effectiveConditions = conditions[0].Or || conditions[0].And;
+            }
+
+            effectiveConditions.forEach(item => {
+                if (item.Or || item.And) {
+                    const logic = item.Or ? 'Or' : 'And';
+                    const subConditions = (item.Or || item.And).map(c => parseJsonCondition(c)).filter(c => c);
+                    newConditions.push({
+                        type: 'group',
+                        logic: logic,
+                        conditions: subConditions
+                    });
+                } else {
+                    const parsed = parseJsonCondition(item);
+                    if (parsed) {
+                        newConditions.push({
+                            type: 'condition',
+                            ...parsed
+                        });
+                    }
+                }
+            });
+
+            visualSearchConditions = newConditions;
+            currentSearchLogic = mainLogic;
+            renderVisualSearchConditions();
+        }
+    } catch (e) {
+        console.error('Failed to sync JSON to Visual:', e);
+    }
+}
+
+// 解析单个 JSON 条件对象回到可视化格式
+function parseJsonCondition(obj) {
+    // 寻找匹配的 key，如 NameLike, IdGreaterThan 等
+    const key = Object.keys(obj)[0];
+    if (!key) return null;
+
+    const value = obj[key];
+    
+    // 提取字段和操作符
+    let field = '';
+    let operator = 'equal';
+
+    if (key.endsWith('GreaterThan')) {
+        field = key.replace('GreaterThan', '');
+        operator = 'greater';
+    } else if (key.endsWith('LessThan')) {
+        field = key.replace('LessThan', '');
+        operator = 'less';
+    } else if (key.endsWith('Like')) {
+        field = key.replace('Like', '');
+        operator = 'like';
+    } else if (key.endsWith('In')) {
+        field = key.replace('In', '');
+        operator = 'in';
+    } else {
+        field = key;
+        operator = 'equal';
+    }
+
+    return { field, operator, value: Array.isArray(value) ? value.join(', ') : value };
+}
+
+// 可视化查询状态
+let visualSearchConditions = [];
+let currentSearchLogic = 'And';
+
+// 缓存上一次搜索的条件，以便展示和重新加载
+let lastSearchState = {
+    conditions: [],
+    logic: 'And',
+    active: false,
+    target: '' // 'files', 'groups', 'tags'
+};
+
+// 获取当前活动页面标识
+function getActivePageTarget() {
+    const activeNav = document.querySelector('.sidebar ul li a.active');
+    const navText = activeNav ? activeNav.querySelector('.nav-text').textContent : '';
+    if (navText.includes('文件')) return 'files';
+    if (navText.includes('分组')) return 'groups';
+    if (navText.includes('标签')) return 'tags';
+    return '';
+}
+
+// 渲染搜索结果上方的已激活条件展示
+function renderActiveSearchConditions() {
+    const target = getActivePageTarget();
+    const containerId = `${target}-active-search-container`;
+    let container = document.getElementById(containerId);
+
+    // 如果容器不存在且有活跃搜索，尝试在标题后创建
+    if (!container) {
+        const section = document.querySelector('section.active h1');
+        if (section) {
+            container = document.createElement('div');
+            container.id = containerId;
+            container.className = 'active-search-conditions-bar';
+            section.after(container);
+        }
+    }
+
+    if (!container) return;
+
+    if (!lastSearchState.active || lastSearchState.target !== target || lastSearchState.conditions.length === 0) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'flex';
+    container.innerHTML = `
+        <span class="active-search-label">当前搜索条件 (${lastSearchState.logic}):</span>
+        <div class="active-search-tags">
+            ${lastSearchState.conditions.map((item, idx) => {
+                if (item.type === 'condition') {
+                    return `<span class="active-tag">${getFieldLabel(item.field)} ${getOperatorLabel(item.operator)} ${item.value}</span>`;
+                } else {
+                    return `<span class="active-tag-group">${item.logic}(${item.conditions.length})</span>`;
+                }
+            }).join('')}
+        </div>
+        <button class="btn-clear-search" onclick="clearActiveSearch()">清除搜索</button>
+    `;
+}
+
+// 清除当前搜索状态
+function clearActiveSearch() {
+    lastSearchState.active = false;
+    renderActiveSearchConditions();
+    
+    const target = getActivePageTarget();
+    if (target === 'files') listFilesByFilter();
+    else if (target === 'groups') listGroupsByFilter();
+    else if (target === 'tags') listTagsByFilter();
+}
+
+// 清空可视化查询条件
+function clearVisualConditions() {
+    visualSearchConditions = [];
+    currentSearchLogic = 'And';
+    renderVisualSearchConditions();
+}
+
+// 更新主逻辑
+function updateMainLogic(logic) {
+    currentSearchLogic = logic;
 }
 
 // 添加可视化查询条件
@@ -187,24 +370,294 @@ function addVisualSearchCondition() {
         return;
     }
 
-    const conditionsContainer = document.getElementById('visual-search-conditions');
-    const conditionElement = document.createElement('div');
-    conditionElement.className = 'condition-item';
-    conditionElement.innerHTML = `
-        <span>${field} ${operator} ${value}</span>
-        <button type="button" onclick="this.parentElement.remove()">删除</button>
-        <input type="hidden" class="condition-field" value="${field}">
-        <input type="hidden" class="condition-operator" value="${operator}">
-        <input type="hidden" class="condition-value" value="${value}">
+    const condition = {
+        field: field,
+        operator: operator,
+        value: value,
+        type: 'condition'
+    };
+
+    visualSearchConditions.push(condition);
+    renderVisualSearchConditions();
+    
+    // 清空输入框
+    document.getElementById('visual-search-value').value = '';
+}
+
+// 添加条件组 (通常用于 OR)
+function addVisualSearchGroup() {
+    const group = {
+        type: 'group',
+        logic: 'Or',
+        conditions: []
+    };
+    visualSearchConditions.push(group);
+    renderVisualSearchConditions();
+}
+
+// 移除组
+function removeVisualGroup(index) {
+    visualSearchConditions.splice(index, 1);
+    renderVisualSearchConditions();
+}
+
+// 更新组逻辑
+function updateGroupLogic(index, logic) {
+    if (visualSearchConditions[index] && visualSearchConditions[index].type === 'group') {
+        visualSearchConditions[index].logic = logic;
+    }
+}
+
+// 显示向组添加条件的对话框 (简化版：直接添加当前选中的条件)
+function addConditionToGroup(groupIndex) {
+    const field = document.getElementById('visual-search-field').value;
+    const operator = document.getElementById('visual-search-operator').value;
+    const value = document.getElementById('visual-search-value').value;
+
+    if (!value) {
+        showMessage('请输入值以添加到组', 'warning');
+        return;
+    }
+
+    const condition = {
+        field: field,
+        operator: operator,
+        value: value
+    };
+
+    visualSearchConditions[groupIndex].conditions.push(condition);
+    renderVisualSearchConditions();
+}
+
+// 获取字段显示名称
+function getFieldLabel(field) {
+    const labels = {
+        'Id': 'ID',
+        'Type_': '类型',
+        'Path': '路径',
+        'ReferenceCount': '引用计数',
+        'GroupId': '组ID',
+        'Description': '描述',
+        'Name': '名称',
+        'IsPrimary': '主分组',
+        'ClickCount': '点击量',
+        'ShareCount': '分享量',
+        'CreateTime': '创建时间',
+        'ModifyTime': '修改时间'
+    };
+    return labels[field] || field;
+}
+
+// 获取操作符显示名称
+function getOperatorLabel(operator) {
+    const labels = {
+        'equal': '=',
+        'like': '包含',
+        'greater': '>',
+        'less': '<',
+        'in': '在集合中'
+    };
+    return labels[operator] || operator;
+}
+
+// 渲染可视化查询条件
+function renderVisualSearchConditions() {
+    const container = document.getElementById('visual-search-conditions');
+    if (!container) return;
+
+    container.innerHTML = '';
+    
+    if (visualSearchConditions.length === 0) {
+        container.innerHTML = '<p style="color: #888; text-align: center; margin: 20px 0;">尚未添加任何查询条件</p>';
+        return;
+    }
+
+    const visualContainer = document.createElement('div');
+    visualContainer.className = 'visual-search-container';
+
+    // 顶部控制栏
+    const controls = document.createElement('div');
+    controls.style.marginBottom = '10px';
+    controls.style.display = 'flex';
+    controls.style.justifyContent = 'space-between';
+    controls.style.alignItems = 'center';
+    controls.innerHTML = `
+        <span>
+            全局逻辑: 
+            <select class="logic-operator-select" onchange="updateMainLogic(this.value)">
+                <option value="And" ${currentSearchLogic === 'And' ? 'selected' : ''}>AND (全部满足)</option>
+                <option value="Or" ${currentSearchLogic === 'Or' ? 'selected' : ''}>OR (满足其一)</option>
+            </select>
+        </span>
+        <div>
+            <button type="button" class="btn-secondary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="addVisualSearchGroup()">+ 添加逻辑组</button>
+            <button type="button" class="btn-secondary" style="padding: 2px 8px; font-size: 0.8rem;" onclick="clearVisualConditions()">清空</button>
+        </div>
     `;
-    conditionsContainer.appendChild(conditionElement);
+    visualContainer.appendChild(controls);
+
+    visualSearchConditions.forEach((item, index) => {
+        if (item.type === 'condition') {
+            const tag = document.createElement('div');
+            tag.className = 'condition-tag';
+            tag.innerHTML = `
+                <span><strong>${getFieldLabel(item.field)}</strong> ${getOperatorLabel(item.operator)} <em>${item.value}</em></span>
+                <span class="remove-btn" onclick="visualSearchConditions.splice(${index}, 1); renderVisualSearchConditions();">&times;</span>
+            `;
+            visualContainer.appendChild(tag);
+        } else if (item.type === 'group') {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'condition-group';
+            groupEl.setAttribute('data-logic', item.logic);
+            
+            const groupHeader = document.createElement('div');
+            groupHeader.className = 'condition-group-header';
+            groupHeader.innerHTML = `
+                <span>
+                    <span class="logic-badge ${item.logic.toLowerCase()}">${item.logic}</span>
+                    逻辑组
+                    <select class="logic-operator-select" style="margin-left: 5px;" onchange="updateGroupLogic(${index}, this.value); renderVisualSearchConditions();">
+                        <option value="Or" ${item.logic === 'Or' ? 'selected' : ''}>OR</option>
+                        <option value="And" ${item.logic === 'And' ? 'selected' : ''}>AND</option>
+                    </select>
+                </span>
+                <button type="button" class="btn-secondary" style="padding: 0 5px;" onclick="removeVisualGroup(${index})">&times;</button>
+            `;
+            groupEl.appendChild(groupHeader);
+
+            const groupContent = document.createElement('div');
+            item.conditions.forEach((c, cIdx) => {
+                const tag = document.createElement('div');
+                tag.className = 'condition-tag';
+                tag.innerHTML = `
+                    <span><strong>${getFieldLabel(c.field)}</strong> ${getOperatorLabel(c.operator)} <em>${c.value}</em></span>
+                    <span class="remove-btn" onclick="visualSearchConditions[${index}].conditions.splice(${cIdx}, 1); renderVisualSearchConditions();">&times;</span>
+                `;
+                groupContent.appendChild(tag);
+            });
+
+            if (item.conditions.length === 0) {
+                const tip = document.createElement('p');
+                tip.style.fontSize = '0.8rem';
+                tip.style.color = '#888';
+                tip.style.margin = '5px 10px';
+                tip.textContent = '暂无子条件，点击下方按钮添加';
+                groupContent.appendChild(tip);
+            }
+
+            const addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'btn-secondary';
+            addBtn.style.display = 'block';
+            addBtn.style.margin = '5px auto';
+            addBtn.style.fontSize = '0.75rem';
+            addBtn.style.padding = '2px 10px';
+            addBtn.textContent = '+ 将上方选中的条件加入此组';
+            addBtn.onclick = () => addConditionToGroup(index);
+
+            groupEl.appendChild(groupContent);
+            groupEl.appendChild(addBtn);
+            visualContainer.appendChild(groupEl);
+        }
+    });
+
+    container.appendChild(visualContainer);
+}
+
+// 将可视化条件转换为后端需要的 JSON 格式
+function compileVisualSearchConditions() {
+    if (visualSearchConditions.length === 0) return [];
+
+    const result = visualSearchConditions.map(item => {
+        if (item.type === 'condition') {
+            return convertConditionToJson(item);
+        } else if (item.type === 'group') {
+            const groupConditions = item.conditions.map(c => convertConditionToJson(c));
+            if (groupConditions.length === 0) return null;
+            const obj = {};
+            obj[item.logic] = groupConditions;
+            return obj;
+        }
+    }).filter(item => item !== null);
+
+    if (currentSearchLogic === 'Or') {
+        return [{ "Or": result }];
+    }
+    
+    return result;
+}
+
+// 转换单个条件为 JSON
+function convertConditionToJson(item) {
+    const field = item.field;
+    const operator = item.operator;
+    let value = item.value;
+
+    // 根据字段类型转换值 (仅当不是 IN 操作符时)
+    if (operator !== 'in') {
+        if (field === 'Id' || field === 'ReferenceCount' || field === 'GroupId' || field === 'ClickCount' || field === 'ShareCount') {
+            value = parseInt(value);
+        } else if (field === 'IsPrimary') {
+            value = (value.toLowerCase() === 'true' || value === '1');
+        }
+    }
+
+    let variant = field;
+    if (operator === 'greater') variant += 'GreaterThan';
+    else if (operator === 'less') variant += 'LessThan';
+    else if (operator === 'like') variant += 'Like';
+    else if (operator === 'in') {
+        variant += 'In';
+        // 确保 value 是字符串再进行 split
+        const strValue = String(item.value);
+        value = strValue.split(',').map(v => {
+            v = v.trim();
+            if (field === 'Id' || field === 'ReferenceCount' || field === 'GroupId') return parseInt(v);
+            return v;
+        });
+    }
+
+    const obj = {};
+    obj[variant] = value;
+    return obj;
 }
 
 // 执行可视化搜索
 function performVisualSearch() {
-    // 这里应该根据添加的条件构造查询条件并执行搜索
-    showMessage('可视化搜索功能待实现', 'info');
+    const jsonTab = document.getElementById('json-search');
+    // 如果当前在 JSON 标签页，先将 JSON 同步到可视化状态，确保 lastSearchState 保存的是最新修改
+    if (jsonTab && jsonTab.style.display !== 'none') {
+        syncJsonToVisual();
+    }
+
+    const conditions = compileVisualSearchConditions();
+    if (conditions.length === 0) {
+        showMessage('请添加至少一个查询条件', 'warning');
+        return;
+    }
+
+    // 保存搜索状态
+    lastSearchState.conditions = JSON.parse(JSON.stringify(visualSearchConditions));
+    lastSearchState.logic = currentSearchLogic;
+    lastSearchState.active = true;
+    lastSearchState.target = getActivePageTarget();
+
+    // 关闭模态框并渲染条件展示条
+    closeModal();
+    renderActiveSearchConditions();
+
+    const target = lastSearchState.target;
+    if (target === 'files' && typeof searchFilesByConditions === 'function') {
+        searchFilesByConditions(conditions);
+    } else if (target === 'groups' && typeof searchGroupsByConditions === 'function') {
+        searchGroupsByConditions(conditions);
+    } else if (target === 'tags' && typeof searchTagsByConditions === 'function') {
+        searchTagsByConditions(conditions);
+    } else {
+        showMessage('无法确定搜索目标，请在对应页面执行搜索', 'error');
+    }
 }
+
 
 // 显示确认对话框
 function showConfirmDialog(title, message, callback) {

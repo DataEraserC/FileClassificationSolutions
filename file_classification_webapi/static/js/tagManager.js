@@ -505,36 +505,43 @@ function openComplexSearchTagDialog() {
         </div>
         <div id="visual-search" class="tab-content active">
             <form id="visual-tag-search-form">
-                <div class="form-group">
-                    <label for="visual-search-field">查询字段:</label>
-                    <select id="visual-search-field">
-                        <option value="Id">ID</option>
-                        <option value="Name">名称</option>
-                        <option value="Description">描述</option>
-                        <option value="ReferenceCount">引用计数</option>
-                    </select>
+                <div class="form-group-container" style="display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="visual-search-field">查询字段:</label>
+                        <select id="visual-search-field">
+                            <option value="Id">ID</option>
+                            <option value="Name">名称</option>
+                            <option value="Description">描述</option>
+                            <option value="ReferenceCount">引用计数</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="visual-search-operator">操作符:</label>
+                        <select id="visual-search-operator">
+                            <option value="equal">等于</option>
+                            <option value="like">包含</option>
+                            <option value="greater">大于</option>
+                            <option value="less">小于</option>
+                            <option value="in">在集合中(逗号分隔)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 150px;">
+                        <label for="visual-search-value">值:</label>
+                        <input type="text" id="visual-search-value" placeholder="输入查询值...">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <button type="button" class="btn-primary" onclick="addVisualSearchCondition()">添加</button>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="visual-search-operator">操作符:</label>
-                    <select id="visual-search-operator">
-                        <option value="equal">等于</option>
-                        <option value="like">包含</option>
-                        <option value="greater">大于</option>
-                        <option value="less">小于</option>
-                    </select>
+                
+                <div id="visual-search-conditions" class="visual-search-container">
+                    <!-- 条件标签将在这里显示 -->
                 </div>
-                <div class="form-group">
-                    <label for="visual-search-value">值:</label>
-                    <input type="text" id="visual-search-value">
+                
+                <div style="margin-top: 15px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="button" class="btn-primary" onclick="performVisualSearch()">开始查询</button>
                 </div>
-                <div class="form-group">
-                    <button type="button" onclick="addVisualSearchCondition()">添加条件</button>
-                </div>
-                <div class="form-group">
-                    <label>已添加的条件:</label>
-                    <div id="visual-search-conditions"></div>
-                </div>
-                <button type="button" onclick="performVisualSearch()">查询</button>
             </form>
         </div>
         <div id="json-search" class="tab-content" style="display: none;">
@@ -543,11 +550,23 @@ function openComplexSearchTagDialog() {
                     <label for="complex-search-tag-conditions">查询条件 (JSON格式):</label>
                     <textarea id="complex-search-tag-conditions" rows="5" placeholder='[{"Id": 1}, {"Name": "example"}]'></textarea>
                 </div>
-                <button type="submit">查询</button>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
+                    <button type="submit" class="btn-primary">查询</button>
+                </div>
             </form>
         </div>
-        <button type="button" class="btn-secondary" onclick="closeModal()">取消</button>
     `;
+
+    // 初始化可视化查询状态：如果有上一次的搜索内容且目标一致，则恢复
+    const currentTarget = getActivePageTarget();
+    if (lastSearchState.active && lastSearchState.target === currentTarget) {
+        visualSearchConditions = JSON.parse(JSON.stringify(lastSearchState.conditions));
+        currentSearchLogic = lastSearchState.logic;
+        renderVisualSearchConditions();
+    } else {
+        clearVisualConditions();
+    }
 
     // 绑定表单提交事件
     document.getElementById('json-tag-search-form').addEventListener('submit', function (e) {
@@ -560,6 +579,15 @@ function openComplexSearchTagDialog() {
 
         try {
             const conditions = JSON.parse(conditionsJson);
+            
+            // 同步到可视化状态以便持久化
+            syncJsonToVisual();
+            lastSearchState.conditions = JSON.parse(JSON.stringify(visualSearchConditions));
+            lastSearchState.logic = currentSearchLogic;
+            lastSearchState.active = true;
+            lastSearchState.target = getActivePageTarget();
+            renderActiveSearchConditions();
+
             searchTagsByConditions(conditions);
         } catch (e) {
             showMessage('JSON格式错误: ' + e.message, 'error');
@@ -568,6 +596,7 @@ function openComplexSearchTagDialog() {
 
     document.getElementById('modal').style.display = 'block';
 }
+
 
 function searchTagsByConditions(conditions) {
     // 构造查询选项
