@@ -20,38 +20,37 @@ use diesel::sql_types::Bool;
 /// 返回值:
 /// 成功时返回插入记录的ID，失败则返回数据库错误
 pub fn insert_file(
-    conn: &mut AnyConnection,
-    new_file: &CreateFileDTO,
+  conn: &mut AnyConnection,
+  new_file: &CreateFileDTO,
 ) -> Result<i32, diesel::result::Error> {
-    // 使用 match 表达式根据连接类型选择实现方式
-    match conn {
-        #[cfg(feature = "sqlite")]
-        // 对于 SQLite 连接，使用 returning 子句
-        AnyConnection::Sqlite(sqlite) => {
-            diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(sqlite)
-        }
-        #[cfg(feature = "mysql")]
-        // 对于 MySQL 连接，使用事务方式
-        AnyConnection::Mysql(mysql) => {
-            conn.transaction(|mysql| {
-                // 执行插入操作
-                diesel::insert_into(files::table)
-                    .values(new_file)
-                    .execute(mysql)?;
-
-                // MySQL使用LAST_INSERT_ID()获取最后插入的ID
-                let last_id: i32 = diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>("LAST_INSERT_ID()"))
-                    .get_result(mysql)?;
-
-                Ok(last_id)
-            })
-        },
-        #[cfg(feature = "postgres")]
-        // 对于 PostgreSQL 连接，使用 returning 子句
-        AnyConnection::Postgresql(postgres) => {
-            diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(postgres)
-        }
+  // 使用 match 表达式根据连接类型选择实现方式
+  match conn {
+    #[cfg(feature = "sqlite")]
+    // 对于 SQLite 连接，使用 returning 子句
+    AnyConnection::Sqlite(sqlite) => {
+      diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(sqlite)
     }
+    #[cfg(feature = "mysql")]
+    // 对于 MySQL 连接，使用事务方式
+    AnyConnection::Mysql(mysql) => {
+      conn.transaction(|mysql| {
+        // 执行插入操作
+        diesel::insert_into(files::table).values(new_file).execute(mysql)?;
+
+        // MySQL使用LAST_INSERT_ID()获取最后插入的ID
+        let last_id: i32 =
+          diesel::select(diesel::dsl::sql::<diesel::sql_types::Integer>("LAST_INSERT_ID()"))
+            .get_result(mysql)?;
+
+        Ok(last_id)
+      })
+    }
+    #[cfg(feature = "postgres")]
+    // 对于 PostgreSQL 连接，使用 returning 子句
+    AnyConnection::Postgresql(postgres) => {
+      diesel::insert_into(files::table).values(new_file).returning(files::id).get_result(postgres)
+    }
+  }
 }
 
 /// 根据ID查找文件记录
@@ -63,10 +62,10 @@ pub fn insert_file(
 /// 返回值:
 /// 成功时返回匹配的文件记录（如果存在），失败则返回数据库错误
 pub fn find_file_by_id(
-    conn: &mut AnyConnection,
-    _id: i32,
+  conn: &mut AnyConnection,
+  _id: i32,
 ) -> Result<Option<File>, diesel::result::Error> {
-    files::table.filter(files::id.eq(_id)).select(File::as_select()).first(conn).optional()
+  files::table.filter(files::id.eq(_id)).select(File::as_select()).first(conn).optional()
 }
 
 /// 增加文件的引用计数
@@ -78,12 +77,12 @@ pub fn find_file_by_id(
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn increase_file_reference_count_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
+  conn: &mut AnyConnection,
+  file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::update(files::table.find(file_id))
-        .set(files::reference_count.eq(files::reference_count + 1))
-        .execute(conn)
+  diesel::update(files::table.find(file_id))
+    .set(files::reference_count.eq(files::reference_count + 1))
+    .execute(conn)
 }
 
 /// 减少文件的引用计数
@@ -95,12 +94,12 @@ pub fn increase_file_reference_count_by_id(
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn decrease_file_reference_count_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
+  conn: &mut AnyConnection,
+  file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::update(files::table.find(file_id))
-        .set(files::reference_count.eq(files::reference_count - 1))
-        .execute(conn)
+  diesel::update(files::table.find(file_id))
+    .set(files::reference_count.eq(files::reference_count - 1))
+    .execute(conn)
 }
 
 /// 根据多个文件ID批量增加文件引用计数
@@ -112,13 +111,13 @@ pub fn decrease_file_reference_count_by_id(
 /// 返回值:
 /// 成功时返回影响的行数，失败则返回数据库错误
 pub fn increase_file_reference_count_by_ids(
-    conn: &mut AnyConnection,
-    file_ids: Vec<i32>,
+  conn: &mut AnyConnection,
+  file_ids: Vec<i32>,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::update(files::table)
-        .filter(files::id.eq_any(file_ids))
-        .set(files::reference_count.eq(files::reference_count + 1))
-        .execute(conn)
+  diesel::update(files::table)
+    .filter(files::id.eq_any(file_ids))
+    .set(files::reference_count.eq(files::reference_count + 1))
+    .execute(conn)
 }
 
 /// 根据多个文件ID批量减少文件引用计数
@@ -130,13 +129,13 @@ pub fn increase_file_reference_count_by_ids(
 /// 返回值:
 /// 成功时返回影响的行数，失败则返回数据库错误
 pub fn decrease_file_reference_count_by_ids(
-    conn: &mut AnyConnection,
-    file_ids: Vec<i32>,
+  conn: &mut AnyConnection,
+  file_ids: Vec<i32>,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::update(files::table)
-        .filter(files::id.eq_any(file_ids))
-        .set(files::reference_count.eq(files::reference_count - 1))
-        .execute(conn)
+  diesel::update(files::table)
+    .filter(files::id.eq_any(file_ids))
+    .set(files::reference_count.eq(files::reference_count - 1))
+    .execute(conn)
 }
 
 /// 根据过滤条件查询文件列表
@@ -149,37 +148,37 @@ pub fn decrease_file_reference_count_by_ids(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_filter_with_limit(
-    conn: &mut AnyConnection,
-    search_input: FileFilter,
-    limit: Option<i64>,
+  conn: &mut AnyConnection,
+  search_input: FileFilter,
+  limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    // 使用 into_boxed() 来对查询进行类型擦除
-    let mut base_query = files.into_boxed::<<AnyConnection as Connection>::Backend>();
-    
-    // 如果有限制数量，则添加限制
-    if let Some(limit_value) = limit {
-        base_query = base_query.limit(limit_value);
-    }
+  // 使用 into_boxed() 来对查询进行类型擦除
+  let mut base_query = files.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 如果 search_input 中有各字段，则添加相应的过滤条件
-    if let Some(file_id) = search_input.id {
-        base_query = base_query.filter(files::id.eq(file_id));
-    }
-    if let Some(file_type) = search_input.type_ {
-        base_query = base_query.filter(files::type_.eq(file_type));
-    }
-    if let Some(file_path) = search_input.path {
-        base_query = base_query.filter(files::path.eq(file_path));
-    }
-    if let Some(ref_count) = search_input.reference_count {
-        base_query = base_query.filter(files::reference_count.eq(ref_count));
-    }
-    if let Some(group) = search_input.group_id {
-        base_query = base_query.filter(files::group_id.eq(group));
-    }
+  // 如果有限制数量，则添加限制
+  if let Some(limit_value) = limit {
+    base_query = base_query.limit(limit_value);
+  }
 
-    // 执行查询
-    base_query.select(File::as_select()).load(conn)
+  // 如果 search_input 中有各字段，则添加相应的过滤条件
+  if let Some(file_id) = search_input.id {
+    base_query = base_query.filter(files::id.eq(file_id));
+  }
+  if let Some(file_type) = search_input.type_ {
+    base_query = base_query.filter(files::type_.eq(file_type));
+  }
+  if let Some(file_path) = search_input.path {
+    base_query = base_query.filter(files::path.eq(file_path));
+  }
+  if let Some(ref_count) = search_input.reference_count {
+    base_query = base_query.filter(files::reference_count.eq(ref_count));
+  }
+  if let Some(group) = search_input.group_id {
+    base_query = base_query.filter(files::group_id.eq(group));
+  }
+
+  // 执行查询
+  base_query.select(File::as_select()).load(conn)
 }
 
 /// 根据文件ID删除文件记录
@@ -191,10 +190,10 @@ pub fn select_files_by_filter_with_limit(
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn delete_file_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
+  conn: &mut AnyConnection,
+  file_id: i32,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
+  diesel::delete(files.filter(files::id.eq(file_id))).execute(conn)
 }
 
 /// 根据多个文件ID批量删除文件记录
@@ -206,10 +205,10 @@ pub fn delete_file_by_id(
 /// 返回值:
 /// 成功时返回影响的行数，失败则返回数据库错误
 pub fn delete_files_by_ids(
-    conn: &mut AnyConnection,
-    file_ids: Vec<i32>,
+  conn: &mut AnyConnection,
+  file_ids: Vec<i32>,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::delete(files::table.filter(files::id.eq_any(file_ids))).execute(conn)
+  diesel::delete(files::table.filter(files::id.eq_any(file_ids))).execute(conn)
 }
 
 /// 构建符合 Diesel 查询语法的条件表达式
@@ -220,86 +219,90 @@ pub fn delete_files_by_ids(
 /// 返回值:
 /// 符合 Diesel 查询条件类型的动态表达式盒子
 fn build_file_condition(
-    condition: FileCondition,
+  condition: FileCondition,
 ) -> Box<
-    dyn BoxableExpression<
-        files::table,
-        <AnyConnection as Connection>::Backend,
-        SqlType=diesel::sql_types::Bool,
+  dyn BoxableExpression<
+      files::table,
+      <AnyConnection as Connection>::Backend,
+      SqlType = diesel::sql_types::Bool,
     >,
 > {
-    match condition {
-        // 基本相等条件
-        FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
-        FileCondition::Type(t) => Box::new(files::type_.eq(t)),
-        FileCondition::Path(p) => Box::new(files::path.eq(p)),
-        FileCondition::ReferenceCount(rc) => Box::new(files::reference_count.eq(rc)),
-        FileCondition::GroupId(gid) => Box::new(files::group_id.eq(gid)),
-        FileCondition::Description(desc) => Box::new(files::description.eq(desc).assume_not_null()),
+  match condition {
+    // 基本相等条件
+    FileCondition::Id(_id) => Box::new(files::id.eq(_id)),
+    FileCondition::Type(t) => Box::new(files::type_.eq(t)),
+    FileCondition::Path(p) => Box::new(files::path.eq(p)),
+    FileCondition::ReferenceCount(rc) => Box::new(files::reference_count.eq(rc)),
+    FileCondition::GroupId(gid) => Box::new(files::group_id.eq(gid)),
+    FileCondition::Description(desc) => Box::new(files::description.eq(desc).assume_not_null()),
 
-        // 范围比较条件
-        FileCondition::IdGreaterThan(value) => Box::new(files::id.gt(value)),
-        FileCondition::IdLessThan(value) => Box::new(files::id.lt(value)),
-        FileCondition::TypeLike(pattern) => Box::new(files::type_.like(pattern)),
-        FileCondition::PathLike(pattern) => Box::new(files::path.like(pattern)),
-        FileCondition::ReferenceCountGreaterThan(value) => Box::new(files::reference_count.gt(value)),
-        FileCondition::ReferenceCountLessThan(value) => Box::new(files::reference_count.lt(value)),
-        FileCondition::GroupIdGreaterThan(value) => Box::new(files::group_id.gt(value)),
-        FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
-        FileCondition::DescriptionLike(pattern) => Box::new(files::description.like(pattern).assume_not_null()),
-
-        // 集合包含条件
-        FileCondition::IdIn(values) => Box::new(files::id.eq_any(values)),
-        FileCondition::TypeIn(values) => Box::new(files::type_.eq_any(values)),
-        FileCondition::PathIn(values) => Box::new(files::path.eq_any(values)),
-        FileCondition::ReferenceCountIn(values) => Box::new(files::reference_count.eq_any(values)),
-        FileCondition::GroupIdIn(values) => Box::new(files::group_id.eq_any(values)),
-        FileCondition::DescriptionIn(values) => Box::new(files::description.eq_any(values).assume_not_null()),
-
-        // 逻辑运算条件
-        FileCondition::And(conditions) => {
-            let mut result: Option<
-                Box<
-                    dyn BoxableExpression<
-                        files::table,
-                        <AnyConnection as Connection>::Backend,
-                        SqlType=diesel::sql_types::Bool,
-                    >,
-                >,
-            > = None;
-            for cond in conditions {
-                let expr = build_file_condition(cond);
-                match result {
-                    None => result = Some(expr),
-                    Some(prev) => result = Some(Box::new(prev.and(expr))),
-                }
-            }
-            result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
-        }
-        FileCondition::Or(conditions) => {
-            let mut result: Option<
-                Box<
-                    dyn BoxableExpression<
-                        files::table,
-                        <AnyConnection as Connection>::Backend,
-                        SqlType=diesel::sql_types::Bool,
-                    >,
-                >,
-            > = None;
-            for cond in conditions {
-                let expr = build_file_condition(cond);
-                match result {
-                    None => result = Some(expr),
-                    Some(prev) => result = Some(Box::new(prev.or(expr))),
-                }
-            }
-            result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
-        }
-        FileCondition::Not(condition) => {
-            let expr = build_file_condition(*condition);
-            Box::new(diesel::dsl::not(expr))
-        }
+    // 范围比较条件
+    FileCondition::IdGreaterThan(value) => Box::new(files::id.gt(value)),
+    FileCondition::IdLessThan(value) => Box::new(files::id.lt(value)),
+    FileCondition::TypeLike(pattern) => Box::new(files::type_.like(pattern)),
+    FileCondition::PathLike(pattern) => Box::new(files::path.like(pattern)),
+    FileCondition::ReferenceCountGreaterThan(value) => Box::new(files::reference_count.gt(value)),
+    FileCondition::ReferenceCountLessThan(value) => Box::new(files::reference_count.lt(value)),
+    FileCondition::GroupIdGreaterThan(value) => Box::new(files::group_id.gt(value)),
+    FileCondition::GroupIdLessThan(value) => Box::new(files::group_id.lt(value)),
+    FileCondition::DescriptionLike(pattern) => {
+      Box::new(files::description.like(pattern).assume_not_null())
     }
+
+    // 集合包含条件
+    FileCondition::IdIn(values) => Box::new(files::id.eq_any(values)),
+    FileCondition::TypeIn(values) => Box::new(files::type_.eq_any(values)),
+    FileCondition::PathIn(values) => Box::new(files::path.eq_any(values)),
+    FileCondition::ReferenceCountIn(values) => Box::new(files::reference_count.eq_any(values)),
+    FileCondition::GroupIdIn(values) => Box::new(files::group_id.eq_any(values)),
+    FileCondition::DescriptionIn(values) => {
+      Box::new(files::description.eq_any(values).assume_not_null())
+    }
+
+    // 逻辑运算条件
+    FileCondition::And(conditions) => {
+      let mut result: Option<
+        Box<
+          dyn BoxableExpression<
+              files::table,
+              <AnyConnection as Connection>::Backend,
+              SqlType = diesel::sql_types::Bool,
+            >,
+        >,
+      > = None;
+      for cond in conditions {
+        let expr = build_file_condition(cond);
+        match result {
+          None => result = Some(expr),
+          Some(prev) => result = Some(Box::new(prev.and(expr))),
+        }
+      }
+      result.unwrap_or_else(|| Box::new(true.into_sql::<Bool>()))
+    }
+    FileCondition::Or(conditions) => {
+      let mut result: Option<
+        Box<
+          dyn BoxableExpression<
+              files::table,
+              <AnyConnection as Connection>::Backend,
+              SqlType = diesel::sql_types::Bool,
+            >,
+        >,
+      > = None;
+      for cond in conditions {
+        let expr = build_file_condition(cond);
+        match result {
+          None => result = Some(expr),
+          Some(prev) => result = Some(Box::new(prev.or(expr))),
+        }
+      }
+      result.unwrap_or_else(|| Box::new(false.into_sql::<Bool>()))
+    }
+    FileCondition::Not(condition) => {
+      let expr = build_file_condition(*condition);
+      Box::new(diesel::dsl::not(expr))
+    }
+  }
 }
 
 /// 根据多个条件查询文件记录，并可设置最大返回数量
@@ -312,23 +315,23 @@ fn build_file_condition(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_conditions_with_limit(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-    limit: Option<i64>,
+  conn: &mut AnyConnection,
+  conditions: Vec<FileCondition>,
+  limit: Option<i64>,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 对每个条件应用 AND 逻辑
-    for condition in conditions {
-        let boxed_condition = build_file_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+  // 对每个条件应用 AND 逻辑
+  for condition in conditions {
+    let boxed_condition = build_file_condition(condition);
+    query = query.filter(boxed_condition);
+  }
 
-    if let Some(limit) = limit {
-        query = query.limit(limit)
-    }
+  if let Some(limit) = limit {
+    query = query.limit(limit)
+  }
 
-    query.select(File::as_select()).load(conn)
+  query.select(File::as_select()).load(conn)
 }
 
 /// 根据多个条件和高级选项查询文件记录
@@ -344,54 +347,54 @@ pub fn select_files_by_conditions_with_limit(
 /// 查询成功的文件记录列表或数据库错误
 #[allow(dead_code)]
 pub fn select_files_by_conditions_with_options(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-    options: FileQueryOptions,
+  conn: &mut AnyConnection,
+  conditions: Vec<FileCondition>,
+  options: FileQueryOptions,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 对每个条件应用 AND 逻辑
-    for condition in conditions {
-        let boxed_condition = build_file_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+  // 对每个条件应用 AND 逻辑
+  for condition in conditions {
+    let boxed_condition = build_file_condition(condition);
+    query = query.filter(boxed_condition);
+  }
 
-    // 应用查询选项（排序、限制等）
-    if let Some(limit) = options.limit {
-        query = query.limit(limit);
-    }
+  // 应用查询选项（排序、限制等）
+  if let Some(limit) = options.limit {
+    query = query.limit(limit);
+  }
 
-    if let Some(offset) = options.offset {
-        query = query.offset(offset);
-    }
+  if let Some(offset) = options.offset {
+    query = query.offset(offset);
+  }
 
-    // 应用排序
-    for order_by in options.order_by {
-        query = match order_by {
-            FileOrderBy::Id(direction) => match direction {
-                OrderDirection::Asc => query.order(files::id.asc()),
-                OrderDirection::Desc => query.order(files::id.desc()),
-            },
-            FileOrderBy::Type(direction) => match direction {
-                OrderDirection::Asc => query.order(files::type_.asc()),
-                OrderDirection::Desc => query.order(files::type_.desc()),
-            },
-            FileOrderBy::Path(direction) => match direction {
-                OrderDirection::Asc => query.order(files::path.asc()),
-                OrderDirection::Desc => query.order(files::path.desc()),
-            },
-            FileOrderBy::ReferenceCount(direction) => match direction {
-                OrderDirection::Asc => query.order(files::reference_count.asc()),
-                OrderDirection::Desc => query.order(files::reference_count.desc()),
-            },
-            FileOrderBy::GroupId(direction) => match direction {
-                OrderDirection::Asc => query.order(files::group_id.asc()),
-                OrderDirection::Desc => query.order(files::group_id.desc()),
-            },
-        };
-    }
+  // 应用排序
+  for order_by in options.order_by {
+    query = match order_by {
+      FileOrderBy::Id(direction) => match direction {
+        OrderDirection::Asc => query.order(files::id.asc()),
+        OrderDirection::Desc => query.order(files::id.desc()),
+      },
+      FileOrderBy::Type(direction) => match direction {
+        OrderDirection::Asc => query.order(files::type_.asc()),
+        OrderDirection::Desc => query.order(files::type_.desc()),
+      },
+      FileOrderBy::Path(direction) => match direction {
+        OrderDirection::Asc => query.order(files::path.asc()),
+        OrderDirection::Desc => query.order(files::path.desc()),
+      },
+      FileOrderBy::ReferenceCount(direction) => match direction {
+        OrderDirection::Asc => query.order(files::reference_count.asc()),
+        OrderDirection::Desc => query.order(files::reference_count.desc()),
+      },
+      FileOrderBy::GroupId(direction) => match direction {
+        OrderDirection::Asc => query.order(files::group_id.asc()),
+        OrderDirection::Desc => query.order(files::group_id.desc()),
+      },
+    };
+  }
 
-    query.select(File::as_select()).load(conn)
+  query.select(File::as_select()).load(conn)
 }
 
 /// 根据多个条件和高级选项查询文件记录（支持分页）
@@ -406,69 +409,69 @@ pub fn select_files_by_conditions_with_options(
 /// 返回值:
 /// 查询成功的分页结果或数据库错误
 pub fn select_files_by_conditions_with_pagination(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-    options: FileQueryOptions,
+  conn: &mut AnyConnection,
+  conditions: Vec<FileCondition>,
+  options: FileQueryOptions,
 ) -> Result<PaginationResult<File>, diesel::result::Error> {
-    let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
-    let mut count_query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut count_query = files::table.into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 对每个条件应用 AND 逻辑
-    for condition in &conditions {
-        let boxed_condition = build_file_condition(condition.clone());
-        query = query.filter(boxed_condition);
-        // 修复：为 count_query 重新构建条件而不是克隆
-        let count_condition = build_file_condition(condition.clone());
-        count_query = count_query.filter(count_condition);
-    }
+  // 对每个条件应用 AND 逻辑
+  for condition in &conditions {
+    let boxed_condition = build_file_condition(condition.clone());
+    query = query.filter(boxed_condition);
+    // 修复：为 count_query 重新构建条件而不是克隆
+    let count_condition = build_file_condition(condition.clone());
+    count_query = count_query.filter(count_condition);
+  }
 
-    // 计算总记录数
-    let total = count_query.count().get_result::<i64>(conn)?;
+  // 计算总记录数
+  let total = count_query.count().get_result::<i64>(conn)?;
 
-    // 处理分页参数
-    let (limit, offset) = if let (Some(page), Some(page_size)) = (options.page, options.page_size) {
-        let offset = (page - 1) * page_size;
-        (page_size, offset)
-    } else {
-        (options.limit.unwrap_or(10), options.offset.unwrap_or(0))
+  // 处理分页参数
+  let (limit, offset) = if let (Some(page), Some(page_size)) = (options.page, options.page_size) {
+    let offset = (page - 1) * page_size;
+    (page_size, offset)
+  } else {
+    (options.limit.unwrap_or(10), options.offset.unwrap_or(0))
+  };
+
+  // 应用查询选项（排序、限制等）
+  query = query.limit(limit).offset(offset);
+
+  // 应用排序
+  for order_by in options.order_by {
+    query = match order_by {
+      FileOrderBy::Id(direction) => match direction {
+        OrderDirection::Asc => query.order(files::id.asc()),
+        OrderDirection::Desc => query.order(files::id.desc()),
+      },
+      FileOrderBy::Type(direction) => match direction {
+        OrderDirection::Asc => query.order(files::type_.asc()),
+        OrderDirection::Desc => query.order(files::type_.desc()),
+      },
+      FileOrderBy::Path(direction) => match direction {
+        OrderDirection::Asc => query.order(files::path.asc()),
+        OrderDirection::Desc => query.order(files::path.desc()),
+      },
+      FileOrderBy::ReferenceCount(direction) => match direction {
+        OrderDirection::Asc => query.order(files::reference_count.asc()),
+        OrderDirection::Desc => query.order(files::reference_count.desc()),
+      },
+      FileOrderBy::GroupId(direction) => match direction {
+        OrderDirection::Asc => query.order(files::group_id.asc()),
+        OrderDirection::Desc => query.order(files::group_id.desc()),
+      },
     };
+  }
 
-    // 应用查询选项（排序、限制等）
-    query = query.limit(limit).offset(offset);
+  let data = query.select(File::as_select()).load(conn)?;
 
-    // 应用排序
-    for order_by in options.order_by {
-        query = match order_by {
-            FileOrderBy::Id(direction) => match direction {
-                OrderDirection::Asc => query.order(files::id.asc()),
-                OrderDirection::Desc => query.order(files::id.desc()),
-            },
-            FileOrderBy::Type(direction) => match direction {
-                OrderDirection::Asc => query.order(files::type_.asc()),
-                OrderDirection::Desc => query.order(files::type_.desc()),
-            },
-            FileOrderBy::Path(direction) => match direction {
-                OrderDirection::Asc => query.order(files::path.asc()),
-                OrderDirection::Desc => query.order(files::path.desc()),
-            },
-            FileOrderBy::ReferenceCount(direction) => match direction {
-                OrderDirection::Asc => query.order(files::reference_count.asc()),
-                OrderDirection::Desc => query.order(files::reference_count.desc()),
-            },
-            FileOrderBy::GroupId(direction) => match direction {
-                OrderDirection::Asc => query.order(files::group_id.asc()),
-                OrderDirection::Desc => query.order(files::group_id.desc()),
-            },
-        };
-    }
+  // 构造分页结果
+  let page = if options.page.is_some() { options.page.unwrap() } else { offset / limit + 1 };
+  let page_size = if options.page_size.is_some() { options.page_size.unwrap() } else { limit };
 
-    let data = query.select(File::as_select()).load(conn)?;
-
-    // 构造分页结果
-    let page = if options.page.is_some() { options.page.unwrap() } else { offset / limit + 1 };
-    let page_size = if options.page_size.is_some() { options.page_size.unwrap() } else { limit };
-
-    Ok(PaginationResult::new(data, page, page_size, total))
+  Ok(PaginationResult::new(data, page, page_size, total))
 }
 
 /// 根据给定条件批量更新文件记录
@@ -481,20 +484,20 @@ pub fn select_files_by_conditions_with_pagination(
 /// 返回值:
 /// 成功更新的记录数目或数据库错误
 pub fn update_files_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
-    update_set: UpdateFileDTO,
+  conn: &mut AnyConnection,
+  conditions: Vec<FileCondition>,
+  update_set: UpdateFileDTO,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query =
-        diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut query =
+    diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_file_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+  // 应用所有条件
+  for condition in conditions {
+    let boxed_condition = build_file_condition(condition);
+    query = query.filter(boxed_condition);
+  }
 
-    query.set(update_set).execute(conn)
+  query.set(update_set).execute(conn)
 }
 
 // /// 根据给定条件批量删除文件记录
@@ -529,20 +532,20 @@ pub fn update_files_by_conditions(
 /// 返回值:
 /// 成功更新的记录数目或数据库错误
 pub fn increase_files_reference_count_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
+  conn: &mut AnyConnection,
+  conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query =
-        diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut query =
+    diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_file_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+  // 应用所有条件
+  for condition in conditions {
+    let boxed_condition = build_file_condition(condition);
+    query = query.filter(boxed_condition);
+  }
 
-    // 增加引用计数
-    query.set(files::reference_count.eq(files::reference_count + 1)).execute(conn)
+  // 增加引用计数
+  query.set(files::reference_count.eq(files::reference_count + 1)).execute(conn)
 }
 
 /// 根据给定条件批量减少文件引用计数
@@ -554,20 +557,20 @@ pub fn increase_files_reference_count_by_conditions(
 /// 返回值:
 /// 成功更新的记录数目或数据库错误
 pub fn decrease_files_reference_count_by_conditions(
-    conn: &mut AnyConnection,
-    conditions: Vec<FileCondition>,
+  conn: &mut AnyConnection,
+  conditions: Vec<FileCondition>,
 ) -> Result<usize, diesel::result::Error> {
-    let mut query =
-        diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
+  let mut query =
+    diesel::update(files::table).into_boxed::<<AnyConnection as Connection>::Backend>();
 
-    // 应用所有条件
-    for condition in conditions {
-        let boxed_condition = build_file_condition(condition);
-        query = query.filter(boxed_condition);
-    }
+  // 应用所有条件
+  for condition in conditions {
+    let boxed_condition = build_file_condition(condition);
+    query = query.filter(boxed_condition);
+  }
 
-    // 减少引用计数
-    query.set(files::reference_count.eq(files::reference_count - 1)).execute(conn)
+  // 减少引用计数
+  query.set(files::reference_count.eq(files::reference_count - 1)).execute(conn)
 }
 
 /// 根据分组ID查询关联的文件列表
@@ -579,16 +582,16 @@ pub fn decrease_files_reference_count_by_conditions(
 /// 返回值:
 /// 查询成功的文件记录列表或数据库错误
 pub fn select_files_by_group_id(
-    conn: &mut AnyConnection,
-    other_group_id: i32,
+  conn: &mut AnyConnection,
+  other_group_id: i32,
 ) -> Result<Vec<File>, diesel::result::Error> {
-    use crate::model::schema::file_groups;
+  use crate::model::schema::file_groups;
 
-    files::table
-        .inner_join(file_groups::table.on(files::id.eq(file_groups::file_id)))
-        .filter(file_groups::group_id.eq(other_group_id))
-        .select(File::as_select())
-        .load(conn)
+  files::table
+    .inner_join(file_groups::table.on(files::id.eq(file_groups::file_id)))
+    .filter(file_groups::group_id.eq(other_group_id))
+    .select(File::as_select())
+    .load(conn)
 }
 
 /// 根据文件ID获取文件详情
@@ -600,10 +603,10 @@ pub fn select_files_by_group_id(
 /// 返回值:
 /// 查询成功的文件记录或数据库错误
 pub fn get_file_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
+  conn: &mut AnyConnection,
+  file_id: i32,
 ) -> Result<File, diesel::result::Error> {
-    files::table.filter(files::id.eq(file_id)).select(File::as_select()).first(conn)
+  files::table.filter(files::id.eq(file_id)).select(File::as_select()).first(conn)
 }
 
 /// 根据文件ID更新文件信息
@@ -616,9 +619,9 @@ pub fn get_file_by_id(
 /// 返回值:
 /// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
 pub fn update_file_by_id(
-    conn: &mut AnyConnection,
-    file_id: i32,
-    update_set: UpdateFileDTO,
+  conn: &mut AnyConnection,
+  file_id: i32,
+  update_set: UpdateFileDTO,
 ) -> Result<usize, diesel::result::Error> {
-    diesel::update(files::table.filter(files::id.eq(file_id))).set(update_set).execute(conn)
+  diesel::update(files::table.filter(files::id.eq(file_id))).set(update_set).execute(conn)
 }

@@ -1,30 +1,30 @@
-use actix_web::{web, App, HttpServer, middleware::Logger};
+use actix_web::{App, HttpServer, middleware::Logger, web};
 
+use crate::handlers::file_groups;
 use crate::handlers::files;
+use crate::handlers::group_relations;
+use crate::handlers::group_tags;
 use crate::handlers::groups;
 use crate::handlers::tags;
-use crate::handlers::file_groups;
-use crate::handlers::group_tags;
-use crate::handlers::group_relations;
 use crate::handlers::uploads;
-use crate::utils::cors;
-use crate::utils::static_files;
 use crate::utils::app_config;
+use crate::utils::cors;
 use crate::utils::database;
+use crate::utils::static_files;
 
 pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> {
-    let pool = database::establish_connection_pool();
-    
-    config.log_startup_info();
-    
-    let bind_info = config.bind_info();
-    
-    // 在HttpServer::new中添加新的路由
-    HttpServer::new(move || {
-        // 创建 CORS 中间件
-        let cors_middleware = cors::create_cors();
+  let pool = database::establish_connection_pool();
 
-        App::new()
+  config.log_startup_info();
+
+  let bind_info = config.bind_info();
+
+  // 在HttpServer::new中添加新的路由
+  HttpServer::new(move || {
+    // 创建 CORS 中间件
+    let cors_middleware = cors::create_cors();
+
+    App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(config.clone()))
             .wrap(Logger::default())
@@ -116,8 +116,8 @@ pub async fn start_server(config: app_config::AppConfig) -> std::io::Result<()> 
             // 静态文件服务 - 使用嵌入的资源
             .route("/", web::get().to(static_files::index_handler))
             .route("/{filename:.*}", web::get().to(static_files::static_handler))
-    })
-        .bind(&bind_info)?
-        .run()
-        .await
+  })
+  .bind(&bind_info)?
+  .run()
+  .await
 }

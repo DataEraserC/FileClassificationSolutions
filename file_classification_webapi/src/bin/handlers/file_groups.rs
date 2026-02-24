@@ -1,14 +1,16 @@
 use crate::utils::database::DbPool;
 use crate::utils::models::{ApiError, ApiResponse};
-use actix_web::{delete, get, post, web, HttpResponse, Result};
+use actix_web::{HttpResponse, Result, delete, get, post, web};
 use file_classification_core::model::models::FileGroupDTO;
-use file_classification_core::service::file_group::{delete_file_groups_by_conditions, delete_file_groups_by_dtos, select_file_groups_by_conditions_with_limit, select_file_groups_by_conditions_with_options, select_file_groups_by_conditions_with_pagination, select_file_groups_by_filter_with_limit, select_file_groups_by_filter_with_options, select_file_groups_by_filter_with_pagination};
+use file_classification_core::service::file_group::{
+  delete_file_groups_by_conditions, delete_file_groups_by_dtos,
+  select_file_groups_by_conditions_with_limit, select_file_groups_by_conditions_with_options,
+  select_file_groups_by_conditions_with_pagination, select_file_groups_by_filter_with_limit,
+  select_file_groups_by_filter_with_options, select_file_groups_by_filter_with_pagination,
+};
 use file_classification_core::{
-    model::models::{FileGroupCondition, FileGroupFilter},
-    service::file_group::{
-        create_file_group, delete_file_group_by_dto,
-    }
-    ,
+  model::models::{FileGroupCondition, FileGroupFilter},
+  service::file_group::{create_file_group, delete_file_group_by_dto},
 };
 use serde_json::json;
 
@@ -19,25 +21,26 @@ use serde_json::json;
 /// 请求路径: GET /api/file-groups/search/by-filter-with-limit
 #[get("/api/file-groups/search/by-filter-with-limit")]
 async fn api_list_file_groups_by_filter_with_limit(
-    query: web::Query<FileGroupFilter>,
-    limit: web::Query<Option<i64>>,
-    pool: web::Data<DbPool>,
+  query: web::Query<FileGroupFilter>,
+  limit: web::Query<Option<i64>>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 从连接池获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 从连接池获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用服务层查询文件组关联列表
-    match select_file_groups_by_filter_with_limit(&mut conn, query.into_inner(), limit.into_inner()) {
-        Ok(file_groups) => {
-            let count = file_groups.len();
-            // 构造成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
-        }
-        // 错误处理
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
-        ),
+  // 调用服务层查询文件组关联列表
+  match select_file_groups_by_filter_with_limit(&mut conn, query.into_inner(), limit.into_inner()) {
+    Ok(file_groups) => {
+      let count = file_groups.len();
+      // 构造成功响应
+      Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
     }
+    // 错误处理
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
+    ),
+  }
 }
 
 /// 根据条件搜索文件组
@@ -48,27 +51,32 @@ async fn api_list_file_groups_by_filter_with_limit(
 /// 请求路径: GET /api/file-groups/search/by-conditions-with-limit
 #[get("/api/file-groups/search/by-conditions-with-limit")]
 async fn api_list_file_groups_by_conditions_with_limit(
-    conditions: web::Json<Vec<FileGroupCondition>>,
-    limit: web::Query<Option<i64>>,
-    pool: web::Data<DbPool>,
+  conditions: web::Json<Vec<FileGroupCondition>>,
+  limit: web::Query<Option<i64>>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 从连接池获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 从连接池获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用核心服务层的方法执行查询
-    match select_file_groups_by_conditions_with_limit(&mut conn, conditions.into_inner(), limit.into_inner()) {
-        Ok(file_groups) => {
-            let count = file_groups.len();
+  // 调用核心服务层的方法执行查询
+  match select_file_groups_by_conditions_with_limit(
+    &mut conn,
+    conditions.into_inner(),
+    limit.into_inner(),
+  ) {
+    Ok(file_groups) => {
+      let count = file_groups.len();
 
-            // 构造成功的响应对象并返回
-            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
-        }
-
-        // 如果出现错误，则构造失败的响应对象并返回
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
-        ),
+      // 构造成功的响应对象并返回
+      Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
     }
+
+    // 如果出现错误，则构造失败的响应对象并返回
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
+    ),
+  }
 }
 
 /// 带选项地根据条件搜索文件组
@@ -78,32 +86,33 @@ async fn api_list_file_groups_by_conditions_with_limit(
 /// 请求路径: GET /api/file-groups/search/by-conditions-with-options
 #[get("/api/file-groups/search/by-conditions-with-options")]
 async fn api_list_file_groups_by_conditions_with_options(
-    query: web::Query<(
-        Vec<FileGroupCondition>,
-        file_classification_core::model::models::FileGroupQueryOptions,
-    )>,
-    pool: web::Data<DbPool>,
+  query: web::Query<(
+    Vec<FileGroupCondition>,
+    file_classification_core::model::models::FileGroupQueryOptions,
+  )>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 解析查询参数
-    let (conditions, options) = query.into_inner();
+  // 解析查询参数
+  let (conditions, options) = query.into_inner();
 
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 执行带选项的查询
-    match select_file_groups_by_conditions_with_options(&mut conn, conditions, options) {
-        Ok(file_groups) => {
-            let count = file_groups.len();
+  // 执行带选项的查询
+  match select_file_groups_by_conditions_with_options(&mut conn, conditions, options) {
+    Ok(file_groups) => {
+      let count = file_groups.len();
 
-            // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
-        }
-
-        // 处理错误情况
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
-        ),
+      // 返回成功响应
+      Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
     }
+
+    // 处理错误情况
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
+    ),
+  }
 }
 
 /// 带选项地根据过滤条件搜索文件组
@@ -113,29 +122,33 @@ async fn api_list_file_groups_by_conditions_with_options(
 /// 请求路径: GET /api/file-groups/search/by-filter-with-options
 #[get("/api/file-groups/search/by-filter-with-options")]
 async fn api_list_file_groups_by_filter_with_options(
-    query: web::Query<(FileGroupFilter, file_classification_core::model::models::FileGroupQueryOptions)>,
-    pool: web::Data<DbPool>,
+  query: web::Query<(
+    FileGroupFilter,
+    file_classification_core::model::models::FileGroupQueryOptions,
+  )>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 解析查询参数
-    let (filter, options) = query.into_inner();
+  // 解析查询参数
+  let (filter, options) = query.into_inner();
 
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 执行带选项的查询
-    match select_file_groups_by_filter_with_options(&mut conn, filter, options) {
-        Ok(file_groups) => {
-            let count = file_groups.len();
+  // 执行带选项的查询
+  match select_file_groups_by_filter_with_options(&mut conn, filter, options) {
+    Ok(file_groups) => {
+      let count = file_groups.len();
 
-            // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
-        }
-
-        // 处理错误情况
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
-        ),
+      // 返回成功响应
+      Ok(HttpResponse::Ok().json(ApiResponse::success_with_count(file_groups, count)))
     }
+
+    // 处理错误情况
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
+    ),
+  }
 }
 
 /// 根据过滤条件分页搜索文件组
@@ -145,36 +158,35 @@ async fn api_list_file_groups_by_filter_with_options(
 /// 请求路径: GET /api/file-groups/search/by-filter-with-pagination
 #[get("/api/file-groups/search/by-filter-with-pagination")]
 async fn api_list_file_groups_by_filter_with_pagination(
-    query: web::Query<std::collections::HashMap<String, String>>,
-    pool: web::Data<DbPool>,
+  query: web::Query<std::collections::HashMap<String, String>>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 解析查询参数
-    let query_map = query.into_inner();
-    let filter_str = query_map.get("filter").cloned().unwrap_or_default();
-    let options_str = query_map.get("options").cloned().unwrap_or_default();
+  // 解析查询参数
+  let query_map = query.into_inner();
+  let filter_str = query_map.get("filter").cloned().unwrap_or_default();
+  let options_str = query_map.get("options").cloned().unwrap_or_default();
 
-    let filter: FileGroupFilter = serde_json::from_str(&filter_str).unwrap_or_else(|_| FileGroupFilter {
-        file_id: None,
-        group_id: None,
-        relation_type: None,
-    });
-    let options: file_classification_core::model::models::FileGroupQueryOptions = serde_json::from_str(&options_str)?;
+  let filter: FileGroupFilter = serde_json::from_str(&filter_str)
+    .unwrap_or_else(|_| FileGroupFilter { file_id: None, group_id: None, relation_type: None });
+  let options: file_classification_core::model::models::FileGroupQueryOptions =
+    serde_json::from_str(&options_str)?;
 
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 执行分页查询
-    match select_file_groups_by_filter_with_pagination(&mut conn, filter, options) {
-        Ok(result) => {
-            // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
-        }
-
-        // 处理错误情况
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
-        ),
+  // 执行分页查询
+  match select_file_groups_by_filter_with_pagination(&mut conn, filter, options) {
+    Ok(result) => {
+      // 返回成功响应
+      Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
     }
+
+    // 处理错误情况
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
+    ),
+  }
 }
 
 /// 根据条件分页搜索文件组
@@ -184,32 +196,35 @@ async fn api_list_file_groups_by_filter_with_pagination(
 /// 请求路径: GET /api/file-groups/search/by-conditions-with-pagination
 #[get("/api/file-groups/search/by-conditions-with-pagination")]
 async fn api_list_file_groups_by_conditions_with_pagination(
-    query: web::Query<std::collections::HashMap<String, String>>,
-    pool: web::Data<DbPool>,
+  query: web::Query<std::collections::HashMap<String, String>>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 解析查询参数
-    let query_map = query.into_inner();
-    let conditions_str = query_map.get("conditions").cloned().unwrap_or_default();
-    let options_str = query_map.get("options").cloned().unwrap_or_default();
+  // 解析查询参数
+  let query_map = query.into_inner();
+  let conditions_str = query_map.get("conditions").cloned().unwrap_or_default();
+  let options_str = query_map.get("options").cloned().unwrap_or_default();
 
-    let conditions: Vec<FileGroupCondition> = serde_json::from_str(&conditions_str).unwrap_or_else(|_| Vec::new());
-    let options: file_classification_core::model::models::FileGroupQueryOptions = serde_json::from_str(&options_str)?;
+  let conditions: Vec<FileGroupCondition> =
+    serde_json::from_str(&conditions_str).unwrap_or_else(|_| Vec::new());
+  let options: file_classification_core::model::models::FileGroupQueryOptions =
+    serde_json::from_str(&options_str)?;
 
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 执行分页查询
-    match select_file_groups_by_conditions_with_pagination(&mut conn, conditions, options) {
-        Ok(result) => {
-            // 返回成功响应
-            Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
-        }
-
-        // 处理错误情况
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
-        ),
+  // 执行分页查询
+  match select_file_groups_by_conditions_with_pagination(&mut conn, conditions, options) {
+    Ok(result) => {
+      // 返回成功响应
+      Ok(HttpResponse::Ok().json(ApiResponse::success(result.clone())))
     }
+
+    // 处理错误情况
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("INTERNAL_ERROR", &e.to_string())),
+    ),
+  }
 }
 
 /// 创建一个新的文件组关联
@@ -219,25 +234,26 @@ async fn api_list_file_groups_by_conditions_with_pagination(
 /// 请求路径: POST /api/file-groups
 #[post("/api/file-groups")]
 async fn api_create_file_group(
-    file_group_dto: web::Json<FileGroupDTO>,
-    pool: web::Data<DbPool>,
+  file_group_dto: web::Json<FileGroupDTO>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用服务层创建新记录
-    match create_file_group(&mut conn, file_group_dto.into_inner()) {
-        Ok(_) =>
-        // 成功时返回 Created 状态码及提示信息
-            {
-                Ok(HttpResponse::Created().json(ApiResponse::success_with_msg((), "文件组关联创建成功")))
-            }
-
-        // 错误处理
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("CREATE_FILE_GROUP_FAILED", &e.to_string())),
-        ),
+  // 调用服务层创建新记录
+  match create_file_group(&mut conn, file_group_dto.into_inner()) {
+    Ok(_) =>
+    // 成功时返回 Created 状态码及提示信息
+    {
+      Ok(HttpResponse::Created().json(ApiResponse::success_with_msg((), "文件组关联创建成功")))
     }
+
+    // 错误处理
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("CREATE_FILE_GROUP_FAILED", &e.to_string())),
+    ),
+  }
 }
 
 /// 删除指定的文件组关联
@@ -247,25 +263,26 @@ async fn api_create_file_group(
 /// 请求路径: DELETE /api/file-groups
 #[delete("/api/file-groups")]
 async fn api_delete_file_group(
-    file_group_dto: web::Json<FileGroupDTO>,
-    pool: web::Data<DbPool>,
+  file_group_dto: web::Json<FileGroupDTO>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用服务层删除记录
-    match delete_file_group_by_dto(&mut conn, &file_group_dto.into_inner()) {
-        Ok(_) =>
-        // 成功时返回 OK 状态码及确认消息
-            {
-                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg((), "文件组关联删除成功")))
-            }
-
-        // 错误处理
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_FILE_GROUP_FAILED", &e.to_string())),
-        ),
+  // 调用服务层删除记录
+  match delete_file_group_by_dto(&mut conn, &file_group_dto.into_inner()) {
+    Ok(_) =>
+    // 成功时返回 OK 状态码及确认消息
+    {
+      Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg((), "文件组关联删除成功")))
     }
+
+    // 错误处理
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("DELETE_FILE_GROUP_FAILED", &e.to_string())),
+    ),
+  }
 }
 
 /// 根据条件批量删除文件组关联
@@ -275,25 +292,29 @@ async fn api_delete_file_group(
 /// 请求路径: DELETE /api/file-groups/delete/by-conditions
 #[delete("/api/file-groups/delete/by-conditions")]
 async fn api_delete_file_groups_by_conditions(
-    conditions: web::Json<Vec<file_classification_core::model::models::FileGroupCondition>>,
-    pool: web::Data<DbPool>,
+  conditions: web::Json<Vec<file_classification_core::model::models::FileGroupCondition>>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用服务层执行批量删除操作
-    match delete_file_groups_by_conditions(&mut conn, conditions.into_inner()) {
-        Ok(count) =>
-        // 成功时返回删除条目数量
-            {
-                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
-            }
-
-        // 错误处理
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_FILE_GROUP_FAILED", &e.to_string())),
-        ),
+  // 调用服务层执行批量删除操作
+  match delete_file_groups_by_conditions(&mut conn, conditions.into_inner()) {
+    Ok(count) =>
+    // 成功时返回删除条目数量
+    {
+      Ok(
+        HttpResponse::Ok()
+          .json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))),
+      )
     }
+
+    // 错误处理
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("DELETE_FILE_GROUP_FAILED", &e.to_string())),
+    ),
+  }
 }
 
 /// 根据DTO列表批量删除文件组关联
@@ -303,22 +324,26 @@ async fn api_delete_file_groups_by_conditions(
 /// 请求路径: DELETE /api/file-groups/delete/by-dtos
 #[delete("/api/file-groups/delete/by-dtos")]
 async fn api_delete_file_groups_by_dtos(
-    dtos: web::Json<Vec<FileGroupDTO>>,
-    pool: web::Data<DbPool>,
+  dtos: web::Json<Vec<FileGroupDTO>>,
+  pool: web::Data<DbPool>,
 ) -> Result<HttpResponse> {
-    // 从连接池获取数据库连接
-    let mut conn = pool.get().expect("Failed to get connection from pool");
+  // 从连接池获取数据库连接
+  let mut conn = pool.get().expect("Failed to get connection from pool");
 
-    // 调用服务层根据DTO列表批量删除文件组关联
-    match delete_file_groups_by_dtos(&mut conn, dtos.into_inner()) {
-        Ok(count) =>
-        // 构造成功响应，包含删除记录数
-            {
-                Ok(HttpResponse::Ok().json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))))
-            }
-        // 错误处理
-        Err(e) => Ok(
-            HttpResponse::InternalServerError().json(ApiResponse::<()>::error_with_code("DELETE_FILE_GROUP_FAILED", &e.to_string())),
-        ),
+  // 调用服务层根据DTO列表批量删除文件组关联
+  match delete_file_groups_by_dtos(&mut conn, dtos.into_inner()) {
+    Ok(count) =>
+    // 构造成功响应，包含删除记录数
+    {
+      Ok(
+        HttpResponse::Ok()
+          .json(ApiResponse::success_with_msg(count, &format!("成功删除 {} 条记录", count))),
+      )
     }
+    // 错误处理
+    Err(e) => Ok(
+      HttpResponse::InternalServerError()
+        .json(ApiResponse::<()>::error_with_code("DELETE_FILE_GROUP_FAILED", &e.to_string())),
+    ),
+  }
 }

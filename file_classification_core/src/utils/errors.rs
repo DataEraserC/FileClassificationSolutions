@@ -13,153 +13,155 @@ use std::fmt::{Display, Formatter, Result};
 /// 包含了应用程序中可能遇到的所有错误类型，便于统一错误处理和返回友好的错误信息
 #[derive(Debug)]
 pub enum AppError {
-    // Group errors
-    /// 分组未找到错误
-    GroupNotFound,
-    /// 创建分组失败错误，包含具体的失败原因
-    CreateGroupFailed(String),
-    /// 删除分组失败错误，包含具体的失败原因
-    DeleteGroupFailed(String),
+  // Group errors
+  /// 分组未找到错误
+  GroupNotFound,
+  /// 创建分组失败错误，包含具体的失败原因
+  CreateGroupFailed(String),
+  /// 删除分组失败错误，包含具体的失败原因
+  DeleteGroupFailed(String),
 
-    // File errors
-    /// 文件未找到错误
-    FileNotFound,
-    /// 创建文件失败错误，包含具体的失败原因
-    CreateFileFailed(String),
-    /// 删除文件失败错误，包含具体的失败原因
-    DeleteFileFailed(String),
+  // File errors
+  /// 文件未找到错误
+  FileNotFound,
+  /// 创建文件失败错误，包含具体的失败原因
+  CreateFileFailed(String),
+  /// 删除文件失败错误，包含具体的失败原因
+  DeleteFileFailed(String),
 
-    // Tag errors
-    /// 标签未找到错误
-    TagNotFound,
-    /// 创建标签失败错误，包含具体的失败原因
-    CreateTagFailed(String),
-    /// 删除标签失败错误，包含具体的失败原因
-    DeleteTagFailed(String),
+  // Tag errors
+  /// 标签未找到错误
+  TagNotFound,
+  /// 创建标签失败错误，包含具体的失败原因
+  CreateTagFailed(String),
+  /// 删除标签失败错误，包含具体的失败原因
+  DeleteTagFailed(String),
 
-    // GroupTag errors
-    /// 分组-标签关联未找到错误
-    GroupTagNotFound,
-    /// 创建分组-标签关联失败错误，包含具体的失败原因
-    CreateGroupTagFailed(String),
-    /// 删除分组-标签关联失败错误，包含具体的失败原因
-    DeleteGroupTagFailed(String),
+  // GroupTag errors
+  /// 分组-标签关联未找到错误
+  GroupTagNotFound,
+  /// 创建分组-标签关联失败错误，包含具体的失败原因
+  CreateGroupTagFailed(String),
+  /// 删除分组-标签关联失败错误，包含具体的失败原因
+  DeleteGroupTagFailed(String),
 
-    // FileGroup errors
-    /// 文件-分组关联未找到错误
-    FileGroupNotFound,
-    /// 创建文件-分组关联失败错误，包含具体的失败原因
-    CreateFileGroupFailed(String),
-    /// 删除文件-分组关联失败错误，包含具体的失败原因
-    DeleteFileGroupFailed(String),
-    /// 无法绑定到主分组错误
-    CannotBindToPrimaryGroup,
-    /// 无法解绑主分组错误
-    CannotUnbindPrimaryGroup,
-    /// 未来主分组应为空错误
-    FuturePrimaryGroupShouldBeEmpty,
+  // FileGroup errors
+  /// 文件-分组关联未找到错误
+  FileGroupNotFound,
+  /// 创建文件-分组关联失败错误，包含具体的失败原因
+  CreateFileGroupFailed(String),
+  /// 删除文件-分组关联失败错误，包含具体的失败原因
+  DeleteFileGroupFailed(String),
+  /// 无法绑定到主分组错误
+  CannotBindToPrimaryGroup,
+  /// 无法解绑主分组错误
+  CannotUnbindPrimaryGroup,
+  /// 未来主分组应为空错误
+  FuturePrimaryGroupShouldBeEmpty,
 
-    // GroupRelation errors
-    /// 组关系循环引用错误
-    GroupRelationCycleDetected,
-    /// 组关系已存在错误
-    GroupRelationAlreadyExists,
-    /// 主组不能作为父组错误
-    PrimaryGroupCannotBeParent,
+  // GroupRelation errors
+  /// 组关系循环引用错误
+  GroupRelationCycleDetected,
+  /// 组关系已存在错误
+  GroupRelationAlreadyExists,
+  /// 主组不能作为父组错误
+  PrimaryGroupCannotBeParent,
 
-    // Validation errors
-    /// 数据验证错误，包含具体的验证失败原因
-    ValidationError(String),
+  // Validation errors
+  /// 数据验证错误，包含具体的验证失败原因
+  ValidationError(String),
 
-    // DieselError errors
-    /// 数据库错误，包装了 Diesel 数据库错误
-    DieselError(DieselError),
+  // DieselError errors
+  /// 数据库错误，包装了 Diesel 数据库错误
+  DieselError(DieselError),
 }
 
 impl AppError {
-    /// 获取错误码
-    pub fn code(&self) -> &'static str {
-        match self {
-            AppError::GroupNotFound => "GROUP_NOT_FOUND",
-            AppError::CreateGroupFailed(_) => "CREATE_GROUP_FAILED",
-            AppError::DeleteGroupFailed(_) => "DELETE_GROUP_FAILED",
+  /// 获取错误码
+  pub fn code(&self) -> &'static str {
+    match self {
+      AppError::GroupNotFound => "GROUP_NOT_FOUND",
+      AppError::CreateGroupFailed(_) => "CREATE_GROUP_FAILED",
+      AppError::DeleteGroupFailed(_) => "DELETE_GROUP_FAILED",
 
-            AppError::FileNotFound => "FILE_NOT_FOUND",
-            AppError::CreateFileFailed(_) => "CREATE_FILE_FAILED",
-            AppError::DeleteFileFailed(_) => "DELETE_FILE_FAILED",
+      AppError::FileNotFound => "FILE_NOT_FOUND",
+      AppError::CreateFileFailed(_) => "CREATE_FILE_FAILED",
+      AppError::DeleteFileFailed(_) => "DELETE_FILE_FAILED",
 
-            AppError::TagNotFound => "TAG_NOT_FOUND",
-            AppError::CreateTagFailed(_) => "CREATE_TAG_FAILED",
-            AppError::DeleteTagFailed(_) => "DELETE_TAG_FAILED",
+      AppError::TagNotFound => "TAG_NOT_FOUND",
+      AppError::CreateTagFailed(_) => "CREATE_TAG_FAILED",
+      AppError::DeleteTagFailed(_) => "DELETE_TAG_FAILED",
 
-            AppError::GroupTagNotFound => "GROUP_TAG_NOT_FOUND",
-            AppError::CreateGroupTagFailed(_) => "CREATE_GROUP_TAG_FAILED",
-            AppError::DeleteGroupTagFailed(_) => "DELETE_GROUP_TAG_FAILED",
+      AppError::GroupTagNotFound => "GROUP_TAG_NOT_FOUND",
+      AppError::CreateGroupTagFailed(_) => "CREATE_GROUP_TAG_FAILED",
+      AppError::DeleteGroupTagFailed(_) => "DELETE_GROUP_TAG_FAILED",
 
-            AppError::FileGroupNotFound => "FILE_GROUP_NOT_FOUND",
-            AppError::CreateFileGroupFailed(_) => "CREATE_FILE_GROUP_FAILED",
-            AppError::DeleteFileGroupFailed(_) => "DELETE_FILE_GROUP_FAILED",
-            AppError::CannotBindToPrimaryGroup => "CANNOT_BIND_TO_PRIMARY_GROUP",
-            AppError::CannotUnbindPrimaryGroup => "CANNOT_UNBIND_PRIMARY_GROUP",
-            AppError::FuturePrimaryGroupShouldBeEmpty => "FUTURE_PRIMARY_GROUP_SHOULD_BE_EMPTY",
+      AppError::FileGroupNotFound => "FILE_GROUP_NOT_FOUND",
+      AppError::CreateFileGroupFailed(_) => "CREATE_FILE_GROUP_FAILED",
+      AppError::DeleteFileGroupFailed(_) => "DELETE_FILE_GROUP_FAILED",
+      AppError::CannotBindToPrimaryGroup => "CANNOT_BIND_TO_PRIMARY_GROUP",
+      AppError::CannotUnbindPrimaryGroup => "CANNOT_UNBIND_PRIMARY_GROUP",
+      AppError::FuturePrimaryGroupShouldBeEmpty => "FUTURE_PRIMARY_GROUP_SHOULD_BE_EMPTY",
 
-            // GroupRelation errors
-            AppError::GroupRelationCycleDetected => "GROUP_RELATION_CYCLE_DETECTED",
-            AppError::GroupRelationAlreadyExists => "GROUP_RELATION_ALREADY_EXISTS",
-            AppError::PrimaryGroupCannotBeParent => "PRIMARY_GROUP_CANNOT_BE_PARENT",
+      // GroupRelation errors
+      AppError::GroupRelationCycleDetected => "GROUP_RELATION_CYCLE_DETECTED",
+      AppError::GroupRelationAlreadyExists => "GROUP_RELATION_ALREADY_EXISTS",
+      AppError::PrimaryGroupCannotBeParent => "PRIMARY_GROUP_CANNOT_BE_PARENT",
 
-            AppError::ValidationError(_) => "VALIDATION_ERROR",
+      AppError::ValidationError(_) => "VALIDATION_ERROR",
 
-            AppError::DieselError(_) => "DATABASE_ERROR",
-        }
+      AppError::DieselError(_) => "DATABASE_ERROR",
     }
+  }
 
-    /// 获取错误消息（可用于国际化）
-    pub fn message(&self) -> String {
-        // 当前返回中文消息，后续可以基于语言环境返回不同语言的消息
-        match self {
-            AppError::GroupNotFound => "Group not found".to_string(),
-            AppError::CreateGroupFailed(msg) => format!("Create group failed: {}", msg),
-            AppError::DeleteGroupFailed(msg) => format!("Delete group failed: {}", msg),
+  /// 获取错误消息（可用于国际化）
+  pub fn message(&self) -> String {
+    // 当前返回中文消息，后续可以基于语言环境返回不同语言的消息
+    match self {
+      AppError::GroupNotFound => "Group not found".to_string(),
+      AppError::CreateGroupFailed(msg) => format!("Create group failed: {}", msg),
+      AppError::DeleteGroupFailed(msg) => format!("Delete group failed: {}", msg),
 
-            AppError::FileNotFound => "File not found".to_string(),
-            AppError::CreateFileFailed(msg) => format!("Create file failed: {}", msg),
-            AppError::DeleteFileFailed(msg) => format!("Delete file failed: {}", msg),
+      AppError::FileNotFound => "File not found".to_string(),
+      AppError::CreateFileFailed(msg) => format!("Create file failed: {}", msg),
+      AppError::DeleteFileFailed(msg) => format!("Delete file failed: {}", msg),
 
-            AppError::TagNotFound => "Tag not found".to_string(),
-            AppError::CreateTagFailed(msg) => format!("Create tag failed: {}", msg),
-            AppError::DeleteTagFailed(msg) => format!("Delete tag failed: {}", msg),
+      AppError::TagNotFound => "Tag not found".to_string(),
+      AppError::CreateTagFailed(msg) => format!("Create tag failed: {}", msg),
+      AppError::DeleteTagFailed(msg) => format!("Delete tag failed: {}", msg),
 
-            AppError::GroupTagNotFound => "GroupTag not found".to_string(),
-            AppError::CreateGroupTagFailed(msg) => format!("Create GroupTag failed: {}", msg),
-            AppError::DeleteGroupTagFailed(msg) => format!("Delete GroupTag failed: {}", msg),
+      AppError::GroupTagNotFound => "GroupTag not found".to_string(),
+      AppError::CreateGroupTagFailed(msg) => format!("Create GroupTag failed: {}", msg),
+      AppError::DeleteGroupTagFailed(msg) => format!("Delete GroupTag failed: {}", msg),
 
-            AppError::FileGroupNotFound => "FileGroup not found".to_string(),
-            AppError::CreateFileGroupFailed(msg) => format!("Create FileGroup failed: {}", msg),
-            AppError::DeleteFileGroupFailed(msg) => format!("Delete FileGroup failed: {}", msg),
-            AppError::CannotBindToPrimaryGroup => "Cannot associate with primary group".to_string(),
-            AppError::CannotUnbindPrimaryGroup => "Cannot unbind from primary group".to_string(),
-            AppError::FuturePrimaryGroupShouldBeEmpty => "Future primary group should be empty".to_string(),
+      AppError::FileGroupNotFound => "FileGroup not found".to_string(),
+      AppError::CreateFileGroupFailed(msg) => format!("Create FileGroup failed: {}", msg),
+      AppError::DeleteFileGroupFailed(msg) => format!("Delete FileGroup failed: {}", msg),
+      AppError::CannotBindToPrimaryGroup => "Cannot associate with primary group".to_string(),
+      AppError::CannotUnbindPrimaryGroup => "Cannot unbind from primary group".to_string(),
+      AppError::FuturePrimaryGroupShouldBeEmpty => {
+        "Future primary group should be empty".to_string()
+      }
 
-            // GroupRelation errors
-            AppError::GroupRelationCycleDetected => "Group relation cycle detected".to_string(),
-            AppError::GroupRelationAlreadyExists => "Group relation already exists".to_string(),
-            AppError::PrimaryGroupCannotBeParent => "Primary group cannot be parent".to_string(),
+      // GroupRelation errors
+      AppError::GroupRelationCycleDetected => "Group relation cycle detected".to_string(),
+      AppError::GroupRelationAlreadyExists => "Group relation already exists".to_string(),
+      AppError::PrimaryGroupCannotBeParent => "Primary group cannot be parent".to_string(),
 
-            AppError::ValidationError(msg) => format!("Validation error: {}", msg),
+      AppError::ValidationError(msg) => format!("Validation error: {}", msg),
 
-            AppError::DieselError(e) => format!("Database error: {}", e),
-        }
+      AppError::DieselError(e) => format!("Database error: {}", e),
     }
+  }
 }
 
 /// 为 `AppError` 实现 `Display` trait
 ///
 /// 定义了各种错误类型的友好显示格式，便于向用户展示错误信息
 impl Display for AppError {
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(f, "{}", self.message())
-    }
+  fn fmt(&self, f: &mut Formatter) -> Result {
+    write!(f, "{}", self.message())
+  }
 }
 
 /// 为 `AppError` 实现 `Error` trait
@@ -172,9 +174,9 @@ impl Error for AppError {}
 /// 实现了 `From` trait，允许将 Diesel 数据库错误自动转换为应用程序错误
 /// 方便在使用 ? 操作符时自动进行错误类型转换
 impl From<DieselError> for AppError {
-    fn from(err: DieselError) -> Self {
-        AppError::DieselError(err)
-    }
+  fn from(err: DieselError) -> Self {
+    AppError::DieselError(err)
+  }
 }
 
 /// 从 `AppError` 转换为 `DieselError` 的实现
@@ -182,10 +184,10 @@ impl From<DieselError> for AppError {
 /// 实现了 `From` trait，允许将应用程序错误转换为 Diesel 数据库错误
 /// 主要用于需要返回 DieselError 的场景
 impl From<AppError> for DieselError {
-    fn from(err: AppError) -> Self {
-        match err {
-            AppError::DieselError(diesel_err) => diesel_err,
-            err => DieselError::QueryBuilderError(Box::new(err)),
-        }
+  fn from(err: AppError) -> Self {
+    match err {
+      AppError::DieselError(diesel_err) => diesel_err,
+      err => DieselError::QueryBuilderError(Box::new(err)),
     }
+  }
 }
