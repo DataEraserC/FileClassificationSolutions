@@ -8,29 +8,110 @@
 FileClassificationSolutions/
 ├── .github/                    # GitHub 相关配置
 │   └── workflows/             # CI/CD 工作流配置
+├── common/                     # 公共模块
+│   ├── src/                   # 源代码
+│   │   ├── env_loader.rs      # 环境变量加载器
+│   │   └── lib.rs             # 库入口
+│   └── Cargo.toml             # 包配置
 ├── file_classification_cli/   # 命令行界面应用
-│   ├── src/bin/               # 各个独立的命令行工具
+│   ├── example/               # 示例脚本文件
+│   │   ├── hierarchical_classification.fcc
+│   │   ├── hybrid_classification.fcc
+│   │   ├── tag_based_classification.fcc
+│   │   └── website_classification.fcc
+│   ├── src/                   # 源代码
+│   │   ├── cli.rs             # CLI 命令解析
+│   │   ├── context.rs         # 上下文管理
+│   │   ├── handlers.rs        # 命令处理器
+│   │   ├── helpers.rs         # 辅助函数
+│   │   ├── interactive.rs     # 交互式功能
+│   │   ├── main.rs            # 应用入口
+│   │   ├── parsers.rs         # 解析器
+│   │   ├── repl.rs            # REPL 实现
+│   │   └── utils.rs           # 工具函数
+│   ├── tests/                 # 测试代码
+│   │   └── cli.rs
 │   └── Cargo.toml             # CLI 包配置
 ├── file_classification_core/  # 核心库
 │   ├── src/
 │   │   ├── internal/          # 数据访问层
-│   │   ├── model/             # 数据模型和数据库模式
+│   │   │   ├── file_group.rs  # 文件组关联数据访问
+│   │   │   ├── files.rs       # 文件数据访问
+│   │   │   ├── group_relations.rs # 组关系数据访问
+│   │   │   ├── group_tag.rs   # 组标签关联数据访问
+│   │   │   ├── groups.rs      # 组数据访问
+│   │   │   ├── mod.rs         # 模块声明
+│   │   │   └── tags.rs        # 标签数据访问
+│   │   ├── model/             # 数据模型
+│   │   │   ├── mod.rs         # 模块声明
+│   │   │   ├── models.rs      # 所有数据结构定义
+│   │   │   └── schema.rs      # 数据库模式 (由 Diesel 生成)
 │   │   ├── service/           # 业务逻辑层
-│   │   └── utils/             # 工具函数
+│   │   │   ├── file_group.rs  # 文件组关联业务逻辑
+│   │   │   ├── files.rs       # 文件业务逻辑
+│   │   │   ├── group_relations.rs # 组关系业务逻辑
+│   │   │   ├── group_tag.rs   # 组标签关联业务逻辑
+│   │   │   ├── groups.rs      # 组业务逻辑
+│   │   │   ├── mod.rs         # 模块声明
+│   │   │   └── tags.rs        # 标签业务逻辑
+│   │   ├── utils/             # 工具函数
+│   │   │   ├── database.rs    # 数据库连接管理
+│   │   │   ├── errors.rs      # 错误处理
+│   │   │   └── mod.rs         # 模块声明
+│   │   └── lib.rs             # 库入口
 │   └── Cargo.toml             # 核心库包配置
 ├── file_classification_webapi/ # Web API
-│   ├── src/
+│   ├── src/bin/               # 二进制文件
 │   │   ├── handlers/          # API 请求处理函数
-│   │   ├── group_tags.rs      # 组标签关联 API 处理
-│   │   ├── groups.rs          # 组 API 处理
-│   │   ├── mod.rs             # 模块声明
-│   │   └── tags.rs            # 标签 API 处理
-│   ├── utils/                 # Web API 工具函数
-│   │   ├── database.rs        # 数据库连接池
-│   │   ├── mod.rs             # 模块声明
-│   │   └── models.rs          # API 数据传输对象
+│   │   │   ├── file_groups.rs # 文件组关联 API 处理
+│   │   │   ├── files.rs       # 文件 API 处理
+│   │   │   ├── group_relations.rs # 组关系 API 处理
+│   │   │   ├── group_tags.rs  # 组标签关联 API 处理
+│   │   │   ├── groups.rs      # 组 API 处理
+│   │   │   ├── mod.rs         # 模块声明
+│   │   │   ├── tags.rs        # 标签 API 处理
+│   │   │   └── uploads.rs     # 文件上传 API 处理
+│   │   ├── utils/             # Web API 工具函数
+│   │   │   ├── app_config.rs  # 应用配置
+│   │   │   ├── cors.rs        # CORS 配置
+│   │   │   ├── database.rs    # 数据库连接池
+│   │   │   ├── logger.rs      # 日志配置
+│   │   │   ├── mod.rs         # 模块声明
+│   │   │   ├── models.rs      # API 数据传输对象
+│   │   │   ├── server.rs      # 服务器配置
+│   │   │   └── static_files.rs # 静态文件服务
+│   │   └── file_classification_webapi.rs # Web API 入口
+│   ├── static/                # 静态资源
+│   │   ├── js/                # JavaScript 文件
+│   │   │   ├── config.js
+│   │   │   ├── fileGroupManager.js
+│   │   │   ├── fileManager.js
+│   │   │   ├── groupManager.js
+│   │   │   ├── groupRelationManager.js
+│   │   │   ├── groupTagManager.js
+│   │   │   ├── loader.js
+│   │   │   ├── main.js
+│   │   │   ├── tagManager.js
+│   │   │   └── utils.js
+│   │   ├── partials/          # HTML 片段
+│   │   │   ├── file-groups.html
+│   │   │   ├── files.html
+│   │   │   ├── group-relations.html
+│   │   │   ├── group-tags.html
+│   │   │   ├── groups.html
+│   │   │   ├── header.html
+│   │   │   ├── home.html
+│   │   │   ├── modal.html
+│   │   │   ├── sidebar.html
+│   │   │   └── tags.html
+│   │   ├── index.html         # 主页面
+│   │   ├── styles.css         # 样式表
+│   │   └── favicon.ico        # 网站图标
 │   └── Cargo.toml             # Web API 包配置
-├── migrations/                # 数据库迁移脚本
+├── migrations/                # Diesel 数据库迁移脚本
+├── migrations_mysql/          # MySQL 数据库迁移脚本
+├── migrations_postgres/       # PostgreSQL 数据库迁移脚本
+├── migrations_sqlite/         # SQLite 数据库迁移脚本
 └── nix/                      # Nix 包管理配置
 ```
 
@@ -48,21 +129,28 @@ file_classification_core/
 │   ├── internal/              # 数据访问层 (DAO)
 │   │   ├── file_group.rs      # 文件组关联数据访问
 │   │   ├── files.rs           # 文件数据访问
+│   │   ├── group_relations.rs # 组关系数据访问
 │   │   ├── group_tag.rs       # 组标签关联数据访问
 │   │   ├── groups.rs          # 组数据访问
+│   │   ├── mod.rs             # 模块声明
 │   │   └── tags.rs            # 标签数据访问
 │   ├── model/                 # 数据模型
+│   │   ├── mod.rs             # 模块声明
 │   │   ├── models.rs          # 所有数据结构定义
 │   │   └── schema.rs          # 数据库模式 (由 Diesel 生成)
 │   ├── service/               # 业务逻辑层
 │   │   ├── file_group.rs      # 文件组关联业务逻辑
 │   │   ├── files.rs           # 文件业务逻辑
+│   │   ├── group_relations.rs # 组关系业务逻辑
 │   │   ├── group_tag.rs       # 组标签关联业务逻辑
 │   │   ├── groups.rs          # 组业务逻辑
+│   │   ├── mod.rs             # 模块声明
 │   │   └── tags.rs            # 标签业务逻辑
-│   └── utils/                 # 工具函数
-│       ├── database.rs        # 数据库连接管理
-│       └── errors.rs          # 错误处理
+│   ├── utils/                 # 工具函数
+│   │   ├── database.rs        # 数据库连接管理
+│   │   ├── errors.rs          # 错误处理
+│   │   └── mod.rs             # 模块声明
+│   └── lib.rs                 # 库入口
 └── Cargo.toml                 # 包配置文件
 ```
 
@@ -88,36 +176,33 @@ file_classification_core/
 #### 目录结构
 ```
 file_classification_cli/
-├── src/bin/                   # 各个独立的命令行工具
-│   ├── create_file_group.rs   # 创建文件组关联
-│   ├── create_group.rs        # 创建组
-│   ├── create_group_tag.rs    # 创建组标签关联
-│   ├── create_tag.rs          # 创建标签
-│   ├── delete_file.rs         # 删除文件
-│   ├── delete_file_group.rs   # 删除文件组关联
-│   ├── delete_group.rs        # 删除组
-│   ├── delete_group_tag.rs    # 删除组标签关联
-│   ├── delete_tag.rs          # 删除标签
-│   ├── list_file_groups_by_conditions.rs  # 条件查询文件组关联
-│   ├── list_files.rs          # 列出文件
-│   ├── list_files_by_conditions.rs        # 条件查询文件
-│   ├── list_group_tags_by_conditions.rs   # 条件查询组标签关联
-│   ├── list_groups.rs         # 列出组
-│   ├── list_groups_by_conditions.rs       # 条件查询组
-│   ├── list_tags.rs           # 列出标签
-│   ├── list_tags_by_conditions.rs         # 条件查询标签
-│   ├── update_files_by_conditions.rs      # 条件更新文件
-│   ├── update_groups_by_conditions.rs     # 条件更新组
-│   └── update_tags_by_conditions.rs       # 条件更新标签
+├── example/                   # 示例脚本文件
+│   ├── hierarchical_classification.fcc
+│   ├── hybrid_classification.fcc
+│   ├── tag_based_classification.fcc
+│   └── website_classification.fcc
+├── src/                       # 源代码
+│   ├── cli.rs                 # CLI 命令解析
+│   ├── context.rs             # 上下文管理
+│   ├── handlers.rs            # 命令处理器
+│   ├── helpers.rs             # 辅助函数
+│   ├── interactive.rs         # 交互式功能
+│   ├── main.rs                # 应用入口
+│   ├── parsers.rs             # 解析器
+│   ├── repl.rs                # REPL 实现
+│   └── utils.rs               # 工具函数
+├── tests/                     # 测试代码
+│   └── cli.rs
 └── Cargo.toml                 # 包配置文件
 ```
 
 
 #### 功能特点
-- 提供交互式命令行界面
+- 提供交互式命令行界面和 REPL 环境
 - 支持复杂的条件查询和批量操作
 - 包含完整的增删改查功能
 - 支持组合条件查询（AND、OR、NOT）
+- 提供多种分类方案示例配置
 
 ### file_classification_webapi (Web API)
 
@@ -126,19 +211,52 @@ file_classification_cli/
 #### 目录结构
 ```
 file_classification_webapi/
-├── src/
+├── src/bin/
 │   ├── handlers/              # API 请求处理函数
 │   │   ├── file_groups.rs     # 文件组关联 API 处理
 │   │   ├── files.rs           # 文件 API 处理
+│   │   ├── group_relations.rs # 组关系 API 处理
 │   │   ├── group_tags.rs      # 组标签关联 API 处理
 │   │   ├── groups.rs          # 组 API 处理
 │   │   ├── mod.rs             # 模块声明
-│   │   └── tags.rs            # 标签 API 处理
+│   │   ├── tags.rs            # 标签 API 处理
+│   │   └── uploads.rs         # 文件上传 API 处理
 │   ├── utils/                 # Web API 工具函数
+│   │   ├── app_config.rs      # 应用配置
+│   │   ├── cors.rs            # CORS 配置
 │   │   ├── database.rs        # 数据库连接池
+│   │   ├── logger.rs          # 日志配置
 │   │   ├── mod.rs             # 模块声明
-│   │   └── models.rs          # API 数据传输对象
-│   └── main.rs                # 应用入口点
+│   │   ├── models.rs          # API 数据传输对象
+│   │   ├── server.rs          # 服务器配置
+│   │   └── static_files.rs    # 静态文件服务
+│   └── file_classification_webapi.rs # Web API 入口
+├── static/                    # 静态资源
+│   ├── js/                    # JavaScript 文件
+│   │   ├── config.js
+│   │   ├── fileGroupManager.js
+│   │   ├── fileManager.js
+│   │   ├── groupManager.js
+│   │   ├── groupRelationManager.js
+│   │   ├── groupTagManager.js
+│   │   ├── loader.js
+│   │   ├── main.js
+│   │   ├── tagManager.js
+│   │   └── utils.js
+│   ├── partials/              # HTML 片段
+│   │   ├── file-groups.html
+│   │   ├── files.html
+│   │   ├── group-relations.html
+│   │   ├── group-tags.html
+│   │   ├── groups.html
+│   │   ├── header.html
+│   │   ├── home.html
+│   │   ├── modal.html
+│   │   ├── sidebar.html
+│   │   └── tags.html
+│   ├── index.html             # 主页面
+│   ├── styles.css             # 样式表
+│   └── favicon.ico            # 网站图标
 └── Cargo.toml                 # 包配置文件
 ```
 
@@ -149,15 +267,30 @@ file_classification_webapi/
 - **标签管理**: `/api/tags`
 - **文件组关联**: `/api/file-groups`
 - **组标签关联**: `/api/group-tags`
+- **组关系**: `/api/group-relations`
+- **文件上传**: `/api/uploads`
 
 ### 数据库迁移
 
+项目支持多种数据库，每种数据库都有对应的迁移脚本：
+
 ```
-migrations/
+migrations/                    # Diesel 默认迁移
+migrations_mysql/             # MySQL 迁移
+migrations_postgres/          # PostgreSQL 迁移
+migrations_sqlite/            # SQLite 迁移
+```
+
+每个迁移目录包含：
+```
 └── 2024-10-01-193345_FileClassification/
     ├── up.sql                 # 数据库表创建脚本
     └── down.sql               # 数据库表删除脚本
 ```
+
+后续迁移：
+- `2025-10-20-000000_update_group_hierarchy` - 更新组层次结构
+- `2025-11-02-000000_add_description_fields` - 添加描述字段
 
 
 数据库包含以下表：
