@@ -107,7 +107,7 @@ jobs:
 
   build-android:
     name: Build Android binary
-    needs: [test-linux, test-windows, test-macos]
+    needs: [test-linux]
     if: always()
     runs-on: ubuntu-latest
     continue-on-error: true
