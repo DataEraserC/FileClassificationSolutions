@@ -16,9 +16,13 @@
     fileset = lib.fileset.unions [
       ../Cargo.toml
       ../Cargo.lock
-#      (lib.fileset.fromSource (lib.sources.sourceByRegex ../. ["^file_classification_.*"]))
+      ../common
       ../file_classification_core
       ../file_classification_cli
+      ../migrations
+      ../migrations_sqlite
+      ../migrations_mysql
+      ../migrations_postgres
     ];
   };
 in

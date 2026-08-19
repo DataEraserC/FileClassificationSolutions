@@ -16,8 +16,13 @@
     fileset = lib.fileset.unions [
       ../Cargo.toml
       ../Cargo.lock
+      ../common
       ../file_classification_core
       ../file_classification_webapi
+      ../migrations
+      ../migrations_sqlite
+      ../migrations_mysql
+      ../migrations_postgres
     ];
   };
 in
