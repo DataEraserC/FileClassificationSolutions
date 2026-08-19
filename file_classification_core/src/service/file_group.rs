@@ -102,12 +102,15 @@ pub fn delete_file_group_by_dto(
 
   // 使用事务确保数据一致性
   let result = conn.transaction::<_, AppError, _>(|conn| {
-    // 业务逻辑：减少文件和分组的引用计数
-    files_dao::decrease_file_reference_count_by_id(conn, file_group_dto.file_id)?;
-    groups_dao::decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
-
     // 调用数据访问层执行删除操作
-    let deleted_count = file_group_dao::delete_file_group_by_dto(conn, &file_group_dto)?;
+    let deleted_count = file_group_dao::delete_file_group_by_dto(conn, file_group_dto)?;
+
+    // 仅当实际删除成功时，减少文件和分组的引用计数
+    if deleted_count > 0 {
+      files_dao::decrease_file_reference_count_by_id(conn, file_group_dto.file_id)?;
+      groups_dao::decrease_group_reference_count_by_id(conn, file_group_dto.group_id)?;
+    }
+
     Ok(deleted_count)
   })?;
 

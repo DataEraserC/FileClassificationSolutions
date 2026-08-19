@@ -89,7 +89,6 @@ pub fn create_group_relation(
         group_relation.second_group_id,
         group_relation.first_group_id,
       )?;
-      groups_dao::increase_group_reference_count_by_id(conn, group_relation.second_group_id)?;
     }
 
     Ok(created_relation)
@@ -120,6 +119,16 @@ pub fn delete_group_relation(
         conn,
         vec![group_relation.first_group_id, group_relation.second_group_id],
       )?;
+
+      // 如果删除的是父子关系，同步清除子组的 parent_id
+      if group_relation.relation_type == RELATION_TYPE_PARENT_CHILD {
+        let child_group = groups_dao::find_group_by_id(conn, group_relation.second_group_id)?;
+        if let Some(group) = child_group {
+          if group.parent_id == Some(group_relation.first_group_id) {
+            groups_dao::clear_group_parent_id(conn, group_relation.second_group_id)?;
+          }
+        }
+      }
     }
 
     Ok(deleted_count)
@@ -310,6 +319,38 @@ pub fn delete_group_relations_by_dtos(
     }
     Ok(total_deleted)
   })
+}
+
+/// 删除指定组涉及的所有组关系（作为父组或子组）
+///
+/// 用于删除组之前清理外部引用，避免外键约束拦截组删除。
+/// 会同步维护引用计数与子组 parent_id。
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `group_id`: 组ID
+///
+/// 返回值:
+/// 成功时返回删除的关系数量，失败时返回错误
+pub fn delete_group_relations_by_group_id(
+  conn: &mut AnyConnection,
+  group_id: i32,
+) -> Result<usize, AppError> {
+  let relations = select_group_relations_by_conditions_with_limit(
+    conn,
+    vec![GroupRelationCondition::Or(vec![
+      GroupRelationCondition::FirstGroupId(group_id),
+      GroupRelationCondition::SecondGroupId(group_id),
+    ])],
+    None,
+  )?;
+
+  let mut total_deleted = 0;
+  for relation in &relations {
+    total_deleted += delete_group_relation(conn, relation)?;
+  }
+
+  Ok(total_deleted)
 }
 
 /// 获取指定组的直接子组ID列表

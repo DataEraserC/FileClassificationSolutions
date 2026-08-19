@@ -10,10 +10,11 @@ use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
 use crate::model::models::{
-  CreateGroupDTO, FileGroupCondition, FileGroupDTO, Group, GroupCondition, GroupFilter,
-  GroupQueryOptions, GroupTagCondition, GroupTreeNode, PaginationResult, UpdateGroupDTO,
+  CreateGroupDTO, FileGroupDTO, Group, GroupCondition, GroupFilter, GroupQueryOptions,
+  GroupTagCondition, GroupTreeNode, PaginationResult, UpdateGroupDTO,
 };
 use crate::service::AppError;
+use crate::service::files as files_service;
 use crate::service::group_relations as group_relations_service;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
@@ -64,27 +65,31 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
   conn.transaction::<usize, Error, _>(|conn| {
     let group = groups_dao::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
 
+    // 清理该组涉及的所有组关系（作为父组或子组），维护引用计数与子组 parent_id
+    group_relations_service::delete_group_relations_by_group_id(conn, group_id)?;
+
     // 获取关联的文件
     let files_associated_with_group = files_dao::select_files_by_group_id(conn, group_id)?;
 
     if group.is_primary {
-      // 获取主组的（唯一）关联文件
-      let file_required_operation =
-        files_associated_with_group.get(0).ok_or(AppError::FileNotFound)?;
-
-      // 删除主组时，先删除关联的文件 及 关联文件的文件组关系
-      files_dao::delete_file_by_id(conn, file_required_operation.id)?;
-
-      // 搜索关联文件的文件组关系
-      let file_groups_required_operation =
-        file_group_dao::select_file_groups_by_conditions_with_limit(
+      if let Some(file_required_operation) = files_associated_with_group.first() {
+        // 主组（应有唯一关联文件）：委托 delete_file 完成级联删除（会删除主组本身）
+        files_service::delete_file(conn, file_required_operation.id)?;
+      } else {
+        // 主组无关联文件（异常状态）时，仅清理组标签并删除组
+        let group_tags = group_tag_dao::select_group_tags_by_conditions_with_limit(
           conn,
-          vec![FileGroupCondition::FileId(file_required_operation.id)],
+          vec![GroupTagCondition::GroupId(group_id)],
           None,
         )?;
 
-      // 删除关联文件的文件组关系
-      file_group_dao::delete_file_groups_by_dtos(conn, file_groups_required_operation)?;
+        for group_tag in &group_tags {
+          tags_dao::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
+          group_tag_dao::delete_group_tag_by_dto(conn, group_tag)?;
+        }
+
+        groups_dao::delete_group_by_id(conn, group_id)?;
+      }
     } else {
       for file in &files_associated_with_group {
         // 对于非主组，需要先减少关联文件的引用计数
@@ -95,25 +100,27 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
           &FileGroupDTO { file_id: file.id, group_id, relation_type: 1 },
         )?;
       }
+
+      // 减少组关联标签的引用计数
+      let group_tags = group_tag_dao::select_group_tags_by_conditions_with_limit(
+        conn,
+        vec![GroupTagCondition::GroupId(group_id)],
+        None,
+      )?;
+
+      for group_tag in &group_tags {
+        // 减少每个关联标签的引用计数
+        tags_dao::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
+
+        // 删除组标签关系
+        group_tag_dao::delete_group_tag_by_dto(conn, group_tag)?;
+      }
+
+      // 最后删除组本身
+      groups_dao::delete_group_by_id(conn, group_id)?;
     }
 
-    // 减少组关联标签的引用计数
-    let group_tags = group_tag_dao::select_group_tags_by_conditions_with_limit(
-      conn,
-      vec![GroupTagCondition::GroupId(group_id)],
-      None,
-    )?;
-
-    for group_tag in &group_tags {
-      // 减少每个关联标签的引用计数
-      tags_dao::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
-
-      // 删除组标签关系
-      group_tag_dao::delete_group_tag_by_dto(conn, group_tag)?;
-    }
-
-    // 最后删除组本身
-    groups_dao::delete_group_by_id(conn, group_id)
+    Ok(1)
   })
 }
 

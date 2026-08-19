@@ -52,10 +52,15 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
     let groups_associated_with_tag = groups_dao::select_groups_by_tag_id(conn, tag_id)?;
 
     for group in &groups_associated_with_tag {
-      // 对于每个关联的组，减少其引用计数
-      groups_dao::decrease_group_reference_count_by_id(conn, group.id)?;
       // 删除与该标签关联的所有组标签关系
-      group_tag_dao::delete_group_tag_by_dto(conn, &GroupTagDTO { tag_id, group_id: group.id })?;
+      let deleted_count = group_tag_dao::delete_group_tag_by_dto(
+        conn,
+        &GroupTagDTO { tag_id, group_id: group.id },
+      )?;
+      // 仅当实际删除成功时，减少关联组的引用计数
+      if deleted_count > 0 {
+        groups_dao::decrease_group_reference_count_by_id(conn, group.id)?;
+      }
     }
 
     // 删除标签本身

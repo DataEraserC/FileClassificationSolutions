@@ -19,24 +19,9 @@ impl diesel::r2d2::CustomizeConnection<AnyConnection, diesel::r2d2::Error>
   fn on_acquire(&self, conn: &mut AnyConnection) -> Result<(), diesel::r2d2::Error> {
     match conn {
       #[cfg(feature = "sqlite")]
-      // 只有 SQLite 连接才使用以下语句关闭外键约束
+      // SQLite 外键约束默认关闭，需要显式开启
       AnyConnection::Sqlite(_) => {
-        // 关闭外键约束检查
-        diesel::sql_query("PRAGMA foreign_keys = OFF")
-          .execute(conn)
-          .map_err(diesel::r2d2::Error::QueryError)?;
-      }
-      #[cfg(feature = "mysql")]
-      // MySQL 连接关闭外键约束检查
-      AnyConnection::Mysql(_) => {
-        diesel::sql_query("SET FOREIGN_KEY_CHECKS = 0")
-          .execute(conn)
-          .map_err(diesel::r2d2::Error::QueryError)?;
-      }
-      #[cfg(feature = "postgres")]
-      // PostgreSQL 连接关闭外键约束检查
-      AnyConnection::Postgresql(_) => {
-        diesel::sql_query("SET session_replication_role = 'replica'")
+        diesel::sql_query("PRAGMA foreign_keys = ON")
           .execute(conn)
           .map_err(diesel::r2d2::Error::QueryError)?;
       }

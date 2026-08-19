@@ -83,12 +83,14 @@ pub fn delete_group_tag_by_dto(
   let _tag = tags_dao::find_tag_by_id(conn, group_tag_dto.tag_id)?.ok_or(AppError::TagNotFound)?;
 
   let _result = conn.transaction::<_, AppError, _>(|conn| {
-    // 业务逻辑：减少引用计数
-    groups_dao::decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
-    tags_dao::decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
-
     // 调用数据访问层执行删除操作
-    let deleted_count = group_tag_dao::delete_group_tag_by_dto(conn, &group_tag_dto)?;
+    let deleted_count = group_tag_dao::delete_group_tag_by_dto(conn, group_tag_dto)?;
+
+    // 仅当实际删除成功时，减少组和标签的引用计数
+    if deleted_count > 0 {
+      groups_dao::decrease_group_reference_count_by_id(conn, group_tag_dto.group_id)?;
+      tags_dao::decrease_tag_reference_count_by_id(conn, group_tag_dto.tag_id)?;
+    }
 
     Ok(deleted_count)
   })?;

@@ -82,9 +82,9 @@ pub fn establish_connection(
 
       let mut any_conn = AnyConnection::Sqlite(conn);
 
-      // 关闭外键约束检查
-      diesel::sql_query("PRAGMA foreign_keys = OFF").execute(&mut any_conn).map_err(|e| {
-        ConnectionError::with_source("Error executing PRAGMA foreign_keys = OFF", Box::new(e))
+      // 显式开启外键约束（SQLite 默认关闭）
+      diesel::sql_query("PRAGMA foreign_keys = ON").execute(&mut any_conn).map_err(|e| {
+        ConnectionError::with_source("Error executing PRAGMA foreign_keys = ON", Box::new(e))
       })?;
 
       Ok(any_conn)
@@ -101,11 +101,6 @@ pub fn establish_connection(
 
       let mut any_conn = AnyConnection::Mysql(conn);
 
-      // 关闭外键约束检查
-      diesel::sql_query("SET FOREIGN_KEY_CHECKS = 0").execute(&mut any_conn).map_err(|e| {
-        ConnectionError::with_source("Error executing SET FOREIGN_KEY_CHECKS = 0", Box::new(e))
-      })?;
-
       Ok(any_conn)
     }
 
@@ -119,16 +114,6 @@ pub fn establish_connection(
       })?;
 
       let mut any_conn = AnyConnection::Postgresql(conn);
-
-      // 关闭外键约束检查
-      diesel::sql_query("SET session_replication_role = 'replica'")
-        .execute(&mut any_conn)
-        .map_err(|e| {
-          ConnectionError::with_source(
-            "Error executing SET session_replication_role = 'replica'",
-            Box::new(e),
-          )
-        })?;
 
       Ok(any_conn)
     }

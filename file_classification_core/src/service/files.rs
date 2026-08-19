@@ -16,6 +16,7 @@ use crate::model::models::{
 };
 use crate::service::AppError;
 use crate::service::file_group as file_group_service;
+use crate::service::group_relations as group_relations_service;
 use crate::utils::database::AnyConnection;
 use crate::utils::errors::AppError::FuturePrimaryGroupShouldBeEmpty;
 use diesel::Connection;
@@ -148,9 +149,15 @@ pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppErro
     // 删除与文件关联的所有文件组关系
     file_group_dao::delete_file_groups_by_dtos(conn, file_groups)?;
 
-    // 删除主组和文件本身
-    groups_dao::delete_group_by_id(conn, file_required_to_delete.group_id)?;
+    // 清理文件主组涉及的所有组关系（防止外键约束拦截组删除）
+    group_relations_service::delete_group_relations_by_group_id(
+      conn,
+      file_required_to_delete.group_id,
+    )?;
+
+    // 先删除文件，再删除主组（满足 files.group_id 外键约束）
     files_dao::delete_file_by_id(conn, file_id)?;
+    groups_dao::delete_group_by_id(conn, file_required_to_delete.group_id)?;
 
     Ok(())
   })?;
@@ -453,34 +460,32 @@ pub fn update_file_by_id(
     }
 
     // 获取原主组
-    let old_primary_group = groups_dao::get_group_by_id(conn, current_file.group_id)?;
+    let old_primary_group_id = current_file.group_id;
 
-    // 减少原主组的引用计数
-    groups_dao::decrease_group_reference_count_by_id(conn, old_primary_group.id)?;
-
-    // 增加新主组的引用计数
-    groups_dao::increase_group_reference_count_by_id(conn, target_group.id)?;
-
-    // 更新文件信息
+    // 更新文件（改变其主组外键）
     let rows_affected = files_dao::update_file_by_id(conn, file_id, update_set)?;
 
-    // 删除旧的文件-组关联
+    // 删除旧的文件-组关联（主组关系）：文件引用计数-1，旧主组引用计数-1
     file_group_dao::delete_file_group_by_dto(
       conn,
-      &FileGroupDTO { file_id, group_id: old_primary_group.id, relation_type: 1 },
+      &FileGroupDTO { file_id, group_id: old_primary_group_id, relation_type: 1 },
     )?;
+    files_dao::decrease_file_reference_count_by_id(conn, file_id)?;
+    groups_dao::decrease_group_reference_count_by_id(conn, old_primary_group_id)?;
 
-    // 创建新的文件-组关联
-    file_group_service::create_file_group(
+    // 创建新的文件-组关联（主组关系）：文件引用计数+1，新主组引用计数+1
+    file_group_dao::insert_file_group(
       conn,
-      FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 },
+      &FileGroupDTO { file_id, group_id: target_group.id, relation_type: 1 },
     )?;
+    files_dao::increase_file_reference_count_by_id(conn, file_id)?;
+    groups_dao::increase_group_reference_count_by_id(conn, target_group.id)?;
 
     // 将新目标分组标记为主分组
     groups_dao::mark_group_as_primary(conn, target_group.id)?;
 
     // 将旧的主分组标记为非主分组
-    groups_dao::mark_group_as_non_primary(conn, old_primary_group.id)?;
+    groups_dao::mark_group_as_non_primary(conn, old_primary_group_id)?;
 
     Ok(rows_affected)
   })

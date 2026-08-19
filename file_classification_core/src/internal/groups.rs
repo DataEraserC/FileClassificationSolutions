@@ -768,3 +768,20 @@ pub fn update_group_parent_id(
     .set(groups::parent_id.eq(parent_of_relation))
     .execute(conn)
 }
+
+/// 清除分组的父分组ID
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `child_of_relation`: 子分组ID
+///
+/// 返回值:
+/// 成功时返回影响的行数（通常应为1），失败则返回数据库错误
+pub fn clear_group_parent_id(
+  conn: &mut AnyConnection,
+  child_of_relation: i32,
+) -> Result<usize, diesel::result::Error> {
+  diesel::update(groups::table.filter(groups::id.eq(child_of_relation)))
+    .set(groups::parent_id.eq(Option::<i32>::None))
+    .execute(conn)
+}
