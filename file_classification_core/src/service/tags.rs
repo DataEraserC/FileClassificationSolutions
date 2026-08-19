@@ -11,6 +11,7 @@ use crate::model::models::{CreateTagDTO, Tag, TagFilter};
 use crate::model::models::{
   GroupTagDTO, PaginationResult, TagCondition, TagQueryOptions, UpdateTagDTO,
 };
+use crate::service::AppError;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
 
@@ -213,6 +214,10 @@ pub fn update_tags_by_conditions(
   conditions: Vec<TagCondition>,
   update_set: UpdateTagDTO,
 ) -> Result<usize, diesel::result::Error> {
+  // 引用计数由业务层维护，不允许通过更新接口直接修改
+  if update_set.reference_count.is_some() {
+    return Err(AppError::CannotModifyReferenceCount.into());
+  }
   tags_dao::update_tags_by_conditions(conn, conditions, update_set)
 }
 
@@ -297,6 +302,10 @@ pub fn update_tag_by_id(
   tag_id: i32,
   update_set: UpdateTagDTO,
 ) -> Result<usize, diesel::result::Error> {
+  // 引用计数由业务层维护，不允许通过更新接口直接修改
+  if update_set.reference_count.is_some() {
+    return Err(AppError::CannotModifyReferenceCount.into());
+  }
   tags_dao::update_tag_by_id(conn, tag_id, update_set)
 }
 

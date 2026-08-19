@@ -10,11 +10,10 @@ use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
 use crate::model::models::{
-  CreateGroupDTO, FileGroupDTO, Group, GroupCondition, GroupFilter, GroupQueryOptions,
-  GroupTagCondition, GroupTreeNode, PaginationResult, UpdateGroupDTO,
+  CreateGroupDTO, FileGroupCondition, FileGroupDTO, Group, GroupCondition, GroupFilter,
+  GroupQueryOptions, GroupTagCondition, GroupTreeNode, PaginationResult, UpdateGroupDTO,
 };
 use crate::service::AppError;
-use crate::service::files as files_service;
 use crate::service::group_relations as group_relations_service;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
@@ -65,58 +64,80 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
   conn.transaction::<usize, Error, _>(|conn| {
     let group = groups_dao::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
 
-    // 清理该组涉及的所有组关系（作为父组或子组），维护引用计数与子组 parent_id
+    // 1. 清理该组涉及的所有组关系（作为父组或子组），并维护两端引用计数与子组 parent_id
     group_relations_service::delete_group_relations_by_group_id(conn, group_id)?;
 
-    // 获取关联的文件
+    // 2. 获取经 file_groups 关联到该组的文件列表
     let files_associated_with_group = files_dao::select_files_by_group_id(conn, group_id)?;
 
     if group.is_primary {
-      if let Some(file_required_operation) = files_associated_with_group.first() {
-        // 主组（应有唯一关联文件）：委托 delete_file 完成级联删除（会删除主组本身）
-        files_service::delete_file(conn, file_required_operation.id)?;
-      } else {
-        // 主组无关联文件（异常状态）时，仅清理组标签并删除组
-        let group_tags = group_tag_dao::select_group_tags_by_conditions_with_limit(
+      // 主组与唯一文件一一对应，此处显式平铺删除该文件及其全部关联
+      if let Some(file) = files_associated_with_group.first() {
+        // 2a. 文件的所有文件组关联：减少各关联组的引用计数并删除关联行
+        let file_groups = file_group_dao::select_file_groups_by_conditions_with_limit(
           conn,
-          vec![GroupTagCondition::GroupId(group_id)],
+          vec![FileGroupCondition::FileId(file.id)],
           None,
         )?;
-
-        for group_tag in &group_tags {
-          tags_dao::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
-          group_tag_dao::delete_group_tag_by_dto(conn, group_tag)?;
+        for file_group in &file_groups {
+          groups_dao::decrease_group_reference_count_by_id(conn, file_group.group_id)?;
         }
+        file_group_dao::delete_file_groups_by_dtos(conn, file_groups)?;
 
-        groups_dao::delete_group_by_id(conn, group_id)?;
+        // 2b. 主组关联的标签：减少各标签引用计数并删除组标签关系
+        let tag_list = tags_dao::select_tag_by_group_id(conn, group_id)?;
+        if !tag_list.is_empty() {
+          tags_dao::decrease_tag_reference_count_by_ids(
+            conn,
+            tag_list.iter().map(|tag| tag.id).collect::<Vec<_>>(),
+          )?;
+        }
+        group_tag_dao::delete_group_tags_by_conditions(
+          conn,
+          vec![GroupTagCondition::GroupId(group_id)],
+        )?;
+
+        // 2c. 先删除文件，再删除主组（满足 files.group_id 外键约束）
+        files_dao::delete_file_by_id(conn, file.id)?;
+      } else {
+        // 主组无关联文件（异常状态）：仅清理其标签后删除组
+        let tag_list = tags_dao::select_tag_by_group_id(conn, group_id)?;
+        if !tag_list.is_empty() {
+          tags_dao::decrease_tag_reference_count_by_ids(
+            conn,
+            tag_list.iter().map(|tag| tag.id).collect::<Vec<_>>(),
+          )?;
+        }
+        group_tag_dao::delete_group_tags_by_conditions(
+          conn,
+          vec![GroupTagCondition::GroupId(group_id)],
+        )?;
       }
+
+      groups_dao::delete_group_by_id(conn, group_id)?;
     } else {
+      // 非主组：解除文件关联
       for file in &files_associated_with_group {
-        // 对于非主组，需要先减少关联文件的引用计数
+        // 2a. 减少关联文件的引用计数并删除文件组关系
         files_dao::decrease_file_reference_count_by_id(conn, file.id)?;
-        // 删除文件组关系
         file_group_dao::delete_file_group_by_dto(
           conn,
           &FileGroupDTO { file_id: file.id, group_id, relation_type: 1 },
         )?;
       }
 
-      // 减少组关联标签的引用计数
+      // 2b. 减少组关联标签的引用计数并删除组标签关系
       let group_tags = group_tag_dao::select_group_tags_by_conditions_with_limit(
         conn,
         vec![GroupTagCondition::GroupId(group_id)],
         None,
       )?;
-
       for group_tag in &group_tags {
-        // 减少每个关联标签的引用计数
         tags_dao::decrease_tag_reference_count_by_id(conn, group_tag.tag_id)?;
-
-        // 删除组标签关系
         group_tag_dao::delete_group_tag_by_dto(conn, group_tag)?;
       }
 
-      // 最后删除组本身
+      // 2c. 删除组本身
       groups_dao::delete_group_by_id(conn, group_id)?;
     }
 
@@ -299,6 +320,13 @@ pub fn update_groups_by_conditions(
   conditions: Vec<GroupCondition>,
   update_set: UpdateGroupDTO,
 ) -> Result<usize, Error> {
+  // 主组标记与引用计数由业务层维护，不允许通过更新接口直接修改
+  if update_set.is_primary.is_some() {
+    return Err(AppError::CannotModifyPrimaryStatus.into());
+  }
+  if update_set.reference_count.is_some() {
+    return Err(AppError::CannotModifyReferenceCount.into());
+  }
   groups_dao::update_groups_by_conditions(conn, conditions, update_set)
 }
 
@@ -406,6 +434,13 @@ pub fn update_group_by_id(
   group_id: i32,
   update_set: UpdateGroupDTO,
 ) -> Result<usize, diesel::result::Error> {
+  // 主组标记与引用计数由业务层维护，不允许通过更新接口直接修改
+  if update_set.is_primary.is_some() {
+    return Err(AppError::CannotModifyPrimaryStatus.into());
+  }
+  if update_set.reference_count.is_some() {
+    return Err(AppError::CannotModifyReferenceCount.into());
+  }
   groups_dao::update_group_by_id(conn, group_id, update_set)
 }
 

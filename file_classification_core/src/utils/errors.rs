@@ -67,6 +67,12 @@ pub enum AppError {
   /// 主组不能作为父组错误
   PrimaryGroupCannotBeParent,
 
+  // Update business field errors
+  /// 不允许通过更新接口直接修改主组标记
+  CannotModifyPrimaryStatus,
+  /// 不允许通过更新接口直接修改引用计数
+  CannotModifyReferenceCount,
+
   // Validation errors
   /// 数据验证错误，包含具体的验证失败原因
   ValidationError(String),
@@ -108,6 +114,9 @@ impl AppError {
       AppError::GroupRelationAlreadyExists => "GROUP_RELATION_ALREADY_EXISTS",
       AppError::PrimaryGroupCannotBeParent => "PRIMARY_GROUP_CANNOT_BE_PARENT",
 
+      AppError::CannotModifyPrimaryStatus => "CANNOT_MODIFY_PRIMARY_STATUS",
+      AppError::CannotModifyReferenceCount => "CANNOT_MODIFY_REFERENCE_COUNT",
+
       AppError::ValidationError(_) => "VALIDATION_ERROR",
 
       AppError::DieselError(_) => "DATABASE_ERROR",
@@ -147,6 +156,11 @@ impl AppError {
       AppError::GroupRelationCycleDetected => "Group relation cycle detected".to_string(),
       AppError::GroupRelationAlreadyExists => "Group relation already exists".to_string(),
       AppError::PrimaryGroupCannotBeParent => "Primary group cannot be parent".to_string(),
+
+      AppError::CannotModifyPrimaryStatus => "Cannot modify primary status via update API".to_string(),
+      AppError::CannotModifyReferenceCount => {
+        "Cannot modify reference count via update API".to_string()
+      }
 
       AppError::ValidationError(msg) => format!("Validation error: {}", msg),
 

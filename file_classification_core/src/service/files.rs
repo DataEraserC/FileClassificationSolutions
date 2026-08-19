@@ -321,6 +321,11 @@ pub fn update_files_by_conditions(
   conditions: Vec<FileCondition>,
   update_set: UpdateFileDTO,
 ) -> Result<usize, AppError> {
+  // 引用计数由业务层维护，不允许通过更新接口直接修改
+  if update_set.reference_count.is_some() {
+    return Err(AppError::CannotModifyReferenceCount);
+  }
+
   // 首先查询将要更新的文件
   let files_to_update = select_files_by_conditions_with_limit(conn, conditions, None)?;
 
@@ -422,6 +427,11 @@ pub fn update_file_by_id(
   file_id: i32,
   update_set: UpdateFileDTO,
 ) -> Result<usize, AppError> {
+  // 引用计数由业务层维护，不允许通过更新接口直接修改
+  if update_set.reference_count.is_some() {
+    return Err(AppError::CannotModifyReferenceCount);
+  }
+
   conn.transaction::<usize, AppError, _>(|conn| {
     // 获取当前文件信息
     let current_file = get_file_by_id(conn, file_id)?;
