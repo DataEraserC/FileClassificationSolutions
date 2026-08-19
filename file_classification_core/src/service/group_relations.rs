@@ -82,15 +82,6 @@ pub fn create_group_relation(
       relation_type: group_relation.relation_type,
     };
 
-    if group_relation.relation_type == RELATION_TYPE_PARENT_CHILD {
-      // 设置子组的父组
-      groups_dao::update_group_parent_id(
-        conn,
-        group_relation.second_group_id,
-        group_relation.first_group_id,
-      )?;
-    }
-
     Ok(created_relation)
   })?;
 
@@ -119,16 +110,6 @@ pub fn delete_group_relation(
         conn,
         vec![group_relation.first_group_id, group_relation.second_group_id],
       )?;
-
-      // 如果删除的是父子关系，同步清除子组的 parent_id
-      if group_relation.relation_type == RELATION_TYPE_PARENT_CHILD {
-        let child_group = groups_dao::find_group_by_id(conn, group_relation.second_group_id)?;
-        if let Some(group) = child_group {
-          if group.parent_id == Some(group_relation.first_group_id) {
-            groups_dao::clear_group_parent_id(conn, group_relation.second_group_id)?;
-          }
-        }
-      }
     }
 
     Ok(deleted_count)
@@ -324,7 +305,7 @@ pub fn delete_group_relations_by_dtos(
 /// 删除指定组涉及的所有组关系（作为父组或子组）
 ///
 /// 用于删除组之前清理外部引用，避免外键约束拦截组删除。
-/// 会同步维护引用计数与子组 parent_id。
+/// 会同步维护两端组的引用计数。
 ///
 /// 参数:
 /// - `conn`: 数据库连接对象

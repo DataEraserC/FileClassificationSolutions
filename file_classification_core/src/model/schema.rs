@@ -45,7 +45,6 @@ diesel::table! {
         share_count -> Integer,
         create_time -> Timestamp,
         modify_time -> Timestamp,
-        parent_id -> Nullable<Integer>,
         description -> Nullable<Text>,
     }
 }

@@ -65,7 +65,6 @@ CREATE TABLE IF NOT EXISTS groups (
     share_count INTEGER NOT NULL DEFAULT 0,               -- Share count
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Creation time
     modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- Modification time
-    parent_id INTEGER REFERENCES groups(id),              -- Parent group ID for hierarchical structure
     description TEXT                                      -- Group description
 );
 

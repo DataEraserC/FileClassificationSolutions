@@ -64,7 +64,7 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Er
   conn.transaction::<usize, Error, _>(|conn| {
     let group = groups_dao::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
 
-    // 1. 清理该组涉及的所有组关系（作为父组或子组），并维护两端引用计数与子组 parent_id
+    // 1. 清理该组涉及的所有组关系（作为父组或子组），并维护两端引用计数
     group_relations_service::delete_group_relations_by_group_id(conn, group_id)?;
 
     // 2. 获取经 file_groups 关联到该组的文件列表

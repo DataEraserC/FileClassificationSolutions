@@ -65,7 +65,6 @@ CREATE TABLE IF NOT EXISTS groups (
     share_count INTEGER NOT NULL DEFAULT 0,               -- 分享次数
     create_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- 创建时间
     modify_time TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,  -- 修改时间
-    parent_id INTEGER REFERENCES groups(id),              -- 父组ID，用于层级结构
     description TEXT                                      -- 组描述
 );
 

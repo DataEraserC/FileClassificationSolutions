@@ -107,7 +107,8 @@ fn test_reference_counts_are_consistent() {
   .unwrap();
   assert_eq!(get_group(&mut conn, g2).reference_count, 2);
   assert_eq!(get_group(&mut conn, g1).reference_count, 3);
-  assert_eq!(find_group(&mut conn, g1).unwrap().parent_id, Some(g2));
+  // 父组关系由 group_relations 表维护，groups 表不再有 parent_id 列
+  assert_eq!(group_relations_service::get_direct_parents_ids(&mut conn, g1).unwrap(), vec![g2]);
 }
 
 /// 删除文件：主组、文件组关联、组标签关系全部级联清理，引用计数归零
@@ -194,7 +195,7 @@ fn test_delete_primary_group_cascades() {
   assert_eq!(get_file(&mut conn, file_id2).reference_count, 1);
 }
 
-/// 父子关系的 parent_id 生命周期：创建置位、删除关系清空、删除子组自动清理
+/// 父子关系生命周期：创建计数 +1、删除关系计数归零、删除子组自动清理关系
 #[test]
 fn test_group_relation_parent_id_lifecycle() {
   let mut conn = setup();
@@ -206,17 +207,17 @@ fn test_group_relation_parent_id_lifecycle() {
     GroupRelation { first_group_id: b, second_group_id: c, relation_type: RELATION_TYPE_PARENT_CHILD },
   )
   .unwrap();
-  assert_eq!(find_group(&mut conn, c).unwrap().parent_id, Some(b));
+  assert_eq!(group_relations_service::get_direct_parents_ids(&mut conn, c).unwrap(), vec![b]);
   assert_eq!(get_group(&mut conn, b).reference_count, 1);
   assert_eq!(get_group(&mut conn, c).reference_count, 1);
 
-  // 删除父子关系：parent_id 清空、两端计数归零
+  // 删除父子关系：两端计数归零，组关系清空
   group_relations_service::delete_group_relation(
     &mut conn,
     &GroupRelation { first_group_id: b, second_group_id: c, relation_type: RELATION_TYPE_PARENT_CHILD },
   )
   .unwrap();
-  assert_eq!(find_group(&mut conn, c).unwrap().parent_id, None);
+  assert!(group_relations_service::get_direct_parents_ids(&mut conn, c).unwrap().is_empty());
   assert_eq!(get_group(&mut conn, b).reference_count, 0);
   assert_eq!(get_group(&mut conn, c).reference_count, 0);
 

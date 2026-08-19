@@ -328,7 +328,6 @@ erDiagram
         int share_count
         timestamp create_time
         timestamp modify_time
-        int parent_id FK
     }
     
     file_groups {

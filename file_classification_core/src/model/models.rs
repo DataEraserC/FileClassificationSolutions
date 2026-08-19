@@ -251,8 +251,6 @@ pub struct Group {
   pub create_time: chrono::NaiveDateTime,
   /// 修改时间
   pub modify_time: chrono::NaiveDateTime,
-  /// 父分组ID
-  pub parent_id: Option<i32>,
   /// 分组描述
   pub description: Option<String>,
 }
