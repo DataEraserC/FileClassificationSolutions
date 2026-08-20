@@ -426,8 +426,6 @@ pub enum OrderDirection {
 #[derive(AsChangeset, Deserialize, Default, Debug)]
 #[diesel(table_name = groups)]
 pub struct UpdateGroupDTO {
-  /// 分组ID（可选）
-  pub id: Option<i32>,
   /// 分组名称（可选）
   pub name: Option<String>,
   /// 引用计数（可选）
