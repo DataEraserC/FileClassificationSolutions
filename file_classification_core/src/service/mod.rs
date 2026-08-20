@@ -38,12 +38,17 @@ macro_rules! select_functions {
     to_conditions: $to_conditions:path,
   ) => {
     /// 根据过滤条件查询记录列表
+    ///
+    /// 与 filter_with_options / filter_with_pagination 保持一致，统一经
+    /// `to_conditions` 转换为条件后再查询，保证字符串字段的 LIKE 语义及
+    /// description 等字段在所有 filter 变体间一致，避免各变体语义漂移
     pub fn $f_limit(
       conn: &mut $crate::utils::database::AnyConnection,
       search_input: $filter,
       limit: Option<i64>,
     ) -> Result<Vec<$dto>, $crate::service::AppError> {
-      $dao::$f_limit(conn, search_input, limit).map_err($crate::service::AppError::from)
+      let conditions = $to_conditions(search_input);
+      $dao::$c_limit(conn, conditions, limit).map_err($crate::service::AppError::from)
     }
 
     /// 根据过滤条件和选项查询记录列表

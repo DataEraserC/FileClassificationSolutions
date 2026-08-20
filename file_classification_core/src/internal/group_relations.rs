@@ -180,6 +180,9 @@ fn build_group_relation_condition(
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
+///
+/// 注意: 服务层 filter 变体统一经 `filter_to_conditions` 转条件查询，此函数保留备用
+#[allow(dead_code)]
 pub fn select_group_relations_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: GroupRelationFilter,

@@ -136,6 +136,10 @@ pub fn mark_group_as_non_primary(
 ///
 /// 返回值:
 /// 查询成功的分组记录列表或数据库错误
+///
+/// 注意: 服务层 filter 变体统一经 `filter_to_conditions` 转条件查询，
+/// 此函数保留备用，语义（精确匹配）与条件路径（LIKE）不一致
+#[allow(dead_code)]
 pub fn select_groups_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: GroupFilter,

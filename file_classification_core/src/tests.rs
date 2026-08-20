@@ -7,8 +7,9 @@
 use crate::internal::{file_group as file_group_dao, files as files_dao};
 use crate::internal::{groups as groups_dao, tags as tags_dao};
 use crate::model::models::{
-  CreateFileDTO, CreateGroupDTO, CreateTagDTO, File, FileGroupDTO, Group, GroupRelation, GroupTagDTO,
-  RELATION_TYPE_PARENT_CHILD, Tag, UpdateFileDTO, UpdateGroupDTO, UpdateTagDTO,
+  CreateFileDTO, CreateGroupDTO, CreateTagDTO, File, FileGroupDTO, Group, GroupFilter,
+  GroupRelation, GroupTagDTO, RELATION_TYPE_PARENT_CHILD, Tag, UpdateFileDTO, UpdateGroupDTO,
+  UpdateTagDTO,
 };
 use crate::service::{file_group as file_group_service, files as files_service};
 use crate::service::{group_relations as group_relations_service, group_tag as group_tag_service};
@@ -293,4 +294,42 @@ fn assert_err_is(result: Result<usize, AppError>, expected: AppError) {
     Err(e) => assert_eq!(e.code(), expected.code()),
     Ok(_) => panic!("期望业务错误，实际成功"),
   }
+}
+
+/// filter_with_limit 与其他 filter 变体语义一致：字符串字段 LIKE 匹配，且支持 description 过滤
+#[test]
+fn test_filter_limit_uses_like_and_description() {
+  let mut conn = setup();
+
+  groups_service::create_group(
+    &mut conn,
+    &CreateGroupDTO { name: "alpha".to_string(), description: Some("meme folder".to_string()) },
+  )
+  .unwrap();
+  groups_service::create_group(
+    &mut conn,
+    &CreateGroupDTO { name: "alphabet".to_string(), description: None },
+  )
+  .unwrap();
+
+  // name 子串匹配：LIKE %pha% 应同时命中 alpha 与 alphabet
+  let by_name = groups_service::select_groups_by_filter_with_limit(
+    &mut conn,
+    GroupFilter { name: Some("%pha%".to_string()), ..Default::default() },
+    None,
+  )
+  .unwrap();
+  let names: Vec<String> = by_name.iter().map(|g| g.name.clone()).collect();
+  assert!(names.contains(&"alpha".to_string()));
+  assert!(names.contains(&"alphabet".to_string()));
+
+  // description 过滤（此前 filter_with_limit 路径会静默忽略该字段，与其他变体不一致）
+  let by_desc = groups_service::select_groups_by_filter_with_limit(
+    &mut conn,
+    GroupFilter { description: Some("%meme%".to_string()), ..Default::default() },
+    None,
+  )
+  .unwrap();
+  assert_eq!(by_desc.len(), 1);
+  assert_eq!(by_desc[0].name, "alpha");
 }
