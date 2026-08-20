@@ -1034,7 +1034,8 @@ pub struct PaginationResult<T> {
 impl<T> PaginationResult<T> {
   /// 创建新的分页结果
   pub fn new(data: Vec<T>, page: i64, page_size: i64, total: i64) -> Self {
-    let total_pages = (total + page_size - 1) / page_size; // 向上取整计算总页数
+    // 向上取整计算总页数；page_size 非法（<=0）时按 0 页处理，避免除零
+    let total_pages = if page_size <= 0 { 0 } else { (total + page_size - 1) / page_size };
     PaginationResult { data, page, page_size, total, total_pages }
   }
 }
