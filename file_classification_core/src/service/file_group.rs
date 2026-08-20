@@ -177,14 +177,8 @@ pub fn delete_file_groups_by_conditions(
 
     // 对于每个要删除的文件组关联，直接调用delete_file_group函数
     for file_group in &file_groups_to_delete {
-      let file_group_dto = FileGroupDTO {
-        file_id: file_group.file_id,
-        group_id: file_group.group_id,
-        relation_type: 1,
-      };
-
-      // 调用单个删除函数，复用其业务逻辑和验证规则
-      let deleted_count = delete_file_group_by_dto(conn, &file_group_dto)?;
+      // 调用单个删除函数，复用其业务逻辑和验证规则，保留 DB 中的实际 relation_type
+      let deleted_count = delete_file_group_by_dto(conn, file_group)?;
       total_deleted += deleted_count;
     }
 
