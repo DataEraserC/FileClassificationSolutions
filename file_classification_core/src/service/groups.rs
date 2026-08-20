@@ -182,7 +182,7 @@ pub fn select_groups_by_filter_with_options(
     conditions.push(GroupCondition::Id(id));
   }
   if let Some(name) = search_input.name {
-    conditions.push(GroupCondition::Name(name));
+    conditions.push(GroupCondition::NameLike(name));
   }
   if let Some(reference_count) = search_input.reference_count {
     conditions.push(GroupCondition::ReferenceCount(reference_count));
@@ -201,6 +201,9 @@ pub fn select_groups_by_filter_with_options(
   }
   if let Some(modify_time) = search_input.modify_time {
     conditions.push(GroupCondition::ModifyTime(modify_time));
+  }
+  if let Some(description) = search_input.description {
+    conditions.push(GroupCondition::DescriptionLike(description));
   }
 
   groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)

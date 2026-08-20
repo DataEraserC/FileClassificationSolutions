@@ -107,10 +107,13 @@ pub fn select_tags_by_filter_with_options(
     conditions.push(TagCondition::Id(id));
   }
   if let Some(name) = search_input.name {
-    conditions.push(TagCondition::Name(name));
+    conditions.push(TagCondition::NameLike(name));
   }
   if let Some(reference_count) = search_input.reference_count {
     conditions.push(TagCondition::ReferenceCount(reference_count));
+  }
+  if let Some(description) = search_input.description {
+    conditions.push(TagCondition::DescriptionLike(description));
   }
 
   tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
