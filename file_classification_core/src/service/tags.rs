@@ -86,21 +86,8 @@ pub fn select_tags_by_filter_with_limit(
   tags_dao::select_tags_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
 }
 
-/// 根据过滤条件和选项查询标签列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 标签过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_filter_with_options(
-  conn: &mut AnyConnection,
-  search_input: TagFilter,
-  options: TagQueryOptions,
-) -> Result<Vec<Tag>, AppError> {
-  // 构造查询条件
+/// 将标签过滤条件转换为查询条件向量
+fn tag_filter_to_conditions(search_input: TagFilter) -> Vec<TagCondition> {
   let mut conditions = Vec::new();
 
   if let Some(id) = search_input.id {
@@ -115,6 +102,25 @@ pub fn select_tags_by_filter_with_options(
   if let Some(description) = search_input.description {
     conditions.push(TagCondition::DescriptionLike(description));
   }
+
+  conditions
+}
+
+/// 根据过滤条件和选项查询标签列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 标签过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的标签记录列表或数据库错误
+pub fn select_tags_by_filter_with_options(
+  conn: &mut AnyConnection,
+  search_input: TagFilter,
+  options: TagQueryOptions,
+) -> Result<Vec<Tag>, AppError> {
+  let conditions = tag_filter_to_conditions(search_input);
 
   tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
     .map_err(AppError::from)
@@ -169,21 +175,7 @@ pub fn select_tags_by_filter_with_pagination(
   search_input: TagFilter,
   options: TagQueryOptions,
 ) -> Result<PaginationResult<Tag>, AppError> {
-  // 构造查询条件
-  let mut conditions = Vec::new();
-
-  if let Some(id) = search_input.id {
-    conditions.push(TagCondition::Id(id));
-  }
-  if let Some(name) = search_input.name {
-    conditions.push(TagCondition::NameLike(name));
-  }
-  if let Some(reference_count) = search_input.reference_count {
-    conditions.push(TagCondition::ReferenceCount(reference_count));
-  }
-  if let Some(description) = search_input.description {
-    conditions.push(TagCondition::DescriptionLike(description));
-  }
+  let conditions = tag_filter_to_conditions(search_input);
 
   select_tags_by_conditions_with_pagination(conn, conditions, options)
 }

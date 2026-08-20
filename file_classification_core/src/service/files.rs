@@ -181,21 +181,8 @@ pub fn select_files_by_filter_with_limit(
   files_dao::select_files_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
 }
 
-/// 根据过滤条件和选项查询文件列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 文件过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的文件记录列表或数据库错误
-pub fn select_files_by_filter_with_options(
-  conn: &mut AnyConnection,
-  search_input: FileFilter,
-  options: FileQueryOptions,
-) -> Result<Vec<File>, AppError> {
-  // 构造查询条件
+/// 将文件过滤条件转换为查询条件向量
+fn file_filter_to_conditions(search_input: FileFilter) -> Vec<FileCondition> {
   let mut conditions = Vec::new();
 
   if let Some(id) = search_input.id {
@@ -216,6 +203,25 @@ pub fn select_files_by_filter_with_options(
   if let Some(description) = search_input.description {
     conditions.push(FileCondition::DescriptionLike(description));
   }
+
+  conditions
+}
+
+/// 根据过滤条件和选项查询文件列表
+///
+/// 参数:
+/// - `conn`: 数据库连接对象
+/// - `search_input`: 文件过滤条件
+/// - `options`: 查询选项（包括分页和排序）
+///
+/// 返回值:
+/// 查询成功的文件记录列表或数据库错误
+pub fn select_files_by_filter_with_options(
+  conn: &mut AnyConnection,
+  search_input: FileFilter,
+  options: FileQueryOptions,
+) -> Result<Vec<File>, AppError> {
+  let conditions = file_filter_to_conditions(search_input);
 
   files_dao::select_files_by_conditions_with_options(conn, conditions, options)
     .map_err(AppError::from)
@@ -235,27 +241,7 @@ pub fn select_files_by_filter_with_pagination(
   search_input: FileFilter,
   options: FileQueryOptions,
 ) -> Result<PaginationResult<File>, AppError> {
-  // 构造查询条件
-  let mut conditions = Vec::new();
-
-  if let Some(id) = search_input.id {
-    conditions.push(FileCondition::Id(id));
-  }
-  if let Some(type_) = search_input.type_ {
-    conditions.push(FileCondition::TypeLike(type_));
-  }
-  if let Some(path) = search_input.path {
-    conditions.push(FileCondition::PathLike(path));
-  }
-  if let Some(reference_count) = search_input.reference_count {
-    conditions.push(FileCondition::ReferenceCount(reference_count));
-  }
-  if let Some(group_id) = search_input.group_id {
-    conditions.push(FileCondition::GroupId(group_id));
-  }
-  if let Some(description) = search_input.description {
-    conditions.push(FileCondition::DescriptionLike(description));
-  }
+  let conditions = file_filter_to_conditions(search_input);
 
   select_files_by_conditions_with_pagination(conn, conditions, options)
 }
