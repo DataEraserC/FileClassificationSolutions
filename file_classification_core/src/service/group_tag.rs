@@ -8,7 +8,7 @@ use crate::internal::group_tag as group_tag_dao;
 use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
 use crate::model::models::{
-  GroupTagCondition, GroupTagDTO, GroupTagFilter, GroupTagQueryOptions, PaginationResult,
+  GroupTagCondition, GroupTagDTO, GroupTagFilter, GroupTagQueryOptions,
 };
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
@@ -97,57 +97,8 @@ pub fn delete_group_tag_by_dto(
   Ok(_result)
 }
 
-/// 根据过滤条件查询组-标签关联列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 组-标签关联过滤条件
-/// - `limit`: 最大返回记录数（可选）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_filter_with_limit(
-  conn: &mut AnyConnection,
-  search_input: GroupTagFilter,
-  limit: Option<i64>,
-) -> Result<Vec<GroupTagDTO>, AppError> {
-  group_tag_dao::select_group_tags_by_filter_with_limit(conn, search_input, limit)
-    .map_err(AppError::from)
-}
-
-/// 根据过滤条件和选项查询分组-标签关联列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 组-标签关联过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_filter_with_options(
-  conn: &mut AnyConnection,
-  search_input: GroupTagFilter,
-  options: GroupTagQueryOptions,
-) -> Result<Vec<GroupTagDTO>, AppError> {
-  group_tag_dao::select_group_tags_by_filter_with_options(conn, search_input, options)
-    .map_err(AppError::from)
-}
-
-/// 根据过滤条件和选项查询分组-标签关联列表（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 组-标签关联过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_group_tags_by_filter_with_pagination(
-  conn: &mut AnyConnection,
-  search_input: GroupTagFilter,
-  options: GroupTagQueryOptions,
-) -> Result<PaginationResult<GroupTagDTO>, AppError> {
-  // 构造查询条件
+/// 将组-标签过滤条件转换为查询条件向量
+fn group_tag_filter_to_conditions(search_input: GroupTagFilter) -> Vec<GroupTagCondition> {
   let mut conditions = Vec::new();
 
   if let Some(group_id) = search_input.group_id {
@@ -157,61 +108,22 @@ pub fn select_group_tags_by_filter_with_pagination(
     conditions.push(GroupTagCondition::TagId(tag_id));
   }
 
-  select_group_tags_by_conditions_with_pagination(conn, conditions, options)
+  conditions
 }
 
-/// 根据条件查询分组-标签关联记录
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `condition`: 查询条件向量
-/// - `limit`: 返回记录数限制（可选）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_conditions_with_limit(
-  conn: &mut AnyConnection,
-  condition: Vec<GroupTagCondition>,
-  limit: Option<i64>,
-) -> Result<Vec<GroupTagDTO>, AppError> {
-  group_tag_dao::select_group_tags_by_conditions_with_limit(conn, condition, limit)
-    .map_err(AppError::from)
-}
-
-/// 根据条件和选项查询分组-标签关联记录
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_tags_by_conditions_with_options(
-  conn: &mut AnyConnection,
-  conditions: Vec<GroupTagCondition>,
+select_functions! {
+  dao: group_tag_dao,
+  filter_with_limit: select_group_tags_by_filter_with_limit,
+  filter_with_options: select_group_tags_by_filter_with_options,
+  filter_with_pagination: select_group_tags_by_filter_with_pagination,
+  conditions_with_limit: select_group_tags_by_conditions_with_limit,
+  conditions_with_options: select_group_tags_by_conditions_with_options,
+  conditions_with_pagination: select_group_tags_by_conditions_with_pagination,
+  dto: GroupTagDTO,
+  filter: GroupTagFilter,
+  condition: GroupTagCondition,
   options: GroupTagQueryOptions,
-) -> Result<Vec<GroupTagDTO>, AppError> {
-  group_tag_dao::select_group_tags_by_conditions_with_options(conn, conditions, options)
-    .map_err(AppError::from)
-}
-
-/// 根据条件和选项查询分组-标签关联记录（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_group_tags_by_conditions_with_pagination(
-  conn: &mut AnyConnection,
-  conditions: Vec<GroupTagCondition>,
-  options: GroupTagQueryOptions,
-) -> Result<PaginationResult<GroupTagDTO>, AppError> {
-  group_tag_dao::select_group_tags_by_conditions_with_pagination(conn, conditions, options)
-    .map_err(AppError::from)
+  to_conditions: group_tag_filter_to_conditions,
 }
 
 /// 根据条件批量删除分组-标签关联记录（级联删除相关资源）

@@ -11,7 +11,7 @@ use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
 use crate::model::models::{
   CreateGroupDTO, FileGroupCondition, FileGroupDTO, Group, GroupCondition, GroupFilter,
-  GroupQueryOptions, GroupTagCondition, GroupTreeNode, PaginationResult, UpdateGroupDTO,
+  GroupQueryOptions, GroupTagCondition, GroupTreeNode, UpdateGroupDTO,
 };
 use crate::service::AppError;
 use crate::service::group_relations as group_relations_service;
@@ -144,23 +144,6 @@ pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Ap
   })
 }
 
-/// 根据过滤条件查询分组列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 分组过滤条件
-/// - `limit`: 最大返回记录数（可选）
-///
-/// 返回值:
-/// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_filter_with_limit(
-  conn: &mut AnyConnection,
-  search_input: GroupFilter,
-  limit: Option<i64>,
-) -> Result<Vec<Group>, AppError> {
-  groups_dao::select_groups_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
-}
-
 /// 将分组过滤条件转换为查询条件向量
 fn group_filter_to_conditions(search_input: GroupFilter) -> Vec<GroupCondition> {
   let mut conditions = Vec::new();
@@ -196,97 +179,19 @@ fn group_filter_to_conditions(search_input: GroupFilter) -> Vec<GroupCondition> 
   conditions
 }
 
-/// 根据过滤条件和选项查询分组列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 分组过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_filter_with_options(
-  conn: &mut AnyConnection,
-  search_input: GroupFilter,
+select_functions! {
+  dao: groups_dao,
+  filter_with_limit: select_groups_by_filter_with_limit,
+  filter_with_options: select_groups_by_filter_with_options,
+  filter_with_pagination: select_groups_by_filter_with_pagination,
+  conditions_with_limit: select_groups_by_conditions_with_limit,
+  conditions_with_options: select_groups_by_conditions_with_options,
+  conditions_with_pagination: select_groups_by_conditions_with_pagination,
+  dto: Group,
+  filter: GroupFilter,
+  condition: GroupCondition,
   options: GroupQueryOptions,
-) -> Result<Vec<Group>, AppError> {
-  let conditions = group_filter_to_conditions(search_input);
-
-  groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)
-    .map_err(AppError::from)
-}
-
-/// 根据过滤条件和选项查询分组列表（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 分组过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_groups_by_filter_with_pagination(
-  conn: &mut AnyConnection,
-  search_input: GroupFilter,
-  options: GroupQueryOptions,
-) -> Result<PaginationResult<Group>, AppError> {
-  let conditions = group_filter_to_conditions(search_input);
-
-  select_groups_by_conditions_with_pagination(conn, conditions, options)
-}
-
-/// 根据条件查询分组列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `condition`: 查询条件向量
-/// - `limit`: 返回记录数限制（可选）
-///
-/// 返回值:
-/// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_conditions_with_limit(
-  conn: &mut AnyConnection,
-  condition: Vec<GroupCondition>,
-  limit: Option<i64>,
-) -> Result<Vec<Group>, AppError> {
-  groups_dao::select_groups_by_conditions_with_limit(conn, condition, limit)
-    .map_err(AppError::from)
-}
-
-/// 根据条件和选项查询分组列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分组记录列表或数据库错误
-pub fn select_groups_by_conditions_with_options(
-  conn: &mut AnyConnection,
-  conditions: Vec<GroupCondition>,
-  options: GroupQueryOptions,
-) -> Result<Vec<Group>, AppError> {
-  groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)
-    .map_err(AppError::from)
-}
-
-/// 根据条件和选项查询分组列表（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_groups_by_conditions_with_pagination(
-  conn: &mut AnyConnection,
-  conditions: Vec<GroupCondition>,
-  options: GroupQueryOptions,
-) -> Result<PaginationResult<Group>, AppError> {
-  groups_dao::select_groups_by_conditions_with_pagination(conn, conditions, options)
-    .map_err(AppError::from)
+  to_conditions: group_filter_to_conditions,
 }
 
 /// 根据条件批量更新分组

@@ -9,7 +9,7 @@ use crate::internal::groups as groups_dao;
 use crate::internal::tags as tags_dao;
 use crate::model::models::{CreateTagDTO, Tag, TagFilter};
 use crate::model::models::{
-  GroupTagDTO, PaginationResult, TagCondition, TagQueryOptions, UpdateTagDTO,
+  GroupTagDTO, TagCondition, TagQueryOptions, UpdateTagDTO,
 };
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
@@ -69,23 +69,6 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, AppErr
   })
 }
 
-/// 根据过滤条件查询标签列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 标签过滤条件
-/// - `limit`: 最大返回记录数（可选）
-///
-/// 返回值:
-/// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_filter_with_limit(
-  conn: &mut AnyConnection,
-  search_input: TagFilter,
-  limit: Option<i64>,
-) -> Result<Vec<Tag>, AppError> {
-  tags_dao::select_tags_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
-}
-
 /// 将标签过滤条件转换为查询条件向量
 fn tag_filter_to_conditions(search_input: TagFilter) -> Vec<TagCondition> {
   let mut conditions = Vec::new();
@@ -106,96 +89,19 @@ fn tag_filter_to_conditions(search_input: TagFilter) -> Vec<TagCondition> {
   conditions
 }
 
-/// 根据过滤条件和选项查询标签列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 标签过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_filter_with_options(
-  conn: &mut AnyConnection,
-  search_input: TagFilter,
+select_functions! {
+  dao: tags_dao,
+  filter_with_limit: select_tags_by_filter_with_limit,
+  filter_with_options: select_tags_by_filter_with_options,
+  filter_with_pagination: select_tags_by_filter_with_pagination,
+  conditions_with_limit: select_tags_by_conditions_with_limit,
+  conditions_with_options: select_tags_by_conditions_with_options,
+  conditions_with_pagination: select_tags_by_conditions_with_pagination,
+  dto: Tag,
+  filter: TagFilter,
+  condition: TagCondition,
   options: TagQueryOptions,
-) -> Result<Vec<Tag>, AppError> {
-  let conditions = tag_filter_to_conditions(search_input);
-
-  tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
-    .map_err(AppError::from)
-}
-
-/// 根据条件查询标签列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `condition`: 查询条件向量
-/// - `limit`: 返回记录数限制（可选）
-///
-/// 返回值:
-/// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_conditions_with_limit(
-  conn: &mut AnyConnection,
-  condition: Vec<TagCondition>,
-  limit: Option<i64>,
-) -> Result<Vec<Tag>, AppError> {
-  tags_dao::select_tags_by_conditions_with_limit(conn, condition, limit).map_err(AppError::from)
-}
-
-/// 根据条件和选项查询标签列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的标签记录列表或数据库错误
-pub fn select_tags_by_conditions_with_options(
-  conn: &mut AnyConnection,
-  conditions: Vec<TagCondition>,
-  options: TagQueryOptions,
-) -> Result<Vec<Tag>, AppError> {
-  tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
-    .map_err(AppError::from)
-}
-
-/// 根据过滤条件和选项查询标签列表（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 标签过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_tags_by_filter_with_pagination(
-  conn: &mut AnyConnection,
-  search_input: TagFilter,
-  options: TagQueryOptions,
-) -> Result<PaginationResult<Tag>, AppError> {
-  let conditions = tag_filter_to_conditions(search_input);
-
-  select_tags_by_conditions_with_pagination(conn, conditions, options)
-}
-
-/// 根据条件和选项查询标签列表（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_tags_by_conditions_with_pagination(
-  conn: &mut AnyConnection,
-  conditions: Vec<TagCondition>,
-  options: TagQueryOptions,
-) -> Result<PaginationResult<Tag>, AppError> {
-  tags_dao::select_tags_by_conditions_with_pagination(conn, conditions, options)
-    .map_err(AppError::from)
+  to_conditions: tag_filter_to_conditions,
 }
 
 /// 根据条件批量更新标签

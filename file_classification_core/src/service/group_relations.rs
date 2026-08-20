@@ -8,7 +8,7 @@ use crate::internal::group_relations as group_relations_dao;
 use crate::internal::groups as groups_dao;
 use crate::model::models::{
   GroupRelation, GroupRelationCondition, GroupRelationFilter, GroupRelationQueryOptions,
-  PaginationResult, RELATION_TYPE_PARENT_CHILD,
+  RELATION_TYPE_PARENT_CHILD,
 };
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
@@ -117,93 +117,8 @@ pub fn delete_group_relation(
   result
 }
 
-/// 根据过滤条件查询组关系列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 组关系过滤条件
-/// - `limit`: 最大返回记录数（可选）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_filter_with_limit(
-  conn: &mut AnyConnection,
-  search_input: GroupRelationFilter,
-  limit: Option<i64>,
-) -> Result<Vec<GroupRelation>, AppError> {
-  group_relations_dao::select_group_relations_by_filter_with_limit(conn, search_input, limit)
-    .map_err(AppError::from)
-}
-
-/// 根据过滤条件和选项查询组关系列表
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 组关系过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_filter_with_options(
-  conn: &mut AnyConnection,
-  search_input: GroupRelationFilter,
-  options: GroupRelationQueryOptions,
-) -> Result<Vec<GroupRelation>, AppError> {
-  group_relations_dao::select_group_relations_by_filter_with_options(conn, search_input, options)
-    .map_err(AppError::from)
-}
-
-/// 根据条件查询组关系记录
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `condition`: 查询条件向量
-/// - `limit`: 返回记录数限制（可选）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_conditions_with_limit(
-  conn: &mut AnyConnection,
-  condition: Vec<GroupRelationCondition>,
-  limit: Option<i64>,
-) -> Result<Vec<GroupRelation>, AppError> {
-  group_relations_dao::select_group_relations_by_conditions_with_limit(conn, condition, limit)
-    .map_err(AppError::from)
-}
-
-/// 根据条件和选项查询组关系记录
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的记录列表或数据库错误
-pub fn select_group_relations_by_conditions_with_options(
-  conn: &mut AnyConnection,
-  conditions: Vec<GroupRelationCondition>,
-  options: GroupRelationQueryOptions,
-) -> Result<Vec<GroupRelation>, AppError> {
-  group_relations_dao::select_group_relations_by_conditions_with_options(conn, conditions, options)
-    .map_err(AppError::from)
-}
-
-/// 根据过滤条件和选项查询组关系记录（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `search_input`: 组关系过滤条件
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_group_relations_by_filter_with_pagination(
-  conn: &mut AnyConnection,
-  search_input: GroupRelationFilter,
-  options: GroupRelationQueryOptions,
-) -> Result<PaginationResult<GroupRelation>, AppError> {
-  // 构造查询条件
+/// 将组关系过滤条件转换为查询条件向量
+fn group_relation_filter_to_conditions(search_input: GroupRelationFilter) -> Vec<GroupRelationCondition> {
   let mut conditions = Vec::new();
 
   if let Some(first_group_id) = search_input.first_group_id {
@@ -216,27 +131,22 @@ pub fn select_group_relations_by_filter_with_pagination(
     conditions.push(GroupRelationCondition::RelationType(relation_type));
   }
 
-  select_group_relations_by_conditions_with_pagination(conn, conditions, options)
+  conditions
 }
 
-/// 根据条件和选项查询组关系记录（支持分页结果）
-///
-/// 参数:
-/// - `conn`: 数据库连接对象
-/// - `conditions`: 查询条件向量
-/// - `options`: 查询选项（包括分页和排序）
-///
-/// 返回值:
-/// 查询成功的分页结果或数据库错误
-pub fn select_group_relations_by_conditions_with_pagination(
-  conn: &mut AnyConnection,
-  conditions: Vec<GroupRelationCondition>,
+select_functions! {
+  dao: group_relations_dao,
+  filter_with_limit: select_group_relations_by_filter_with_limit,
+  filter_with_options: select_group_relations_by_filter_with_options,
+  filter_with_pagination: select_group_relations_by_filter_with_pagination,
+  conditions_with_limit: select_group_relations_by_conditions_with_limit,
+  conditions_with_options: select_group_relations_by_conditions_with_options,
+  conditions_with_pagination: select_group_relations_by_conditions_with_pagination,
+  dto: GroupRelation,
+  filter: GroupRelationFilter,
+  condition: GroupRelationCondition,
   options: GroupRelationQueryOptions,
-) -> Result<PaginationResult<GroupRelation>, AppError> {
-  group_relations_dao::select_group_relations_by_conditions_with_pagination(
-    conn, conditions, options,
-  )
-  .map_err(AppError::from)
+  to_conditions: group_relation_filter_to_conditions,
 }
 
 /// 根据条件批量删除组关系记录
