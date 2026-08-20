@@ -29,8 +29,8 @@ use diesel::Connection;
 pub fn create_tag(
   conn: &mut AnyConnection,
   create_tag_dto: &CreateTagDTO,
-) -> Result<i32, diesel::result::Error> {
-  tags_dao::insert_tag(conn, create_tag_dto)
+) -> Result<i32, AppError> {
+  tags_dao::insert_tag(conn, create_tag_dto).map_err(AppError::from)
 }
 
 /// 删除标签（级联删除相关资源）
@@ -46,9 +46,9 @@ pub fn create_tag(
 ///
 /// 返回值:
 /// 成功时返回删除的记录数，失败时返回数据库错误
-pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel::result::Error> {
+pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, AppError> {
   // 使用事务确保数据一致性
-  conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+  conn.transaction::<usize, AppError, _>(|conn| {
     // 查找与该标签关联的所有组
     let groups_associated_with_tag = groups_dao::select_groups_by_tag_id(conn, tag_id)?;
 
@@ -65,7 +65,7 @@ pub fn delete_tag(conn: &mut AnyConnection, tag_id: i32) -> Result<usize, diesel
     }
 
     // 删除标签本身
-    tags_dao::delete_tag_by_id(conn, tag_id)
+    tags_dao::delete_tag_by_id(conn, tag_id).map_err(AppError::from)
   })
 }
 
@@ -82,8 +82,8 @@ pub fn select_tags_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: TagFilter,
   limit: Option<i64>,
-) -> Result<Vec<Tag>, diesel::result::Error> {
-  tags_dao::select_tags_by_filter_with_limit(conn, search_input, limit)
+) -> Result<Vec<Tag>, AppError> {
+  tags_dao::select_tags_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询标签列表
@@ -99,7 +99,7 @@ pub fn select_tags_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: TagFilter,
   options: TagQueryOptions,
-) -> Result<Vec<Tag>, diesel::result::Error> {
+) -> Result<Vec<Tag>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -114,6 +114,7 @@ pub fn select_tags_by_filter_with_options(
   }
 
   tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件查询标签列表
@@ -129,8 +130,8 @@ pub fn select_tags_by_conditions_with_limit(
   conn: &mut AnyConnection,
   condition: Vec<TagCondition>,
   limit: Option<i64>,
-) -> Result<Vec<Tag>, diesel::result::Error> {
-  tags_dao::select_tags_by_conditions_with_limit(conn, condition, limit)
+) -> Result<Vec<Tag>, AppError> {
+  tags_dao::select_tags_by_conditions_with_limit(conn, condition, limit).map_err(AppError::from)
 }
 
 /// 根据条件和选项查询标签列表
@@ -146,8 +147,9 @@ pub fn select_tags_by_conditions_with_options(
   conn: &mut AnyConnection,
   conditions: Vec<TagCondition>,
   options: TagQueryOptions,
-) -> Result<Vec<Tag>, diesel::result::Error> {
+) -> Result<Vec<Tag>, AppError> {
   tags_dao::select_tags_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询标签列表（支持分页结果）
@@ -163,7 +165,7 @@ pub fn select_tags_by_filter_with_pagination(
   conn: &mut AnyConnection,
   search_input: TagFilter,
   options: TagQueryOptions,
-) -> Result<PaginationResult<Tag>, diesel::result::Error> {
+) -> Result<PaginationResult<Tag>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -196,8 +198,9 @@ pub fn select_tags_by_conditions_with_pagination(
   conn: &mut AnyConnection,
   conditions: Vec<TagCondition>,
   options: TagQueryOptions,
-) -> Result<PaginationResult<Tag>, diesel::result::Error> {
+) -> Result<PaginationResult<Tag>, AppError> {
   tags_dao::select_tags_by_conditions_with_pagination(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件批量更新标签
@@ -213,12 +216,12 @@ pub fn update_tags_by_conditions(
   conn: &mut AnyConnection,
   conditions: Vec<TagCondition>,
   update_set: UpdateTagDTO,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   // 引用计数由业务层维护，不允许通过更新接口直接修改
   if update_set.reference_count.is_some() {
-    return Err(AppError::CannotModifyReferenceCount.into());
+    return Err(AppError::CannotModifyReferenceCount);
   }
-  tags_dao::update_tags_by_conditions(conn, conditions, update_set)
+  tags_dao::update_tags_by_conditions(conn, conditions, update_set).map_err(AppError::from)
 }
 
 /// 根据条件批量删除标签（级联删除相关资源）
@@ -238,16 +241,12 @@ pub fn update_tags_by_conditions(
 pub fn delete_tags_by_conditions(
   conn: &mut AnyConnection,
   conditions: Vec<TagCondition>,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   // 首先查询将要删除的标签
-  let tags_to_delete = select_tags_by_conditions_with_limit(conn, conditions.clone(), None)
-    .map_err(|e| match e {
-      diesel::result::Error::NotFound => diesel::result::Error::NotFound,
-      _ => e,
-    })?;
+  let tags_to_delete = select_tags_by_conditions_with_limit(conn, conditions.clone(), None)?;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, diesel::result::Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     let mut total_deleted = 0;
 
     // 对于每个要删除的标签，直接调用delete_tag函数
@@ -272,8 +271,8 @@ pub fn delete_tags_by_conditions(
 pub fn select_tag_by_group_id(
   conn: &mut AnyConnection,
   group_id: i32,
-) -> Result<Vec<Tag>, diesel::result::Error> {
-  tags_dao::select_tag_by_group_id(conn, group_id)
+) -> Result<Vec<Tag>, AppError> {
+  tags_dao::select_tag_by_group_id(conn, group_id).map_err(AppError::from)
 }
 
 /// 根据标签ID获取标签详情
@@ -284,8 +283,8 @@ pub fn select_tag_by_group_id(
 ///
 /// 返回值:
 /// 查询成功的标签记录或数据库错误
-pub fn get_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Tag, diesel::result::Error> {
-  tags_dao::get_tag_by_id(conn, tag_id)
+pub fn get_tag_by_id(conn: &mut AnyConnection, tag_id: i32) -> Result<Tag, AppError> {
+  tags_dao::get_tag_by_id(conn, tag_id).map_err(AppError::from)
 }
 
 /// 根据标签ID更新标签信息
@@ -301,12 +300,12 @@ pub fn update_tag_by_id(
   conn: &mut AnyConnection,
   tag_id: i32,
   update_set: UpdateTagDTO,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   // 引用计数由业务层维护，不允许通过更新接口直接修改
   if update_set.reference_count.is_some() {
-    return Err(AppError::CannotModifyReferenceCount.into());
+    return Err(AppError::CannotModifyReferenceCount);
   }
-  tags_dao::update_tag_by_id(conn, tag_id, update_set)
+  tags_dao::update_tag_by_id(conn, tag_id, update_set).map_err(AppError::from)
 }
 
 /// 根据标签ID列表批量删除标签
@@ -320,11 +319,11 @@ pub fn update_tag_by_id(
 pub fn delete_tags_by_ids(
   conn: &mut AnyConnection,
   tag_ids: Vec<i32>,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   let mut total_deleted = 0;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, diesel::result::Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     for &tag_id in &tag_ids {
       // 调用单个标签删除函数，复用其业务逻辑
       let deleted_count = delete_tag(conn, tag_id)?;

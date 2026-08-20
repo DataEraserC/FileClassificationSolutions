@@ -13,6 +13,7 @@ use file_classification_core::{
     create_tag, delete_tag, get_tag_by_id, select_tags_by_conditions_with_limit,
     select_tags_by_filter_with_limit, update_tags_by_conditions,
   },
+  utils::errors::AppError,
 };
 use serde_json::json;
 
@@ -98,7 +99,7 @@ async fn api_get_tag_by_id(path: web::Path<i32>, pool: web::Data<DbPool>) -> Res
       Ok(HttpResponse::Ok().json(ApiResponse::success(tag)))
     }
     // 标签未找到
-    Err(diesel::result::Error::NotFound) => Ok(
+    Err(AppError::DieselError(diesel::result::Error::NotFound)) => Ok(
       HttpResponse::NotFound()
         .json(ApiResponse::<()>::error_with_code("TAG_NOT_FOUND", "标签未找到")),
     ),

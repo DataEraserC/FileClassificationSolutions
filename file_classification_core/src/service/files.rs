@@ -111,7 +111,7 @@ pub fn create_file(
 /// 成功时返回空元组，失败时返回相应的错误
 pub fn delete_file(conn: &mut AnyConnection, file_id: i32) -> Result<(), AppError> {
   // 开始事务
-  conn.transaction::<(), diesel::result::Error, _>(|conn| {
+  conn.transaction::<(), AppError, _>(|conn| {
     // 0. 删除对应的PrimaryGroup对应的GroupTag
     // 1. 删除对应的PrimaryGroup
     // 2. 删除对应的剩余FileGroup
@@ -177,8 +177,8 @@ pub fn select_files_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: FileFilter,
   limit: Option<i64>,
-) -> Result<Vec<File>, diesel::result::Error> {
-  files_dao::select_files_by_filter_with_limit(conn, search_input, limit)
+) -> Result<Vec<File>, AppError> {
+  files_dao::select_files_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询文件列表
@@ -194,7 +194,7 @@ pub fn select_files_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: FileFilter,
   options: FileQueryOptions,
-) -> Result<Vec<File>, diesel::result::Error> {
+) -> Result<Vec<File>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -215,6 +215,7 @@ pub fn select_files_by_filter_with_options(
   }
 
   files_dao::select_files_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询文件列表（支持分页结果）
@@ -230,7 +231,7 @@ pub fn select_files_by_filter_with_pagination(
   conn: &mut AnyConnection,
   search_input: FileFilter,
   options: FileQueryOptions,
-) -> Result<PaginationResult<File>, diesel::result::Error> {
+) -> Result<PaginationResult<File>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -269,8 +270,8 @@ pub fn select_files_by_conditions_with_limit(
   conn: &mut AnyConnection,
   condition: Vec<FileCondition>,
   limit: Option<i64>,
-) -> Result<Vec<File>, diesel::result::Error> {
-  files_dao::select_files_by_conditions_with_limit(conn, condition, limit)
+) -> Result<Vec<File>, AppError> {
+  files_dao::select_files_by_conditions_with_limit(conn, condition, limit).map_err(AppError::from)
 }
 
 /// 根据条件和选项查询文件列表（支持分页）
@@ -286,8 +287,9 @@ pub fn select_files_by_conditions_with_options(
   conn: &mut AnyConnection,
   conditions: Vec<FileCondition>,
   options: FileQueryOptions,
-) -> Result<Vec<File>, diesel::result::Error> {
+) -> Result<Vec<File>, AppError> {
   files_dao::select_files_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询文件列表（支持分页结果）
@@ -303,8 +305,9 @@ pub fn select_files_by_conditions_with_pagination(
   conn: &mut AnyConnection,
   conditions: Vec<FileCondition>,
   options: FileQueryOptions,
-) -> Result<PaginationResult<File>, diesel::result::Error> {
+) -> Result<PaginationResult<File>, AppError> {
   files_dao::select_files_by_conditions_with_pagination(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件批量更新文件
@@ -360,16 +363,12 @@ pub fn update_files_by_conditions(
 pub fn delete_files_by_conditions(
   conn: &mut AnyConnection,
   conditions: Vec<FileCondition>,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   // 首先查询将要删除的文件
-  let files_to_delete = select_files_by_conditions_with_limit(conn, conditions.clone(), None)
-    .map_err(|e| match e {
-      diesel::result::Error::NotFound => diesel::result::Error::NotFound,
-      _ => e,
-    })?;
+  let files_to_delete = select_files_by_conditions_with_limit(conn, conditions.clone(), None)?;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, diesel::result::Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     let mut total_deleted = 0;
 
     // 对于每个要删除的文件，直接调用delete_file函数
@@ -394,8 +393,8 @@ pub fn delete_files_by_conditions(
 pub fn select_file_by_group_id(
   conn: &mut AnyConnection,
   other_group_id: i32,
-) -> Result<Vec<File>, diesel::result::Error> {
-  files_dao::select_files_by_group_id(conn, other_group_id)
+) -> Result<Vec<File>, AppError> {
+  files_dao::select_files_by_group_id(conn, other_group_id).map_err(AppError::from)
 }
 
 /// 根据文件ID获取文件详情
@@ -406,11 +405,8 @@ pub fn select_file_by_group_id(
 ///
 /// 返回值:
 /// 查询成功的文件记录或数据库错误
-pub fn get_file_by_id(
-  conn: &mut AnyConnection,
-  file_id: i32,
-) -> Result<File, diesel::result::Error> {
-  files_dao::get_file_by_id(conn, file_id)
+pub fn get_file_by_id(conn: &mut AnyConnection, file_id: i32) -> Result<File, AppError> {
+  files_dao::get_file_by_id(conn, file_id).map_err(AppError::from)
 }
 
 /// 根据文件ID更新文件信息
@@ -512,11 +508,11 @@ pub fn update_file_by_id(
 pub fn delete_files_by_ids(
   conn: &mut AnyConnection,
   file_ids: Vec<i32>,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   let mut total_deleted = 0;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, diesel::result::Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     for &file_id in &file_ids {
       // 调用单个文件删除函数，复用其业务逻辑
       delete_file(conn, file_id)?;

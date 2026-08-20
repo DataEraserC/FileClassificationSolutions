@@ -14,6 +14,7 @@ use file_classification_core::{
     create_group, delete_group, get_group_tree, select_groups_by_conditions_with_limit,
     select_groups_by_filter_with_limit, update_groups_by_conditions,
   },
+  utils::errors::AppError,
 };
 use serde_json::json;
 
@@ -102,7 +103,7 @@ async fn api_get_group_by_id(
       Ok(HttpResponse::Ok().json(ApiResponse::success(group)))
     }
     // 组未找到
-    Err(diesel::result::Error::NotFound) => Ok(
+    Err(AppError::DieselError(diesel::result::Error::NotFound)) => Ok(
       HttpResponse::NotFound()
         .json(ApiResponse::<()>::error_with_code("GROUP_NOT_FOUND", "组未找到")),
     ),

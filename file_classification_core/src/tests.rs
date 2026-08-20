@@ -288,12 +288,9 @@ fn test_update_rejects_business_fields() {
   assert_eq!(find_group(&mut conn, g1).unwrap().name, "A2");
 }
 
-fn assert_err_is(result: Result<usize, diesel::result::Error>, expected: AppError) {
+fn assert_err_is(result: Result<usize, AppError>, expected: AppError) {
   match result {
-    Err(diesel::result::Error::QueryBuilderError(e)) => {
-      let app_err = e.downcast_ref::<AppError>().expect("应包装为 AppError");
-      assert_eq!(app_err.code(), expected.code());
-    }
-    other => panic!("期望业务错误，实际结果: {:?}", other.err().map(|e| format!("{:?}", e))),
+    Err(e) => assert_eq!(e.code(), expected.code()),
+    Ok(_) => panic!("期望业务错误，实际成功"),
   }
 }

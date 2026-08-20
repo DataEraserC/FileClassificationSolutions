@@ -13,7 +13,6 @@ use crate::model::models::{
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
-use diesel::result::Error;
 
 /// 创建文件-分组关联关系
 ///
@@ -130,8 +129,9 @@ pub fn select_file_groups_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: FileGroupFilter,
   limit: Option<i64>,
-) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+) -> Result<Vec<FileGroupDTO>, AppError> {
   file_group_dao::select_file_groups_by_filter_with_limit(conn, search_input, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询文件-分组关联列表
@@ -147,8 +147,9 @@ pub fn select_file_groups_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: FileGroupFilter,
   options: FileGroupQueryOptions,
-) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+) -> Result<Vec<FileGroupDTO>, AppError> {
   file_group_dao::select_file_groups_by_filter_with_options(conn, search_input, options)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询文件-分组关联列表（支持分页结果）
@@ -164,7 +165,7 @@ pub fn select_file_groups_by_filter_with_pagination(
   conn: &mut AnyConnection,
   search_input: FileGroupFilter,
   options: FileGroupQueryOptions,
-) -> Result<PaginationResult<FileGroupDTO>, diesel::result::Error> {
+) -> Result<PaginationResult<FileGroupDTO>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -194,8 +195,9 @@ pub fn select_file_groups_by_conditions_with_limit(
   conn: &mut AnyConnection,
   condition: Vec<FileGroupCondition>,
   limit: Option<i64>,
-) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+) -> Result<Vec<FileGroupDTO>, AppError> {
   file_group_dao::select_file_groups_by_conditions_with_limit(conn, condition, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询文件-分组关联记录
@@ -211,8 +213,9 @@ pub fn select_file_groups_by_conditions_with_options(
   conn: &mut AnyConnection,
   conditions: Vec<FileGroupCondition>,
   options: FileGroupQueryOptions,
-) -> Result<Vec<FileGroupDTO>, diesel::result::Error> {
+) -> Result<Vec<FileGroupDTO>, AppError> {
   file_group_dao::select_file_groups_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询文件-分组关联记录（支持分页结果）
@@ -228,8 +231,9 @@ pub fn select_file_groups_by_conditions_with_pagination(
   conn: &mut AnyConnection,
   conditions: Vec<FileGroupCondition>,
   options: FileGroupQueryOptions,
-) -> Result<PaginationResult<FileGroupDTO>, diesel::result::Error> {
+) -> Result<PaginationResult<FileGroupDTO>, AppError> {
   file_group_dao::select_file_groups_by_conditions_with_pagination(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件批量删除文件-分组关联记录（级联删除相关资源）
@@ -250,17 +254,13 @@ pub fn select_file_groups_by_conditions_with_pagination(
 pub fn delete_file_groups_by_conditions(
   conn: &mut AnyConnection,
   condition: Vec<FileGroupCondition>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   // 首先查询将要删除的记录
   let file_groups_to_delete =
-    file_group_dao::select_file_groups_by_conditions_with_limit(conn, condition.clone(), None)
-      .map_err(|e| match e {
-        diesel::result::Error::NotFound => Error::NotFound,
-        _ => e,
-      })?;
+    file_group_dao::select_file_groups_by_conditions_with_limit(conn, condition.clone(), None)?;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     let mut total_deleted = 0;
 
     // 对于每个要删除的文件组关联，直接调用delete_file_group函数
@@ -291,11 +291,11 @@ pub fn delete_file_groups_by_conditions(
 pub fn delete_file_groups_by_dtos(
   conn: &mut AnyConnection,
   dtos: Vec<FileGroupDTO>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   let mut total_deleted = 0;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     for dto in &dtos {
       // 调用单个删除函数，复用其业务逻辑和验证规则
       let deleted_count = delete_file_group_by_dto(conn, dto)?;

@@ -13,7 +13,6 @@ use crate::model::models::{
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
-use diesel::result::Error;
 
 /// 创建组-标签关联关系
 ///
@@ -111,8 +110,9 @@ pub fn select_group_tags_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: GroupTagFilter,
   limit: Option<i64>,
-) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+) -> Result<Vec<GroupTagDTO>, AppError> {
   group_tag_dao::select_group_tags_by_filter_with_limit(conn, search_input, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询分组-标签关联列表
@@ -128,8 +128,9 @@ pub fn select_group_tags_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: GroupTagFilter,
   options: GroupTagQueryOptions,
-) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+) -> Result<Vec<GroupTagDTO>, AppError> {
   group_tag_dao::select_group_tags_by_filter_with_options(conn, search_input, options)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询分组-标签关联列表（支持分页结果）
@@ -145,7 +146,7 @@ pub fn select_group_tags_by_filter_with_pagination(
   conn: &mut AnyConnection,
   search_input: GroupTagFilter,
   options: GroupTagQueryOptions,
-) -> Result<PaginationResult<GroupTagDTO>, diesel::result::Error> {
+) -> Result<PaginationResult<GroupTagDTO>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -172,8 +173,9 @@ pub fn select_group_tags_by_conditions_with_limit(
   conn: &mut AnyConnection,
   condition: Vec<GroupTagCondition>,
   limit: Option<i64>,
-) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+) -> Result<Vec<GroupTagDTO>, AppError> {
   group_tag_dao::select_group_tags_by_conditions_with_limit(conn, condition, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询分组-标签关联记录
@@ -189,8 +191,9 @@ pub fn select_group_tags_by_conditions_with_options(
   conn: &mut AnyConnection,
   conditions: Vec<GroupTagCondition>,
   options: GroupTagQueryOptions,
-) -> Result<Vec<GroupTagDTO>, diesel::result::Error> {
+) -> Result<Vec<GroupTagDTO>, AppError> {
   group_tag_dao::select_group_tags_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询分组-标签关联记录（支持分页结果）
@@ -206,8 +209,9 @@ pub fn select_group_tags_by_conditions_with_pagination(
   conn: &mut AnyConnection,
   conditions: Vec<GroupTagCondition>,
   options: GroupTagQueryOptions,
-) -> Result<PaginationResult<GroupTagDTO>, diesel::result::Error> {
+) -> Result<PaginationResult<GroupTagDTO>, AppError> {
   group_tag_dao::select_group_tags_by_conditions_with_pagination(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件批量删除分组-标签关联记录（级联删除相关资源）
@@ -228,17 +232,13 @@ pub fn select_group_tags_by_conditions_with_pagination(
 pub fn delete_group_tags_by_conditions(
   conn: &mut AnyConnection,
   condition: Vec<GroupTagCondition>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   // 首先查询将要删除的组标签关联
   let group_tags_to_delete =
-    group_tag_dao::select_group_tags_by_conditions_with_limit(conn, condition.clone(), None)
-      .map_err(|e| match e {
-        diesel::result::Error::NotFound => Error::NotFound,
-        _ => e,
-      })?;
+    group_tag_dao::select_group_tags_by_conditions_with_limit(conn, condition.clone(), None)?;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     let mut total_deleted = 0;
 
     // 对于每个要删除的组标签关联，直接调用delete_group_tag_by_dto函数
@@ -265,11 +265,11 @@ pub fn delete_group_tags_by_conditions(
 pub fn delete_group_tags_by_dtos(
   conn: &mut AnyConnection,
   dtos: Vec<GroupTagDTO>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   let mut total_deleted = 0;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     for dto in &dtos {
       // 调用单个删除函数，复用其业务逻辑和验证规则
       let deleted_count = delete_group_tag_by_dto(conn, dto)?;

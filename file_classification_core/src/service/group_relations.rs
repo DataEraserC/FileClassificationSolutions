@@ -13,7 +13,6 @@ use crate::model::models::{
 use crate::service::AppError;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
-use diesel::result::Error;
 
 /// 创建组关系
 ///
@@ -131,8 +130,9 @@ pub fn select_group_relations_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: GroupRelationFilter,
   limit: Option<i64>,
-) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+) -> Result<Vec<GroupRelation>, AppError> {
   group_relations_dao::select_group_relations_by_filter_with_limit(conn, search_input, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询组关系列表
@@ -148,8 +148,9 @@ pub fn select_group_relations_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: GroupRelationFilter,
   options: GroupRelationQueryOptions,
-) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+) -> Result<Vec<GroupRelation>, AppError> {
   group_relations_dao::select_group_relations_by_filter_with_options(conn, search_input, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件查询组关系记录
@@ -165,8 +166,9 @@ pub fn select_group_relations_by_conditions_with_limit(
   conn: &mut AnyConnection,
   condition: Vec<GroupRelationCondition>,
   limit: Option<i64>,
-) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+) -> Result<Vec<GroupRelation>, AppError> {
   group_relations_dao::select_group_relations_by_conditions_with_limit(conn, condition, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询组关系记录
@@ -182,8 +184,9 @@ pub fn select_group_relations_by_conditions_with_options(
   conn: &mut AnyConnection,
   conditions: Vec<GroupRelationCondition>,
   options: GroupRelationQueryOptions,
-) -> Result<Vec<GroupRelation>, diesel::result::Error> {
+) -> Result<Vec<GroupRelation>, AppError> {
   group_relations_dao::select_group_relations_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询组关系记录（支持分页结果）
@@ -199,7 +202,7 @@ pub fn select_group_relations_by_filter_with_pagination(
   conn: &mut AnyConnection,
   search_input: GroupRelationFilter,
   options: GroupRelationQueryOptions,
-) -> Result<PaginationResult<GroupRelation>, diesel::result::Error> {
+) -> Result<PaginationResult<GroupRelation>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -229,10 +232,11 @@ pub fn select_group_relations_by_conditions_with_pagination(
   conn: &mut AnyConnection,
   conditions: Vec<GroupRelationCondition>,
   options: GroupRelationQueryOptions,
-) -> Result<PaginationResult<GroupRelation>, diesel::result::Error> {
+) -> Result<PaginationResult<GroupRelation>, AppError> {
   group_relations_dao::select_group_relations_by_conditions_with_pagination(
     conn, conditions, options,
   )
+  .map_err(AppError::from)
 }
 
 /// 根据条件批量删除组关系记录
@@ -246,18 +250,13 @@ pub fn select_group_relations_by_conditions_with_pagination(
 pub fn delete_group_relations_by_conditions(
   conn: &mut AnyConnection,
   condition: Vec<GroupRelationCondition>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   // 首先查询将要删除的记录
   let relations_to_delete =
-    select_group_relations_by_conditions_with_limit(conn, condition.clone(), None).map_err(
-      |e| match e {
-        diesel::result::Error::NotFound => Error::NotFound,
-        _ => e,
-      },
-    )?;
+    select_group_relations_by_conditions_with_limit(conn, condition.clone(), None)?;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     let mut total_deleted = 0;
 
     // 对于每个要删除的组关系，直接调用delete_group_relation函数
@@ -288,11 +287,11 @@ pub fn delete_group_relations_by_conditions(
 pub fn delete_group_relations_by_dtos(
   conn: &mut AnyConnection,
   dtos: Vec<GroupRelation>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   let mut total_deleted = 0;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     for dto in &dtos {
       // 调用单个删除函数，复用其业务逻辑和验证规则
       let deleted_count = delete_group_relation(conn, dto)?;
@@ -345,8 +344,8 @@ pub fn delete_group_relations_by_group_id(
 pub fn get_direct_children_ids(
   conn: &mut AnyConnection,
   group_id: i32,
-) -> Result<Vec<i32>, diesel::result::Error> {
-  group_relations_dao::get_direct_children_ids(conn, group_id)
+) -> Result<Vec<i32>, AppError> {
+  group_relations_dao::get_direct_children_ids(conn, group_id).map_err(AppError::from)
 }
 
 /// 获取指定组的直接父组ID列表
@@ -360,8 +359,8 @@ pub fn get_direct_children_ids(
 pub fn get_direct_parents_ids(
   conn: &mut AnyConnection,
   group_id: i32,
-) -> Result<Vec<i32>, diesel::result::Error> {
-  group_relations_dao::get_direct_parents_ids(conn, group_id)
+) -> Result<Vec<i32>, AppError> {
+  group_relations_dao::get_direct_parents_ids(conn, group_id).map_err(AppError::from)
 }
 
 /// 检查是否会创建循环引用
@@ -379,7 +378,7 @@ fn would_create_cycle(
   parent_id: i32,
   child_id: i32,
   relation_type: i32,
-) -> Result<bool, diesel::result::Error> {
+) -> Result<bool, AppError> {
   // 如果尝试将组设置为自己的子组，则会创建循环
   if parent_id == child_id {
     return Ok(true);

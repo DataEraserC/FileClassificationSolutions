@@ -192,16 +192,3 @@ impl From<DieselError> for AppError {
     AppError::DieselError(err)
   }
 }
-
-/// 从 `AppError` 转换为 `DieselError` 的实现
-///
-/// 实现了 `From` trait，允许将应用程序错误转换为 Diesel 数据库错误
-/// 主要用于需要返回 DieselError 的场景
-impl From<AppError> for DieselError {
-  fn from(err: AppError) -> Self {
-    match err {
-      AppError::DieselError(diesel_err) => diesel_err,
-      err => DieselError::QueryBuilderError(Box::new(err)),
-    }
-  }
-}

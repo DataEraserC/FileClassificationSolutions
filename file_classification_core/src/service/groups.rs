@@ -17,7 +17,6 @@ use crate::service::AppError;
 use crate::service::group_relations as group_relations_service;
 use crate::utils::database::AnyConnection;
 use diesel::Connection;
-use diesel::result::Error;
 /// 通过名称创建分组
 ///
 /// 参数:
@@ -32,8 +31,8 @@ use diesel::result::Error;
 pub fn create_group(
   conn: &mut AnyConnection,
   create_group_dto: &CreateGroupDTO,
-) -> Result<i32, Error> {
-  groups_dao::insert_group(conn, create_group_dto)
+) -> Result<i32, AppError> {
+  groups_dao::insert_group(conn, create_group_dto).map_err(AppError::from)
 }
 
 /// 根据名称查找分组
@@ -60,8 +59,8 @@ pub fn find_group_by_name(conn: &mut AnyConnection, name: &str) -> Result<Option
 ///
 /// 返回值:
 /// 成功时返回删除的记录数，失败时返回数据库错误
-pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, Error> {
-  conn.transaction::<usize, Error, _>(|conn| {
+pub fn delete_group(conn: &mut AnyConnection, group_id: i32) -> Result<usize, AppError> {
+  conn.transaction::<usize, AppError, _>(|conn| {
     let group = groups_dao::find_group_by_id(conn, group_id)?.ok_or(AppError::GroupNotFound)?;
 
     // 1. 清理该组涉及的所有组关系（作为父组或子组），并维护两端引用计数
@@ -158,8 +157,8 @@ pub fn select_groups_by_filter_with_limit(
   conn: &mut AnyConnection,
   search_input: GroupFilter,
   limit: Option<i64>,
-) -> Result<Vec<Group>, diesel::result::Error> {
-  groups_dao::select_groups_by_filter_with_limit(conn, search_input, limit)
+) -> Result<Vec<Group>, AppError> {
+  groups_dao::select_groups_by_filter_with_limit(conn, search_input, limit).map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询分组列表
@@ -175,7 +174,7 @@ pub fn select_groups_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: GroupFilter,
   options: GroupQueryOptions,
-) -> Result<Vec<Group>, diesel::result::Error> {
+) -> Result<Vec<Group>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -205,6 +204,7 @@ pub fn select_groups_by_filter_with_options(
   }
 
   groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据过滤条件和选项查询分组列表（支持分页结果）
@@ -220,7 +220,7 @@ pub fn select_groups_by_filter_with_pagination(
   conn: &mut AnyConnection,
   search_input: GroupFilter,
   options: GroupQueryOptions,
-) -> Result<PaginationResult<Group>, diesel::result::Error> {
+) -> Result<PaginationResult<Group>, AppError> {
   // 构造查询条件
   let mut conditions = Vec::new();
 
@@ -268,8 +268,9 @@ pub fn select_groups_by_conditions_with_limit(
   conn: &mut AnyConnection,
   condition: Vec<GroupCondition>,
   limit: Option<i64>,
-) -> Result<Vec<Group>, diesel::result::Error> {
+) -> Result<Vec<Group>, AppError> {
   groups_dao::select_groups_by_conditions_with_limit(conn, condition, limit)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询分组列表
@@ -285,8 +286,9 @@ pub fn select_groups_by_conditions_with_options(
   conn: &mut AnyConnection,
   conditions: Vec<GroupCondition>,
   options: GroupQueryOptions,
-) -> Result<Vec<Group>, diesel::result::Error> {
+) -> Result<Vec<Group>, AppError> {
   groups_dao::select_groups_by_conditions_with_options(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件和选项查询分组列表（支持分页结果）
@@ -302,8 +304,9 @@ pub fn select_groups_by_conditions_with_pagination(
   conn: &mut AnyConnection,
   conditions: Vec<GroupCondition>,
   options: GroupQueryOptions,
-) -> Result<PaginationResult<Group>, diesel::result::Error> {
+) -> Result<PaginationResult<Group>, AppError> {
   groups_dao::select_groups_by_conditions_with_pagination(conn, conditions, options)
+    .map_err(AppError::from)
 }
 
 /// 根据条件批量更新分组
@@ -319,15 +322,15 @@ pub fn update_groups_by_conditions(
   conn: &mut AnyConnection,
   conditions: Vec<GroupCondition>,
   update_set: UpdateGroupDTO,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   // 主组标记与引用计数由业务层维护，不允许通过更新接口直接修改
   if update_set.is_primary.is_some() {
-    return Err(AppError::CannotModifyPrimaryStatus.into());
+    return Err(AppError::CannotModifyPrimaryStatus);
   }
   if update_set.reference_count.is_some() {
-    return Err(AppError::CannotModifyReferenceCount.into());
+    return Err(AppError::CannotModifyReferenceCount);
   }
-  groups_dao::update_groups_by_conditions(conn, conditions, update_set)
+  groups_dao::update_groups_by_conditions(conn, conditions, update_set).map_err(AppError::from)
 }
 
 /// 根据条件批量删除分组（级联删除相关资源）
@@ -353,16 +356,12 @@ pub fn update_groups_by_conditions(
 pub fn delete_groups_by_conditions(
   conn: &mut AnyConnection,
   conditions: Vec<GroupCondition>,
-) -> Result<usize, Error> {
+) -> Result<usize, AppError> {
   // 首先查询将要删除的组
-  let groups_to_delete = select_groups_by_conditions_with_limit(conn, conditions.clone(), None)
-    .map_err(|e| match e {
-      diesel::result::Error::NotFound => diesel::result::Error::NotFound,
-      _ => e,
-    })?;
+  let groups_to_delete = select_groups_by_conditions_with_limit(conn, conditions.clone(), None)?;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     let mut total_deleted = 0;
 
     // 对于每个要删除的组，直接调用delete_group函数
@@ -386,8 +385,8 @@ pub fn delete_groups_by_conditions(
 pub fn select_group_by_file_id(
   conn: &mut AnyConnection,
   other_file_id: i32,
-) -> Result<Vec<Group>, diesel::result::Error> {
-  groups_dao::select_groups_by_file_id(conn, other_file_id)
+) -> Result<Vec<Group>, AppError> {
+  groups_dao::select_groups_by_file_id(conn, other_file_id).map_err(AppError::from)
 }
 
 /// 根据标签ID查询关联的分组列表
@@ -401,8 +400,8 @@ pub fn select_group_by_file_id(
 pub fn select_group_by_tag_id(
   conn: &mut AnyConnection,
   tag_id: i32,
-) -> Result<Vec<Group>, diesel::result::Error> {
-  groups_dao::select_groups_by_tag_id(conn, tag_id)
+) -> Result<Vec<Group>, AppError> {
+  groups_dao::select_groups_by_tag_id(conn, tag_id).map_err(AppError::from)
 }
 
 /// 根据分组ID获取分组详情
@@ -413,11 +412,8 @@ pub fn select_group_by_tag_id(
 ///
 /// 返回值:
 /// 查询成功的分组记录或数据库错误
-pub fn get_group_by_id(
-  conn: &mut AnyConnection,
-  group_id: i32,
-) -> Result<Group, diesel::result::Error> {
-  groups_dao::get_group_by_id(conn, group_id)
+pub fn get_group_by_id(conn: &mut AnyConnection, group_id: i32) -> Result<Group, AppError> {
+  groups_dao::get_group_by_id(conn, group_id).map_err(AppError::from)
 }
 
 /// 根据分组ID更新分组信息
@@ -433,15 +429,15 @@ pub fn update_group_by_id(
   conn: &mut AnyConnection,
   group_id: i32,
   update_set: UpdateGroupDTO,
-) -> Result<usize, diesel::result::Error> {
+) -> Result<usize, AppError> {
   // 主组标记与引用计数由业务层维护，不允许通过更新接口直接修改
   if update_set.is_primary.is_some() {
-    return Err(AppError::CannotModifyPrimaryStatus.into());
+    return Err(AppError::CannotModifyPrimaryStatus);
   }
   if update_set.reference_count.is_some() {
-    return Err(AppError::CannotModifyReferenceCount.into());
+    return Err(AppError::CannotModifyReferenceCount);
   }
-  groups_dao::update_group_by_id(conn, group_id, update_set)
+  groups_dao::update_group_by_id(conn, group_id, update_set).map_err(AppError::from)
 }
 
 /// 根据组ID获取组的树状结构
@@ -477,11 +473,11 @@ pub fn get_group_tree(conn: &mut AnyConnection, group_id: i32) -> Result<GroupTr
 ///
 /// 返回值:
 /// 成功删除的记录数或数据库错误
-pub fn delete_groups_by_ids(conn: &mut AnyConnection, group_ids: Vec<i32>) -> Result<usize, Error> {
+pub fn delete_groups_by_ids(conn: &mut AnyConnection, group_ids: Vec<i32>) -> Result<usize, AppError> {
   let mut total_deleted = 0;
 
   // 使用事务确保数据一致性
-  conn.transaction::<_, Error, _>(|conn| {
+  conn.transaction::<_, AppError, _>(|conn| {
     for &group_id in &group_ids {
       // 调用单个分组删除函数，复用其业务逻辑
       let deleted_count = delete_group(conn, group_id)?;
