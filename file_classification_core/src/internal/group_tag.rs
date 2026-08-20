@@ -191,6 +191,9 @@ pub fn select_group_tags_by_filter_with_limit(
 ///
 /// 返回值:
 /// 查询成功的记录列表或数据库错误
+///
+/// 注意: 当前服务层统一走 conditions 查询路径，此函数预留，后续可能复用
+#[allow(dead_code)]
 pub fn select_group_tags_by_filter_with_options(
   conn: &mut AnyConnection,
   search_input: GroupTagFilter,
