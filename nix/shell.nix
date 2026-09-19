@@ -1,7 +1,6 @@
 {
   callPackage,
   rust-bin,
-  nodePackages,
   pkgs,
 }: let
   mainPkg = callPackage ./file_classification_cli.nix {};
@@ -24,7 +23,7 @@ in
         # for rust-rover (?)
         # pkgs.rustup
 
-        nodePackages.cspell
+        pkgs.cspell
 
         pkgs.diesel-cli
 
